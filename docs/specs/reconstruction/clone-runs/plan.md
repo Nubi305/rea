@@ -24,7 +24,12 @@ with `digestTree` and `now` in `CloneRunEvaluationDependencies`. It is generic i
 `ScenarioBehaviorCaptureFacts`, so its unit tests pass a fake comparer and never build Evidence. Production wiring is
 `{ comparer: SCENARIO_BEHAVIOR_COMPARER, digestTree: digestCloneTree, now: () => new Date() }`.
 
-The exported names in the five stub modules and the two domain modules are frozen. A package may add exports to the
+What crosses the two packages is small and all of it is in `ScenarioBehaviorCaptureFacts` and the comparison schema:
+the referee admits by `start_origin`, `scenario_sha256`, `definition` and `evidence_id`, judges the start state from
+`fingerprint_sha256` (`scenarioStartState`, also without a clone), checks copied files against `reply_bodies`, and
+reads step statuses and findings from `compare`, which returns a `Result` because differing step lists are a refusal.
+
+The exported names in the four stub modules and the two domain modules are frozen. A package may add exports to the
 modules it owns; it does not rename or reshape what another package imports. A needed change is a deviation to report.
 
 ## Choices
@@ -44,8 +49,19 @@ modules it owns; it does not rename or reshape what another package imports. A n
    scenario edit leaves old files behind. Edited files and captures from a wrong address do block.
 5. **Exit codes keep REA's convention for refusals** (exit 1 with the error envelope). `--exit-code` adds the verdict
    codes by setting `process.exitCode` in the handler, as `audit-release-exposure --fail_on` does.
-6. **No schema tag on authored files.** Agents hand-write three kinds of file; each extra required member is one more
-   rejected call. Referee outputs carry `schema`.
+6. **No schema tag on authored files, and no member that repeats the file name.** Agents hand-write three kinds of
+   file; each extra required member is one more rejected call. The base name is the scenario, area or unknown id.
+   Referee outputs carry `schema`.
+7. **The application is the start origin.** `probeRequests` picks the origin with the most JSON-like records; on a
+   capture whose page had been sent to another server it compared that server. The comparer names the origin itself,
+   treats a compared request to any other origin as `unknown`, and keeps the origin in a page address that left.
+8. **Parity cannot be waived, and renaming a step cannot hide a difference.** Waivers cover unknown proposals and
+   inferred obligations. A setup or fingerprint step may be `unknown` or `unstable`; `changed` blocks on every step.
+9. **A copied capture is not a repeat.** Two admitted files with one `evidence_id` count once.
+10. **The copied-file check reads Evidence too.** Reply bodies the original's admitted captures recorded join the
+    declared material, so the check does not depend on what the scout chose to save.
+11. **A volatile declaration names one leaf.** A pointer to an object, an array or the whole body would mask every
+    value beneath it as soon as one of them varied.
 
 ## Work packages
 
@@ -60,8 +76,9 @@ owns the end-to-end run; D builds in parallel with C.
   `{ step_id, resource_type }`
 - `src/application/environment/environmentSource.ts`: `ParsedEnvironmentCapture.scenario`, null for a HAR, with the
   capture's steps, start origin, parameters and the map above
-- `src/application/environment/environmentCompareProbe.ts`: `probeRequests(records, stepIds?)` sets
-  `ProbeStep.step_id`
+- `src/application/environment/environmentCompareProbe.ts`: `probeRequests(records, options?)`, where
+  `options.stepIds` sets `ProbeStep.step_id` and `options.origin` replaces the majority-origin choice; without options
+  it behaves as today
 - the existing tests of those three modules
 
 ### B: run folder and referee
@@ -77,8 +94,14 @@ owns the end-to-end run; D builds in parallel with C.
   domain modules), `src/cli/cliCommandRegistrations.ts` (registration `cloneRun`, listed under the `application`
   family), `src/cli.ts`
 - `tests/boundary/cli/cliContractSchemaParity.uncomparable.json`, `tests/boundary/cli/cloneRunCli.test.ts`
-- `tests/fixtures/cloneRun/`: original, renamed clone, mutant switch, scenario, obligations
-- `scripts/verify-clone-run.mjs`, `scripts/lib/clone-run-e2e.mjs`, `package.json` script `verify:clone-run`
+- `tests/fixtures/cloneRun/`: original, renamed clone, mutant switch, scenario, obligations. The clone is new code:
+  no file of 64 bytes or more equals a file the original serves, and neither it nor the mutant switch mentions the
+  original's name. The original's name is distinctive (it occurs in no route or field name) and one of its routes
+  answers with more than 64 KiB for the unknown case.
+- `scripts/verify-clone-run.mjs`, `scripts/lib/clone-run-e2e.mjs`, `package.json` script `verify:clone-run`. The script
+  drives each case by the worklist (reset the fixture, run the capture command of a `next` item, evaluate) until the
+  verdict settles or a bound is reached: reply bodies are lost at random, so a fixed two captures per side would make
+  the run flaky
 
 ### D: guidance and documentation
 
@@ -90,6 +113,12 @@ owns the end-to-end run; D builds in parallel with C.
   or is one of the three operation constants, and every reason code and role it names is in `CLONE_RUN_REASONS` and
   `CLONE_RUN_ROLES`
 - `docs/reference/clone-runs.md`, `docs/getting-started/cli.md`, `docs/.vitepress/documentation.ts`, `docs/README.md`
+
+### Shared files
+
+`tasks.md`: each package ticks the boxes of its own section and touches no other line. `spec.md` and this plan are
+changed only by package C when it merges, from the deviations the other packages report. `package.json` belongs to C;
+D regenerates `src/generatedPackageMetadata.ts`, which holds the skill version and nothing of C's.
 
 ## Verification
 

@@ -90,11 +90,11 @@ export interface CloneRunWorkspace {
   readonly run: string;
   /** Null when `target.json` is refused; `issues` then says why. */
   readonly target: CloneRunTarget | null;
-  /** Valid scenarios by id, in id order. */
+  /** Valid scenarios by id (the file's base name), in id order. */
   readonly scenarios: ReadonlyMap<string, CloneRunScenario>;
-  /** Valid obligation files by area, in area order. */
+  /** Valid obligation files by area (the file's base name), in area order. */
   readonly obligations: ReadonlyMap<string, CloneRunObligations>;
-  /** Valid unknowns by id. */
+  /** Valid unknowns by id (the file's base name, `<role>-<n>`). */
   readonly unknowns: ReadonlyMap<string, CloneRunUnknown>;
   readonly waivers: CloneRunWaivers;
   readonly intendedDifferences: CloneRunIntendedDifferences;
@@ -109,7 +109,11 @@ export interface CloneRunWorkspace {
 /**
  * Read the authored files. A missing run directory or `target.json` is a
  * refusal; a file that fails its schema is an issue, never a refusal, so one
- * evaluation reports every broken file.
+ * evaluation reports every broken file. Beyond the schemas it refuses what
+ * only the folder shows: a base name that is not an identifier, an unknown
+ * not named `<role>-<n>`, an obligation id used twice, a waiver or `closed`
+ * entry that names nothing, and a volatile field whose scenario or step does
+ * not exist (specification, "What done means", check 2).
  */
 export const loadCloneRunWorkspace = (
   runDirectory: string,
@@ -130,16 +134,21 @@ export interface RenderedCloneRunScenario {
 
 /**
  * Render one scenario for one side. The clone side takes the clone tree
- * digest and ends with the `rea-tree-<digest>` step. Pure: the same inputs
- * give the same document and digest.
+ * digest and ends with the `rea-tree-<digest>` step. `{origin}` is replaced
+ * only at the start of a `goto` step's `destination.url`, and every rendered
+ * `goto` must stay on the side's address; anything else is an issue against
+ * `scenarios/<scenarioId>.json`. Pure: the same inputs give the same document
+ * and digest.
  */
 export const renderCloneRunScenario = (
+  scenarioId: string,
   scenario: CloneRunScenario,
   target: CloneRunTarget,
   binding:
     | { readonly side: "original" }
     | { readonly side: "clone"; readonly cloneTreeSha256: string },
 ): Result<RenderedCloneRunScenario, readonly CloneRunFileIssue[]> => {
+  void scenarioId;
   void scenario;
   void target;
   void binding;
@@ -165,7 +174,11 @@ export const cloneRunCaptureCommand = (
   return notImplemented("cloneRunCaptureCommand");
 };
 
-/** Everything one evaluation writes. No verdict ever reads these back. */
+/**
+ * Everything one evaluation writes. No verdict ever reads these back. Output
+ * files of scenarios that no longer exist are removed, so `rendered/` never
+ * offers a capture input the referee would not admit.
+ */
 export interface CloneRunOutputs {
   readonly gate: CloneRunGate;
   /** Appended only when the state differs from the last line. */
@@ -176,7 +189,7 @@ export interface CloneRunOutputs {
     readonly document: JsonValue;
   }[];
   readonly records: readonly CloneRunAdmissionRecord[];
-  /** The original's behaviour per scenario. */
+  /** The original's behaviour per scenario, as soon as one original capture is admitted. */
   readonly behavior: ReadonlyMap<string, ScenarioBehaviorTable>;
   readonly parity: ReadonlyMap<string, ScenarioBehaviorComparison>;
 }

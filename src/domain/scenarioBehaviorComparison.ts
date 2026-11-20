@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import type { AnalysisError } from "./analysisErrorBase.js";
 import { digestSchema } from "./digests.js";
-import { jsonValueSchema } from "./jsonValue.js";
+import { jsonValueSchema, type JsonValue } from "./jsonValue.js";
 import type { Result } from "./result.js";
 
 /**
@@ -16,7 +16,11 @@ export const SCENARIO_BEHAVIOR_OPERATION = "compare-scenario-behavior";
 
 /** Steps with this prefix are the opening fingerprint of the start state. */
 export const FINGERPRINT_STEP_PREFIX = "fp-";
-/** Steps with this prefix prepare state; they are compared and reported, never gated. */
+/**
+ * Steps with this prefix prepare state. They need no citation and may be
+ * `unknown` or `unstable`; a `changed` one still blocks, so renaming a failing
+ * step cannot hide a difference.
+ */
 export const SETUP_STEP_PREFIX = "setup-";
 /** Step ids REA owns; an authored scenario cannot use the prefix. */
 export const RESERVED_STEP_PREFIX = "rea-";
@@ -77,6 +81,49 @@ export type ScenarioBehaviorDimension =
 /** Resource types whose transactions are compared; every other type is counted as ignored. */
 export const COMPARED_RESOURCE_TYPES = ["fetch", "xhr", "document"] as const;
 
+/**
+ * Whether a reply with this status carries a body the capture could record.
+ * A HEAD reply, 204, 205, 304 and every redirect have none: the browser
+ * refuses to read a redirect's body, so its absence is not missing data.
+ */
+export const replyBodyExpected = (method: string, status: number): boolean =>
+  method.toUpperCase() !== "HEAD" &&
+  status !== 204 &&
+  status !== 205 &&
+  !(status >= 300 && status <= 399);
+
+export const SCENARIO_START_STATES = ["clean", "dirty", "unknown"] as const;
+export type ScenarioStartState = (typeof SCENARIO_START_STATES)[number];
+
+/**
+ * How one side's captures started, from their fingerprints
+ * (`ScenarioBehaviorCaptureFacts.fingerprint_sha256`). `dirty`: two recorded
+ * fingerprints differ. `clean`: at least two were recorded and all are equal.
+ * `unknown` otherwise, so one capture never shows a clean start.
+ */
+export const scenarioStartState = (
+  fingerprints: readonly (string | null)[],
+): ScenarioStartState => {
+  const recorded = fingerprints.filter(
+    (fingerprint): fingerprint is string => fingerprint !== null,
+  );
+  if (new Set(recorded).size > 1) return "dirty";
+  return recorded.length >= 2 ? "clean" : "unknown";
+};
+
+/**
+ * What is still compared of a reply value whose content is declared
+ * volatile: its JSON type, and for a string its layout with every run of
+ * ASCII letters and digits folded to `x`. Two timestamps of one format, two
+ * UUIDs or two decimal ids share a shape; a timestamp and a number do not.
+ */
+export const volatileValueShape = (value: JsonValue): string => {
+  if (typeof value === "string")
+    return `string:${value.replaceAll(/[0-9A-Za-z]+/gu, "x")}`;
+  if (value === null) return "null";
+  return Array.isArray(value) ? "array" : typeof value;
+};
+
 /** A changed step outranks an unknown or unstable one; missing data never yields `unchanged`. */
 export const scenarioBehaviorVerdict = (
   statuses: readonly ScenarioStepStatus[],
@@ -92,7 +139,12 @@ export const scenarioBehaviorExitCode = (
   verdict: ScenarioBehaviorVerdict,
 ): 0 | 1 | 2 => (verdict === "unchanged" ? 0 : verdict === "changed" ? 1 : 2);
 
-/** Text the clone replaces by declaration: applied to the left side's on-screen text and JSON string values. */
+/**
+ * Text the clone replaces by declaration. Applied to the left side's
+ * on-screen text, JSON string values and text bodies before comparison: every
+ * occurrence, case-sensitive, in declaration order, each on the result of the
+ * one before. Never to field names, paths, queries, statuses or addresses.
+ */
 export const scenarioBehaviorRenameSchema = z.strictObject({
   from: z.string().min(1),
   to: z.string(),
@@ -101,12 +153,20 @@ export type ScenarioBehaviorRename = z.infer<
   typeof scenarioBehaviorRenameSchema
 >;
 
-/** A reply field declared to differ between repeats; `*` stands for any array index. */
+/**
+ * A reply leaf declared to differ between repeats; a `*` segment stands for
+ * any one array index. The pointer names a leaf exactly: it never covers the
+ * values beneath an object or array, and the whole body (the empty pointer)
+ * cannot be declared.
+ */
 export const scenarioBehaviorVolatileFieldSchema = z.strictObject({
   step_id: z.string().min(1),
   pointer: z
     .string()
-    .regex(/^(?:\/(?:[^~/]|~0|~1)*)*$/u, "Use an RFC 6901 JSON pointer"),
+    .regex(
+      /^(?:\/(?:[^~/]|~0|~1)*)+$/u,
+      "Use an RFC 6901 JSON pointer to one field, such as /createdAt or /items/*/id",
+    ),
 });
 export type ScenarioBehaviorVolatileField = z.infer<
   typeof scenarioBehaviorVolatileFieldSchema
@@ -117,7 +177,11 @@ const sideSchema = z.enum(["left", "right"]);
 /** One observed difference or gap at a step. Values are JSON text cut to 120 characters. */
 export const scenarioBehaviorFindingSchema = z.strictObject({
   dimension: z.enum(SCENARIO_BEHAVIOR_DIMENSIONS),
-  /** The differ's category, or the comparer's own: `not-recorded`, `not-completed`, `repeats-differ`, `undeclared-volatile`, `format`. */
+  /**
+   * The differ's category, or the comparer's own: `not-recorded`,
+   * `not-completed`, `missing-step`, `other-origin`, `repeats-differ`,
+   * `undeclared-volatile`, `shape`.
+   */
   category: z.string().min(1),
   /** Request line and occurrence within the step, such as `POST /api/notes#1`; null for step-level facts. */
   request: z.string().nullable(),
@@ -141,10 +205,13 @@ const comparedSideSchema = z.strictObject({
       file: z.string().min(1),
       evidence_id: z.string().min(1),
       scenario_sha256: digestSchema.nullable(),
+      /** Captures of one side with equal fingerprints started from the same state. */
+      fingerprint_sha256: digestSchema.nullable(),
     }),
   ),
-  /** Whether the `fp-` steps agree exactly across this side's captures. */
-  start_state: z.enum(["clean", "dirty", "single-capture", "no-fingerprint"]),
+  /** `scenarioStartState` of this side's fingerprints. */
+  start_state: z.enum(SCENARIO_START_STATES),
+  /** Transactions of resource types that are not compared (scripts, styles, images, fonts). */
   ignored_transactions: z.int().min(0),
 });
 
@@ -170,7 +237,7 @@ export const scenarioBehaviorComparisonSchema = z.strictObject({
       findings: z.array(scenarioBehaviorFindingSchema),
     }),
   ),
-  /** Reply fields seen to differ between one side's repeats, with whether a declaration covers them. */
+  /** Reply leaves seen to differ between one side's repeats, with whether a declaration covers them. */
   volatile_fields: z.array(
     z.strictObject({
       step_id: z.string().min(1),
@@ -178,6 +245,10 @@ export const scenarioBehaviorComparisonSchema = z.strictObject({
       pointer: z.string(),
       declared: z.boolean(),
     }),
+  ),
+  /** Each declared rename that changed at least one compared left value, with how many. */
+  renames_applied: z.array(
+    scenarioBehaviorRenameSchema.extend({ values: z.int().min(1) }),
   ),
   limitations: z.array(z.string().min(1)),
 });
@@ -246,6 +317,23 @@ export interface ScenarioBehaviorCaptureFacts {
     readonly step_id: string;
     readonly outcome: "completed" | "failed" | "cancelled";
   }[];
+  /**
+   * Digest of everything the `fp-` steps observed, in every compared
+   * dimension, without the address. Null when the capture has no `fp-` step,
+   * one did not complete, or one lacks an observation (no response, a body
+   * that was expected and not recorded, text or page address not recorded).
+   */
+  readonly fingerprint_sha256: string | null;
+  /**
+   * Every reply body the capture recorded from its start origin, whatever the
+   * resource type: the original's own served files, for the clean-room check.
+   */
+  readonly reply_bodies: readonly {
+    /** Request line, such as `GET /app.js`. */
+    readonly request: string;
+    readonly sha256: string;
+    readonly bytes: number;
+  }[];
 }
 
 /** One comparison: at least one capture per side, with the declarations that apply. */
@@ -271,10 +359,14 @@ export interface ScenarioBehaviorComparer<
     file: string,
     options?: { readonly signal?: AbortSignal },
   ) => Promise<Result<Capture, AnalysisError>>;
-  /** Compare the two sides; complete detail, every left-side step. */
+  /**
+   * Compare the two sides; complete detail, every left-side step. Refused
+   * when a side is empty or its captures do not list the same step ids in the
+   * same order.
+   */
   readonly compare: (
     request: ScenarioBehaviorComparisonRequest<Capture>,
-  ) => ScenarioBehaviorComparison;
+  ) => Result<ScenarioBehaviorComparison, AnalysisError>;
   /** One side's behaviour table from its captures. */
   readonly describe: (captures: readonly Capture[]) => ScenarioBehaviorTable;
 }

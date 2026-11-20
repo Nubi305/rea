@@ -17,6 +17,15 @@ import type {
  * (purpose "manifest", which keeps request bodies) validates the capture,
  * `probeRequests` yields each request with its answer and step id, and
  * `compareAnswers` is the differ.
+ *
+ * Three behaviours of those owners must not leak into a verdict (each was
+ * observed on real captures; see the specification's verified facts):
+ * `probeRequests` picks the origin with the most JSON-like records, so this
+ * module passes the capture's start origin instead; `compareAnswers` notices
+ * a missing or oversized body on its first argument only and treats clocks of
+ * one format as equal, so missing data is classified on both sides before it
+ * is called and an exact comparison runs beside it; and a redirect reply is
+ * marked unobserved although it has no body (`replyBodyExpected`).
  */
 
 /**
@@ -46,10 +55,13 @@ export const readScenarioBehaviorCapture = (
   return notImplemented("readScenarioBehaviorCapture");
 };
 
-/** Compare already read captures; complete detail, every left-side step. */
+/**
+ * Compare already read captures; complete detail, every left-side step.
+ * Refused when a side is empty or its captures list different step ids.
+ */
 export const compareScenarioBehaviorCaptures = (
   request: ScenarioBehaviorComparisonRequest<ScenarioBehaviorCapture>,
-): ScenarioBehaviorComparison => {
+): Result<ScenarioBehaviorComparison, AnalysisError> => {
   void request;
   return notImplemented("compareScenarioBehaviorCaptures");
 };

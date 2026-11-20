@@ -23,6 +23,13 @@ export interface CloneTreeSnapshot {
   readonly files: readonly CloneTreeFile[];
   /** The excludes that applied, as declared. */
   readonly exclude: readonly string[];
+  /**
+   * Paths of symlinks whose fully resolved target lies outside the clone root
+   * or under an exclude. What such a link serves can change without the
+   * digest changing, so the referee blocks on each
+   * (`clone_symlink_outside_root`). A dangling link is not listed.
+   */
+  readonly symlinksOutsideRoot: readonly string[];
 }
 
 const notImplemented = (name: string): never => {
@@ -51,8 +58,10 @@ export const isCloneTreePathExcluded = (
 
 /**
  * Read every file under the clone root except the declared excludes and
- * digest the tree. A root that is absent or not a directory is a refusal the
- * referee reports as `clone_root_missing`.
+ * digest the tree. The root is symlink-resolved first; links inside it are
+ * recorded by their text and never followed, and entries that are neither
+ * regular files, directories nor links are skipped. A root that is absent or
+ * not a directory is a refusal the referee reports as `clone_root_missing`.
  */
 export const digestCloneTree = (
   root: string,
