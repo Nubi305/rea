@@ -1,6 +1,6 @@
 import { webPageInspectionSchema } from "./browserObservationSchemas.js";
 import { retainedBrowserScenarioCaptureSchema } from "./browserScenarioCapture.js";
-import { parseEvidence } from "./evidence.js";
+import { parseEvidence, type Evidence } from "./evidence.js";
 import type {
   CapturedWebScript,
   WebScriptExportResult,
@@ -54,6 +54,23 @@ export const SCRIPT_CAPTURE_ADAPTERS: readonly ScriptCaptureAdapter[] = [
   },
 ];
 
+const unsupportedCapture = (): TypeError =>
+  new TypeError(
+    "Expected a valid inspect_web_page or capture_browser_scenario capture, with retained script sources or response bytes. Evidence envelopes must have a matching operation and semantic identifier.",
+  );
+
+/** Select the scripts of one authenticated capture record by its operation. */
+export const selectEvidenceScriptCapture = (
+  evidence: Evidence,
+  adapters: readonly ScriptCaptureAdapter[] = SCRIPT_CAPTURE_ADAPTERS,
+): SelectedScriptCapture & { readonly sourceEvidenceId: string } => {
+  const selected = adapters
+    .find(({ operation }) => operation === evidence.operation)
+    ?.parse(evidence.normalized_result);
+  if (selected === undefined) throw unsupportedCapture();
+  return { ...selected, sourceEvidenceId: evidence.evidence_id };
+};
+
 /** Reject unsupported/malformed captures and tampered Evidence before writing. */
 export const selectScriptCapture = (
   raw: unknown,
@@ -63,21 +80,11 @@ export const selectScriptCapture = (
     typeof raw === "object" &&
     raw !== null &&
     ("normalized_result" in raw || "evidence_id" in raw)
-  ) {
-    const evidence = parseEvidence(raw);
-    const selected = adapters
-      .find(({ operation }) => operation === evidence.operation)
-      ?.parse(evidence.normalized_result);
-    if (selected !== undefined)
-      return { ...selected, sourceEvidenceId: evidence.evidence_id };
-  } else {
-    for (const adapter of adapters) {
-      const selected = adapter.parse(raw);
-      if (selected !== undefined)
-        return { ...selected, sourceEvidenceId: null };
-    }
+  )
+    return selectEvidenceScriptCapture(parseEvidence(raw), adapters);
+  for (const adapter of adapters) {
+    const selected = adapter.parse(raw);
+    if (selected !== undefined) return { ...selected, sourceEvidenceId: null };
   }
-  throw new TypeError(
-    "Expected a valid inspect_web_page or capture_browser_scenario capture, with retained script sources or response bytes. Evidence envelopes must have a matching operation and semantic identifier.",
-  );
+  throw unsupportedCapture();
 };

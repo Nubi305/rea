@@ -22,7 +22,7 @@ const environmentCaptureSourceSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("evidence-file"),
     path: absoluteLocalPathStringSchema.describe(
-      "Absolute path of one capture Evidence JSON file, copied byte for byte into the bundle.",
+      "Absolute path of one capture Evidence JSON file, copied byte for byte into the bundle; or of an Evidence bundle holding one capture record, which is written as one Evidence file.",
     ),
   }),
 ]);

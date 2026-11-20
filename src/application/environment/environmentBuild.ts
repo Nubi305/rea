@@ -18,6 +18,7 @@ import {
 import type { EnvironmentBuildReport } from "../../domain/environmentBundleExport.js";
 import { err, ok, type Result } from "../../domain/result.js";
 import { inspectAnalysisView } from "../analysisView/AnalysisViewService.js";
+import { savedBundleCapture } from "../EvidenceBundleCapture.js";
 import {
   ENVIRONMENT_EXPORT_OPERATION,
   planEnvironmentBundle,
@@ -114,6 +115,31 @@ const captureOperations = new Set([
   "inspect_web_network_capture",
   "capture_browser_scenario",
 ]);
+
+/**
+ * The capture file the bundle ships. A capture saved with `--evidence_output`
+ * is an Evidence bundle: the bundle owner authenticates it and its one capture
+ * record becomes the file, serialized as `--format json` writes it. Any other
+ * file is shipped as read.
+ */
+const singleCaptureFile = async (
+  capture: EnvironmentExportFile,
+): Promise<Result<EnvironmentExportFile, AnalysisError>> => {
+  const bundled = savedBundleCapture(capture.value, capture.path, {
+    operation: ENVIRONMENT_BUILD_OPERATION,
+    path: ["capture"],
+    captureOperations: [...captureOperations],
+    immutable: true,
+  });
+  if (bundled === undefined) return ok(capture);
+  if (!bundled.ok) return bundled;
+  return environmentExportEvidenceFile(
+    "evidence",
+    capture.path,
+    bundled.value,
+    ENVIRONMENT_BUILD_OPERATION,
+  );
+};
 
 const harDocument = (value: unknown): boolean => {
   if (typeof value !== "object" || value === null) return false;
@@ -263,10 +289,12 @@ export const buildEnvironment = async (
     return err(repeatedRules());
   if (input.captureInput === "evidence" && harDocument(input.capture.value))
     return err(harAsJson(input.capturePath));
+  const captureFile = await singleCaptureFile(input.capture);
+  if (!captureFile.ok) return captureFile;
   const evidence = parseEvidenceFile(
     ENVIRONMENT_BUILD_OPERATION,
     "evidence",
-    input.capture.value,
+    captureFile.value.value,
   );
   if (!evidence.ok) return evidence;
   if (!captureOperations.has(evidence.value.operation))
@@ -300,7 +328,7 @@ export const buildEnvironment = async (
   if (!parsedManifest.ok) return parsedManifest;
   const recorded = parseCaptureEvidence(
     ENVIRONMENT_BUILD_OPERATION,
-    input.capture.value,
+    captureFile.value.value,
   );
   if (!recorded.ok) return recorded;
   const source = composeEnvironmentSource(
@@ -317,7 +345,7 @@ export const buildEnvironment = async (
   if (beforeState !== undefined) return err(beforeState);
   input.progress?.("state");
   // Prepared as the export prepares it, so its report and the bundle's README match the three-step path.
-  const served = prepareServedState(source.value, input.capture.value, {
+  const served = prepareServedState(source.value, captureFile.value.value, {
     name,
     operation: ENVIRONMENT_EXPORT_OPERATION,
   });
@@ -369,7 +397,10 @@ export const buildEnvironment = async (
         bytes: Buffer.byteLength(file.content),
       })),
       { path: plan.value.copies.manifest, bytes: manifest.value.bytes.length },
-      { path: plan.value.copies.evidence, bytes: input.capture.bytes.length },
+      {
+        path: plan.value.copies.evidence,
+        bytes: captureFile.value.bytes.length,
+      },
     ];
     if (
       plan.value.copies.tarball !== null &&
@@ -398,7 +429,7 @@ export const buildEnvironment = async (
   input.progress?.("bundle");
   const exported = await exportEnvironmentBundle({
     manifest: manifest.value,
-    evidence: input.capture,
+    evidence: captureFile.value,
     source: source.value,
     served,
     directory,

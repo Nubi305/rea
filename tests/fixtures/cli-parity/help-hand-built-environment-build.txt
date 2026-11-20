@@ -6,7 +6,7 @@ rea environment-build — Build an agent environment bundle from a recorded capt
 Usage: rea environment-build <capture> [directory] [options]
 
 Arguments:
-  capture    A .har file, or capture Evidence JSON from inspect-web-network-capture (HAR) or capture-browser-scenario
+  capture    A .har file, or capture Evidence JSON from inspect-web-network-capture (HAR) or capture-browser-scenario: one record, or an Evidence bundle (--evidence_output) holding one capture record
   directory  Bundle directory to create; must be absent or empty, nothing is overwritten; omit only with --dry-run
 
 Options:

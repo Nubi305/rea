@@ -491,7 +491,7 @@ const registerBuildCommand = (
         "Build an agent environment bundle from a recorded capture in one offline step: inspect a HAR (or read capture Evidence), project the environment manifest, derive the state, report which tools the environment answers from state, which replay and why each write is withheld, then write the bundle environment-export writes",
       args: z.object({
         capture: localPathStringSchema.describe(
-          "A .har file, or capture Evidence JSON from inspect-web-network-capture (HAR) or capture-browser-scenario",
+          "A .har file, or capture Evidence JSON from inspect-web-network-capture (HAR) or capture-browser-scenario: one record, or an Evidence bundle (--evidence_output) holding one capture record",
         ),
         directory: localPathStringSchema
           .optional()

@@ -8,7 +8,7 @@ import { absoluteLocalPathStringSchema } from "./localPath.js";
 /** Export already captured scripts into one absent, caller-selected directory. */
 export const exportWebScriptsInputSchema = z.strictObject({
   capture_path: absoluteLocalPathStringSchema.describe(
-    "Absolute filesystem path to saved inspect_web_page or capture_browser_scenario JSON, normalized result or complete Evidence",
+    "Absolute filesystem path to saved inspect_web_page or capture_browser_scenario JSON: a normalized result, complete Evidence, or an Evidence bundle holding one such capture",
   ),
   output_directory: absoluteLocalPathStringSchema.describe(
     "Absolute absent filesystem directory for verified scripts and manifest; parent directory must exist",
