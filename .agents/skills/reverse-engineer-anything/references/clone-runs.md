@@ -444,6 +444,11 @@ printed. The helper answers with the paths and ids it wrote.
 - A `request` step records the reply itself, so use one for what a route
   answers, errors included. It does not follow a redirect and fails on one,
   which cancels every later step: reach a redirect through the page.
+- Probe a file behind a download link with a `request` step for the file's
+  address. The click that saves it is never recorded, so it is `setup-`.
+- Probe a page with `goto` and its on-screen text. A `request` step for a
+  page's address compares the markup as one text, which a clone with markup
+  of its own never matches.
 - A UI action's own snapshot can precede the render it causes, and the
   request it triggers can land in the next step. When the action's request
   succeeds, make its step wait for the reply, as the click in

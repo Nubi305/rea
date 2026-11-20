@@ -131,15 +131,11 @@ describe("clone run contract", () => {
   });
 
   it("maps every reason code to a check and a role, and the specification names each code", () => {
-    // Added by the fix round after the specification's last reconciliation; the
-    // entry goes when spec.md's reason table gains the code.
-    const notYetInSpecification = new Set(["clone_path_unreadable"]);
     for (const code of CLONE_RUN_REASON_CODES) {
       expect(CLONE_RUN_CHECKS).toContain(cloneRunReasonCheck(code));
       for (const side of [undefined, "original", "clone"] as const)
         expect(CLONE_RUN_ROLES).toContain(cloneRunReasonRole(code, side));
-      if (!notYetInSpecification.has(code))
-        expect(spec, code).toContain(`\`${code}\``);
+      expect(spec, code).toContain(`\`${code}\``);
     }
     expect(Object.keys(CLONE_RUN_REASONS)).toEqual([...CLONE_RUN_REASON_CODES]);
     expect(cloneRunReasonRole("evidence_missing", "original")).toBe("prober");

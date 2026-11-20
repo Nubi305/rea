@@ -158,13 +158,25 @@ tool readers are ticked on those packages' own reports and the join's; what was 
 
 ### Tests, verifier and fixtures
 
-Not recorded here: that package was still at work when this text was reconciled. Its boxes are the fixture probes
-and the corrected fixture clone (surface-4, surface-13), the verifier's exact assertions and new cases (surface-6,
-surface-7, surface-11), and one in-process test of the referee with the real comparer.
+- [x] The fixture scenario `topics` probes every route with the wrong method, a body of the wrong kind, a trailing
+      slash, a path below a topic and both ends of the title limit: fourteen more steps with their obligations. The
+      fixture clone's routing was rewritten until they pass, and its About page reworded with a declared rename per
+      paragraph (surface-4, surface-13).
+- [x] The verifier asserts exit 1 and `not_done` wherever a line says not done, forges all four referee outputs and
+      reads each back, and stops cleanly on an interruption or a fixture server that exits early; it is split into
+      six modules (surface-6, surface-7, surface-11). Four new cases: a loopback alias as the clone's address, a
+      link that leaves the clone root for a target that does not exist, a list answered as an object keyed by
+      position, and a file saved through a download link.
+- [x] `Required.` starts the description of each required option, and the help of `--clone`, `--exclude`,
+      `--max-rounds`, `--differences` and `--exit-code` says what the fixed code does (surface-12, cheat-4).
+- [ ] The shared argument parser is unchanged: `--exitCode` still sets `--exit-code`, and an argument refusal
+      names the option's key, not its flag (cheat-4, surface-12). The boundary test pins both.
+- [ ] No in-process test runs the referee with the real comparer; the verifier is the only test of the two
+      together. No test covers a clone file that vanishes during the tree walk (referee-12).
 
 ### Verification of the fix round
 
-On `claude/dreamy-hamilton-vczp59` after the three code packages were joined, as the join reported it:
+On the feature branch after the three code packages were joined, as the join reported it:
 
 - `npm run verify:clone-run`: 11 of 11 cases passed, twice, with real Chromium.
 - The blind trial's run folder, copied: `not_done` with one blocking finding, the open unknown; no step `changed`.
@@ -187,4 +199,33 @@ On the documentation branch, in a container with Chromium and no native provider
   `rea guidance --query` returned its sections for `clone a web application`, `clone parity`, `judged round stalled`
   and each role card.
 
-Not verified: the corrected playbook has not been followed by a fresh agent, and the full test suite was not run.
+After the documentation and the fixes to the commands, the verifier and the fixtures were joined, in the same
+container:
+
+- `npm run verify:clone-run` three times in a row: each run exited 0 and printed fifteen `pass` lines and no other,
+  in 86 to 87 s. The lines were the same in all three apart from the port in the alias case.
+- `npm run test:local` over the comparer, referee, stall, address, tree digest, workspace and schema tests, the
+  changed environment, capture-record and script-export tests and the two conformance tests: 25 files passed.
+- `npm run test:focused` over `tests/boundary/cli/cloneRunCli.test.ts`, `cloneRunVerifier.test.ts`,
+  `savedCaptureBundleCli.test.ts`, `tests/boundary/filesystem/setupSkill.test.ts` and the CLI command, schema,
+  golden, registry, coverage and startup boundary tests: 14 files passed; four `setupSkill` tests skip when run as
+  root.
+- A run driven by hand from the fixture pair on two loopback ports, with the worklist's own commands. Init listed
+  five authored files and printed the referee's first worklist. With the `topics` and `download` scenarios and a
+  scenario of two `request` steps to a page's address: `parity_unknown` at the step that clicks the download link,
+  `parity_changed` at both page requests, whose markup differs between the sides, and `stalled` with exit 2 on the
+  third attempt. With the click renamed `setup-` and the page scenario removed: `done`, fourteen residual lines, one
+  ungated step, and the excluded-path clause in the summary once the clone held a `node_modules` directory. The
+  slug mutant then read `evidence_stale`, and after the clone's captures `parity_changed` at `/slug` in round 2.
+  Two captures of the original compared with each other read `single-observation` for each `createdAt`, exit 2.
+- The three refusal shapes were read from real output: the error envelope for a missing run folder and for a
+  loopback alias at init, `VALIDATION_ERROR` for a missing option, `UNKNOWN` for an unknown flag and for a
+  positional file.
+- `rea setup` under a throwaway `HOME` installed the playbook byte for byte with skill version 65, and
+  `rea guidance --query` returned its sections for `clone a web application`, `clone parity`,
+  `judged round stalled` and each of the seven role cards.
+- `npm run check:fast`, `npm run verify:test-discovery`, `npm run docs:check`, `npx knip --cache`,
+  `npx oxfmt --check .` and the three generator checks passed.
+
+Not verified: the corrected playbook has not been followed by a fresh agent, the proof round's reproductions were
+not all run again after the join, and the full test suite was not run.

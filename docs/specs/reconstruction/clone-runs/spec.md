@@ -203,7 +203,7 @@ states it.
 | Leave the original's name in the clone, a path or a link's text                      | `clean_room_forbidden_name`                                                                                                                              |
 | Answer a list where the original answers an object with index keys, or the reverse   | `parity_changed`: leaves are equal by pointer and by the kind of every container on the way (comparer rule **`changed`**)                                |
 | Drop a request body, or run past the capture's transaction limit                     | `parity_unknown` (`not-recorded`): data no capture recorded is never a match                                                                             |
-| Serve a download with other content                                                  | `parity_unknown`: no capture records a download's body. Renamed `setup-`, the step is no longer compared (residual 3)                                    |
+| Serve a download with other content                                                  | `parity_unknown` at the step that saves it: no capture records a download's body (residual 3). A `request` step for the file compares its content        |
 | Differ only in appearance, headers, the document title or timing                     | not stopped (residual 13)                                                                                                                                |
 | Differ only in the text of an iframe or of a dialog                                  | not stopped (residual 14)                                                                                                                                |
 | Run the referee without `--exit-code` and read exit 0, or search its output for done | not stopped; the printed `verdict` says `not_done`, and only the exit status of a run with the flag is the verdict                                       |
@@ -363,7 +363,10 @@ Rules:
   lost with its body and whose path and query equal the step's page address (a page over the body limit). Any other
   `document` reply, such as a CSV, a PDF or a download, is compared like a fetched reply, and is `not-recorded` when
   no capture holds its body. Today no capture records a download's body, so a step that triggers a download is
-  `unknown` on both sides. A page on one side against recorded data on the other is a `body` difference.
+  `unknown` on both sides, whatever the file holds; a `request` step for the file's address records and compares
+  it. A page on one side against recorded data on the other is a `body` difference. The skip is for navigations
+  only: markup that a `request` step fetched is a text reply and is compared whole, so a clone with markup of its own
+  is `changed` there, and a page is probed with `goto` and its on-screen text.
 - **Renames** (`from` → `to`) are applied to the left side's on-screen text, to JSON string values of its request and
   reply bodies and to its text bodies: every occurrence, case-sensitive, in declaration order. Never to field names,
   paths, queries, statuses or page addresses. The result lists each rename that changed a compared value
@@ -394,7 +397,7 @@ Rules:
 - **On-screen text is reported once.** A difference between the sides in on-screen text is a finding at the first
   step that shows that text. Later steps that show the same text on both sides carry no finding of their own for it,
   and `limitations` says how many (`The on-screen text difference at step <id> is listed there only: N later steps
-show the same text on both sides and carry no finding of their own for it.`). The first step is still `changed`,
+  show the same text on both sides and carry no finding of their own for it.`). The first step is still `changed`,
   so a clone whose page text is wrong cannot pass. Text that is unsteady or unrecorded is judged at every step.
 - **Volatile fields.** A declaration `{scenario, step_id, pointer, reason}` names one reply leaf (`*` for any one array
   index); `step_id` is a step or `*` for every step of the scenario. It never covers the values beneath an object or
@@ -522,8 +525,8 @@ values and side) collapse into one item that lists them in `step_ids` (two or mo
 exact command to run:
 
 - a capture: `[REA_BROWSER_NO_SANDBOX=true ]timeout <capture_timeout_seconds> <rea_command> capture-browser-scenario
-'<run>/rendered/<side>/<scenario>.json' --detail summary --evidence_output
-'<run>/evidence/<side>/<scenario>/run-<N>.json' --json`. One item per missing capture, each with its own free `N`,
+  '<run>/rendered/<side>/<scenario>.json' --detail summary --evidence_output
+  '<run>/evidence/<side>/<scenario>/run-<N>.json' --json`. One item per missing capture, each with its own free `N`,
   for `evidence_missing`, `evidence_stale` and `evidence_scenario_mismatch`. One more capture also serves
   `start_state_unknown` and a `parity_unknown` whose finding is `not-recorded` or `single-observation` on that side;
   those items of one side and scenario carry the same command. A `declared-not-shown` finding carries the original's
@@ -588,12 +591,17 @@ soon as a finding or the clone's files change.
 
 ## Commands
 
-A refusal exits 1, with or without `--exit-code`, and has no `verdict` member. It has one of two shapes. A refusal the
-command itself raises is REA's usual error envelope (`{"error": …, "code": …, "message": …}`) and names the fix. An
-argument the command line parser cannot accept is refused before the command runs, as
-`{"code": "VALIDATION_ERROR", "message": …, "fieldErrors": [{"path", "expected", "message"}]}` without an `error`
-member; `path` is the option's key in camel case (`right`, `originalName.0`, `maxRounds`), not the flag's spelling.
-The tables below mark the required options.
+A refusal exits 1, with or without `--exit-code`, and has no `verdict` member. It has one of three shapes. A refusal
+the command itself raises is REA's usual error envelope (`{"error": …, "code": …, "message": …, "remediation": …}`)
+and names the fix. The command line parser refuses the other two before the command runs, without an `error` member.
+A missing or invalid option is
+`{"code": "VALIDATION_ERROR", "message": …, "fieldErrors": [{"code", "missing", "path", "expected", "received", "message"}]}`;
+`path` is the option's key in camel case (`right`, `originalName.0`, `maxRounds`), not the flag's spelling. A flag the
+command does not have, or a positional argument it does not take, is `{"code": "UNKNOWN", "message": …}`, whose
+message names the flag or the argument. The parser reads `--exit-code`, and the option's key in camel case, as the
+option; the flag with `=false` or with a `no-` prefix as the option turned off, which exits 0 like a run without it;
+and every other spelling, such as one with an underscore, as an unknown flag. The tables below mark the required
+options, and `--help` starts their descriptions with `Required.`.
 
 ### `rea compare-scenario-behavior`
 
@@ -713,16 +721,32 @@ every broken file.
 In this container, with no native provider:
 
 1. `npm run test:local -- src/domain/scenarioBehaviorComparison.test.ts
-src/application/cloneRun/CloneRunEvaluation.test.ts tests/conformance/cloneRunGuidance.test.ts` passes.
-2. `npm run verify:clone-run` serves the fixture original and a copy of the renamed clone on loopback ports (the slug
-   mutant is that copy with the one replacement of `mutant/switch.json` applied), captures with real Chromium by
-   running the worklist's own commands, and shows: matching clone exits 0; mutant exits 1 with a `next` item whose pointer ends in
-   `/slug`; a step whose reply no capture recorded (the fixture answers it with more than 64 KiB) makes
-   `compare-scenario-behavior --exit-code` exit 2 with one capture per side and gives `parity_unknown`, not done, with
-   two; a line appended to a clone file after a pass gives `evidence_stale`; an edited Evidence file gives
-   `evidence_rejected_integrity`; a capture from the other side's address gives `evidence_rejected_address`; the
-   original's name left in the clone gives `clean_room_forbidden_name`; two captures with no reset between them give
-   `start_state_dirty`.
+   src/application/cloneRun/CloneRunEvaluation.test.ts tests/conformance/cloneRunGuidance.test.ts` passes.
+2. `npm run verify:clone-run` serves the fixture original and a copy of the renamed clone on loopback ports, captures
+   with real Chromium by running the worklist's own commands, and prints one `pass` line for each of fifteen cases.
+   A mutant is the copy with the one replacement of a file under `mutant/` applied. Every case that reads not done
+   asserts exit 1, the verdict `not_done` and the reason named here.
+   - One capture per side gives `evidence_missing`; the matching clone exits 0, and so does
+     `compare-scenario-behavior --exit-code` on its captures.
+   - A line appended to a clone file after a pass gives `evidence_stale`; an edited Evidence file
+     `evidence_rejected_integrity`; a capture from the other side's address `evidence_rejected_address`; the
+     original's name left in the clone `clean_room_forbidden_name`; two captures with no reset between them
+     `start_state_dirty`.
+   - The original's own address under another name of this machine (`localhost.`, `[::ffff:127.0.0.1]`) as the
+     clone's address is refused by `init-clone-run`, which writes nothing, and reads `addresses_not_distinct` when
+     it is written into `target.json`.
+   - A link in the clone that leaves the clone root for a target that does not exist gives
+     `clone_symlink_outside_root`.
+   - A step whose reply no capture recorded (the fixture answers it with more than 64 KiB) makes
+     `compare-scenario-behavior --exit-code` exit 2 with one capture per side and gives `parity_unknown` with two.
+   - `mutant/slug-cut.json` gives `parity_changed` with a `next` item whose pointer ends in `/slug`, and
+     `compare-scenario-behavior --exit-code` exits 1. `mutant/list-as-object.json`, a list answered as an object
+     keyed by position, gives `parity_changed` at `/items`.
+   - A pass forged in all four referee outputs (`gate.json`, `parity/`, `records/`, `rendered/`) beside a mutant
+     clone still reads not done, and each output is read back as the referee computes it.
+   - A step that clicks a download link gives `parity_unknown` whatever the file holds, because no capture records
+     a download's body. With `mutant/download-separator.json` the `request` step that fetches the same file gives
+     `parity_changed`.
 3. `rea setup` under a throwaway `HOME` installs `references/clone-runs.md`, and `rea guidance --query` returns
    sections of it for `clone a web application`, `clone parity`, `judged round stalled` and `clone run <role>` for
    each of the seven roles.

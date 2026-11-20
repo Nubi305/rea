@@ -94,15 +94,18 @@ owns the end-to-end run; D builds in parallel with C.
   to the operation constant of its domain module, so the module keeps no runtime import),
   `src/cli/cliCommandRegistrations.ts` (registration `cloneRun`, listed under the `application` family), `src/cli.ts`
 - `tests/boundary/cli/cliContractSchemaParity.uncomparable.json`, `tests/boundary/cli/cloneRunCli.test.ts`
-- `tests/fixtures/cloneRun/`: original, renamed clone, mutant switch (`mutant/switch.json`, one replacement in the
-  clone's `slug.mjs`), and under `run/` the two scenarios, their obligations and the declared differences. The clone is new code:
-  no file of 64 bytes or more equals a file the original serves, and neither it nor the mutant switch mentions the
-  original's name. The original's name is distinctive (it occurs in no route or field name) and one of its routes
-  answers with more than 64 KiB for the unknown case.
-- `scripts/verify-clone-run.mjs`, `scripts/lib/clone-run-e2e.mjs`, `package.json` script `verify:clone-run`. The script
-  drives each case by the worklist (reset the fixture, run the capture command of a `next` item, evaluate) until the
-  verdict settles or a bound is reached: reply bodies are lost at random, so a fixed two captures per side would make
-  the run flaky
+- `tests/fixtures/cloneRun/`: original, renamed clone, three mutants (`mutant/slug-cut.json`,
+  `mutant/list-as-object.json` and `mutant/download-separator.json`, each one replacement in one file of the clone),
+  and under `run/` the three scenarios (`topics`, `export`, `download`), their obligations and the declared
+  differences. The clone is new code: no file of 64 bytes or more equals a file the original serves, and neither it
+  nor a mutant mentions the original's name. The original's name is distinctive (it occurs in no route or field
+  name) and one of its routes answers with more than 64 KiB for the unknown case.
+- `scripts/verify-clone-run.mjs`, `package.json` script `verify:clone-run`, and under `scripts/lib/` the modules
+  `clone-run-e2e.mjs` (the case list), `clone-run-e2e-cases.mjs` and `clone-run-e2e-mutant-cases.mjs` (the cases),
+  `clone-run-e2e-context.mjs` (commands, run folder and the team loop), `clone-run-e2e-runner.mjs` (the case loop
+  and interruption) and `clone-run-e2e-sites.mjs` (the fixture servers). The script drives each case by the worklist
+  (reset the fixture, run the capture command of a `next` item, evaluate) until the verdict settles or a bound is
+  reached: reply bodies are lost at random, so a fixed two captures per side would make the run flaky
 
 ### D: guidance and documentation
 

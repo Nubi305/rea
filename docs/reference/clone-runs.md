@@ -448,15 +448,18 @@ category alone decides what the finding makes of its step:
   captures, so another capture can supply one that a capture lost. A reply
   over the capture's 64 KiB body limit is never recorded, and neither is the
   content of a downloaded file: a step that triggers a download is `unknown`
-  on both sides.
+  on both sides, whatever the file holds. A `request` step for the file's
+  address records it and compares it.
 - When the right side's captures disagree and one of them equals the left's
   steady value, the only finding is `repeats-differ` on the right, never a
   difference. A request line only the right side sent is a difference only
   when the left's captures all send the same requests.
-- Page markup is not compared; any other reply the page navigated to is. A
-  text reply that is a JSON object or array on both sides is compared field
-  by field. Two lists of the same length are compared item by item at their
-  positions.
+- The markup of a page the browser navigated to is not compared; any other
+  reply it navigated to is. Markup that a `request` step fetched is a text
+  reply and is compared whole, so a clone with markup of its own differs
+  there: probe a page with `goto` and its accessibility text. A text reply
+  that is a JSON object or array on both sides is compared field by field.
+  Two lists of the same length are compared item by item at their positions.
 - Each side's own start address reads `{origin}` in text, reply strings and
   request bodies, so an application that prints its own address compares
   equal.
@@ -482,14 +485,23 @@ application differ once a rename takes effect.
 
 A refusal exits `1` with or without `--exit-code` and has no `verdict`
 member. A refusal by a command is REA's error envelope with `error`, `code`
-and `message`, and names the fix. An argument the command line parser cannot
-accept is refused before the command runs, as
-`{"code": "VALIDATION_ERROR", "message": …, "fieldErrors": [{"path": "right", …}]}`:
-`path` is the option's key, so `right` is `--right` and `originalName.0` is
-the first `--original-name`. `--help` lists every option; the required ones
-are `--left` and `--right` for the comparison, and `--original`, `--clone`,
-`--clone-root`, `--clone-name`, `--original-name` and `--authorization` for
-a new run.
+and `message`, and names the fix under `remediation`. The command line parser
+refuses two things before the command runs, without an `error` member:
+
+- A missing or invalid option, as
+  `{"code": "VALIDATION_ERROR", "message": …, "fieldErrors": [{"path": "right", "missing": true, …}]}`.
+  `path` is the option's key, so `right` is `--right` and `originalName.0` is
+  the first `--original-name`.
+- A flag the command does not have, or a positional argument it does not
+  take, as `{"code": "UNKNOWN", "message": …}`; the message names the flag
+  or the argument. A misspelt `--exit-code`, such as one with an underscore,
+  is this refusal and never a pass. The parser also reads an option's key
+  in camel case as the flag.
+
+`--help` lists every option and starts the description of a required one with
+`Required.`: `--left` and `--right` for the comparison, and `--original`,
+`--clone`, `--clone-root`, `--clone-name`, `--original-name` and
+`--authorization` for a new run.
 
 ## What a verdict does not establish
 
