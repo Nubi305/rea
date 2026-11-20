@@ -32,22 +32,22 @@ Each task names the spec section it implements and the check that shows it.
 
 ## B: run folder and referee (spec: "Run folder" to "Stall")
 
-- [ ] `initCloneRun`: scaffold from flags, refuse a non-empty directory, a folder inside the clone root, addresses
+- [x] `initCloneRun`: scaffold from flags, refuse a non-empty directory, a folder inside the clone root, addresses
       that are not distinct and a clone name containing an original name, write the three examples and check them
       against their schemas in a test.
-- [ ] `loadCloneRunWorkspace`: every authored file, ids from base names, the cross-file rules of check 2, issues with
+- [x] `loadCloneRunWorkspace`: every authored file, ids from base names, the cross-file rules of check 2, issues with
       file, pointer and fix; one evaluation reports all.
-- [ ] `renderCloneRunScenario`: both sides, `{origin}` only at the start of a `goto` URL, every `goto` on the side's
+- [x] `renderCloneRunScenario`: both sides, `{origin}` only at the start of a `goto` URL, every `goto` on the side's
       address, the `rea-tree-` step, the expected digest equals what a real capture records.
-- [ ] `digestCloneTree`: excludes on whole segments, symlinks not followed and those leaving the root listed, stable
+- [x] `digestCloneTree`: excludes on whole segments, symlinks not followed and those leaving the root listed, stable
       order.
-- [ ] Admission in the specified order; a copy is `duplicate`; duplicate, stale and mismatched files do not block
+- [x] Admission in the specified order; a copy is `duplicate`; duplicate, stale and mismatched files do not block
       alone; rejected files do.
-- [ ] The eight checks, evaluated without waiting for one another (the original side before a clone exists); the
+- [x] The eight checks, evaluated without waiting for one another (the original side before a clone exists); the
       worklist (at most ten, exact commands, the JSON line to add); waivers and `done with N waivers`; `target` and
       `declared` in the gate.
-- [ ] Journal and stall: no line for an unchanged state, judged rounds, the two stall conditions.
-- [ ] Unit tests with a fake comparer for every reason code.
+- [x] Journal and stall: no line for an unchanged state, judged rounds, the two stall conditions.
+- [x] Unit tests with a fake comparer for every reason code.
 
 ## C: CLI, fixtures and end to end (spec: "Commands", "Acceptance")
 
