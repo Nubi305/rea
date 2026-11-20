@@ -1,3 +1,4 @@
+import { readlink } from "node:fs/promises";
 import { join } from "node:path";
 
 import { CLEAN_ROOM_MIN_IDENTICAL_BYTES } from "../../domain/cloneRun/cloneRunSchemas.js";
@@ -62,7 +63,9 @@ const firstNameInFile = async (
 /**
  * Clone files whose bytes or relative path contain one of the original's
  * names, ignoring ASCII case, each with the first name found. A name is a
- * plain substring. A link is checked by its path only; it is never followed.
+ * plain substring. A link is checked by its path and by its link text, which
+ * the tree digest treats as its content; it is never followed. A file or link
+ * that vanished since the tree was digested names nothing.
  */
 export const cloneFilesNamingOriginal = async (
   root: string,
@@ -72,7 +75,7 @@ export const cloneFilesNamingOriginal = async (
   readonly {
     readonly path: string;
     readonly name: string;
-    readonly where: "path" | "content";
+    readonly where: "path" | "content" | "link";
   }[]
 > => {
   const needles = names.map((name) => ({
@@ -84,8 +87,18 @@ export const cloneFilesNamingOriginal = async (
   const found: {
     readonly path: string;
     readonly name: string;
-    readonly where: "path" | "content";
+    readonly where: "path" | "content" | "link";
   }[] = [];
+  const vanished = (cause: unknown): undefined => {
+    if (
+      typeof cause === "object" &&
+      cause !== null &&
+      "code" in cause &&
+      cause.code === "ENOENT"
+    )
+      return undefined;
+    throw cause;
+  };
   for (const file of files) {
     const loweredPath = asciiLower(file.path);
     const inPath = needles.find(({ lowered }) => loweredPath.includes(lowered));
@@ -93,12 +106,21 @@ export const cloneFilesNamingOriginal = async (
       found.push({ path: file.path, name: inPath.name, where: "path" });
       continue;
     }
-    if (file.kind !== "file") continue;
+    if (file.kind === "symlink") {
+      const text = await readlink(join(root, file.path)).catch(vanished);
+      const loweredText = text === undefined ? "" : asciiLower(text);
+      const inText = needles.find(({ lowered }) =>
+        loweredText.includes(lowered),
+      );
+      if (inText !== undefined)
+        found.push({ path: file.path, name: inText.name, where: "link" });
+      continue;
+    }
     const inContent = await firstNameInFile(
       join(root, file.path),
       needles,
       overlap,
-    );
+    ).catch(vanished);
     if (inContent !== undefined)
       found.push({ path: file.path, name: inContent, where: "content" });
   }

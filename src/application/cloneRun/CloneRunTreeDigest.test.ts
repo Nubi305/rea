@@ -1,13 +1,15 @@
-import { mkdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { expect, it } from "vitest";
 
 import { createTestTempDirectory } from "../../../tests/fixtures/temporaryDirectory.js";
 import { sha256Hex } from "../../kernel/sha256Hex.js";
+import { cloneFilesNamingOriginal } from "./CloneRunCleanRoom.js";
 import {
   cloneTreeSha256,
   digestCloneTree,
+  digestOriginalMaterial,
   isCloneTreePathExcluded,
 } from "./CloneRunTreeDigest.js";
 
@@ -102,10 +104,13 @@ it("records a link by its text and lists those that leave the root or enter an e
     sha256: sha256Hex("inside.mjs"),
     bytes: 10,
   });
-  expect(snapshot.symlinksOutsideRoot).toEqual([
-    "escape.mjs",
-    "excluded.mjs",
-    "up",
+  // A link is judged by its text first: one that leaves the root, or cannot be resolved, is listed
+  // whether or not its target exists when the referee looks.
+  expect(snapshot.unsafeLinks).toEqual([
+    { path: "dangling.mjs", cause: "unresolved" },
+    { path: "escape.mjs", cause: "outside" },
+    { path: "excluded.mjs", cause: "excluded" },
+    { path: "up", cause: "outside" },
   ]);
 
   // What an outside link serves can change without the digest changing: that is why it blocks.
@@ -113,8 +118,15 @@ it("records a link by its text and lists those that leave the root or enter an e
   expect((await digest(root, ["vendor"])).sha256).toBe(snapshot.sha256);
   // A link that is itself excluded is neither digested nor listed.
   expect(
-    (await digest(root, ["vendor", "escape.mjs", "excluded.mjs", "up"]))
-      .symlinksOutsideRoot,
+    (
+      await digest(root, [
+        "vendor",
+        "dangling.mjs",
+        "escape.mjs",
+        "excluded.mjs",
+        "up",
+      ])
+    ).unsafeLinks,
   ).toEqual([]);
 });
 
@@ -141,4 +153,90 @@ it("refuses a root that is absent or not a directory", async () => {
     ok: false,
     error: { _tag: "AnalysisCancelledError" },
   });
+});
+
+it("lists a link that leaves the root while its target is absent, so hiding the target hides nothing", async () => {
+  const base = await createTestTempDirectory("clone-tree-absent-target-");
+  const root = join(base, "clone");
+  const outside = join(base, "outside");
+  await mkdir(root);
+  await mkdir(outside);
+  await writeFile(join(outside, "rule.mjs"), "export const limit = 24;\n");
+  await symlink("../outside/rule.mjs", join(root, "rule.mjs"));
+  const present = await digest(root);
+  expect(present.unsafeLinks).toEqual([{ path: "rule.mjs", cause: "outside" }]);
+  // The time-of-check game: the target is moved away only while the referee looks.
+  await rename(outside, join(base, "hidden"));
+  const hidden = await digest(root);
+  expect(hidden.unsafeLinks).toEqual(present.unsafeLinks);
+  expect(hidden.sha256).toBe(present.sha256);
+});
+
+it("returns what it could not read instead of refusing, and lists only the excludes that matched", async () => {
+  const base = await createTestTempDirectory("clone-tree-unreadable-");
+  const root = join(base, "clone");
+  await mkdir(join(root, "data"), { recursive: true });
+  await writeFile(join(root, "app.mjs"), "export const app = 1;\n");
+  await writeFile(join(root, "data", "app.db"), "rows");
+  // A name that is not UTF-8 cannot be recorded as a path; it must not read as an absent file.
+  await writeFile(
+    Buffer.concat([
+      Buffer.from(`${root}/caf`),
+      Buffer.from([0xe9, 0x2e, 0x6a, 0x73]),
+    ]),
+    "export const hidden = 1;\n",
+  );
+  const snapshot = await digest(root, ["data", "node_modules", "logs/app.log"]);
+  expect(snapshot.files.map(({ path }) => path)).toEqual(["app.mjs"]);
+  expect(snapshot.unreadable).toHaveLength(1);
+  expect(snapshot.unreadable[0]?.detail).toContain("not valid UTF-8");
+  expect(snapshot.exclude).toEqual(["data"]);
+});
+
+it("reads original material through links by its real path, each directory once", async () => {
+  const base = await createTestTempDirectory("clone-material-links-");
+  const material = join(base, "scout");
+  const mirror = join(base, "mirror");
+  await mkdir(material);
+  await mkdir(join(mirror, "assets"), { recursive: true });
+  await writeFile(join(mirror, "assets", "app.js"), "x".repeat(100));
+  await writeFile(join(material, "own.js"), "y".repeat(100));
+  await symlink(mirror, join(material, "site"));
+  await symlink(join(mirror, "assets", "app.js"), join(material, "app.js"));
+  await symlink(material, join(mirror, "loop"));
+  await symlink("gone.js", join(material, "dangling.js"));
+  const read = await digestOriginalMaterial(material);
+  if (!read.ok) throw read.error;
+  expect(read.value.files).toEqual([
+    { path: "app.js", sha256: sha256Hex("x".repeat(100)), bytes: 100 },
+    { path: "own.js", sha256: sha256Hex("y".repeat(100)), bytes: 100 },
+    {
+      path: "site/assets/app.js",
+      sha256: sha256Hex("x".repeat(100)),
+      bytes: 100,
+    },
+  ]);
+  expect(read.value.unreadable).toEqual([
+    {
+      path: "dangling.js",
+      detail: expect.stringContaining("the link cannot be followed"),
+    },
+  ]);
+});
+
+it("finds the original's name in a link's text as well as in paths and bytes", async () => {
+  const base = await createTestTempDirectory("clone-names-links-");
+  const root = join(base, "clone");
+  await mkdir(root);
+  await writeFile(join(root, "about.txt"), "Welcome to QUILLBROOK.\n");
+  await writeFile(join(root, "clean.txt"), "Welcome.\n");
+  await symlink("quillbrook-data", join(root, "data"));
+  await symlink("clean.txt", join(root, "alias"));
+  const snapshot = await digest(root);
+  expect(
+    await cloneFilesNamingOriginal(root, snapshot.files, ["Quillbrook"]),
+  ).toEqual([
+    { path: "about.txt", name: "Quillbrook", where: "content" },
+    { path: "data", name: "Quillbrook", where: "link" },
+  ]);
 });

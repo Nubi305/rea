@@ -26,6 +26,7 @@ import { digestCanonicalValue } from "../../domain/canonicalDigest.js";
 import {
   CLONE_RUN_DEFAULT_EXCLUDES,
   CLONE_RUN_DEFAULT_LIMITS,
+  CLONE_RUN_EVERY_STEP,
   CLONE_RUN_ORIGIN_PLACEHOLDER,
   CLONE_RUN_PATHS,
   CLONE_RUN_ROLES,
@@ -33,7 +34,6 @@ import {
   EVALUATE_CLONE_RUN_OPERATION,
   INIT_CLONE_RUN_OPERATION,
   cloneNameConflict,
-  cloneRunAddressIdentity,
   cloneRunIntendedDifferencesSchema,
   cloneRunJournalEntrySchema,
   cloneRunObligationsSchema,
@@ -74,6 +74,11 @@ import { errorMessage } from "../../kernel/errorMessage.js";
 import { isRecord } from "../../kernel/isRecord.js";
 import { ArtifactResourceScope, writeTextFile } from "../../resources/index.js";
 import { readJsonFile } from "../JsonFiles.js";
+import {
+  SYSTEM_HOST_RESOLVER,
+  cloneRunAddressConflict,
+  type CloneRunHostResolver,
+} from "./CloneRunAddressResolution.js";
 
 /**
  * The run folder: scaffolding, reading the files agents write, rendering
@@ -112,7 +117,12 @@ export interface CloneRunInitInput {
   readonly captureTimeoutSeconds?: number | undefined;
 }
 
-/** The three authored-file examples `init-clone-run` writes; the specification shows the same documents. */
+/**
+ * The authored-file examples `init-clone-run` writes; the specification shows
+ * the same documents. `scenarioPages` is a second scenario that drives the
+ * page: a `goto` with the `{origin}` placeholder, `fill`, `select_option`, a
+ * `click` that waits for its reply with `save_response`, and `wait_for`.
+ */
 export const CLONE_RUN_EXAMPLES = Object.freeze({
   scenario: {
     file: `${CLONE_RUN_PATHS.examples}/scenario.example.json`,
@@ -137,6 +147,60 @@ export const CLONE_RUN_EXAMPLES = Object.freeze({
       ],
     },
   },
+  scenarioPages: {
+    file: `${CLONE_RUN_PATHS.examples}/scenario-pages.example.json`,
+    document: {
+      start_path: "/",
+      actions: [
+        {
+          step_id: "fp-notes",
+          action: "request",
+          method: "GET",
+          path: "/api/notes",
+          timeout_ms: 15000,
+        },
+        {
+          step_id: "open-new-note",
+          action: "goto",
+          destination: { url: `${CLONE_RUN_ORIGIN_PLACEHOLDER}/notes/new` },
+          wait_until: "load",
+          timeout_ms: 15000,
+        },
+        {
+          step_id: "setup-type-title",
+          action: "fill",
+          locator: { kind: "role", role: "textbox", name: "Title" },
+          value: { source: "literal", value: "Field notes" },
+          timeout_ms: 15000,
+        },
+        {
+          step_id: "setup-choose-folder",
+          action: "select_option",
+          locator: { kind: "role", role: "combobox", name: "Folder" },
+          value: { source: "literal", value: "inbox" },
+          timeout_ms: 15000,
+        },
+        {
+          step_id: "setup-save-note",
+          action: "click",
+          locator: { kind: "role", role: "button", name: "Save" },
+          save_response: {
+            method: "POST",
+            path: "/api/notes",
+            save: [{ name: "note", json_pointer: "/id" }],
+          },
+          timeout_ms: 15000,
+        },
+        {
+          step_id: "note-saved-notice",
+          action: "wait_for",
+          locator: { kind: "css", selector: "[role=status]" },
+          state: "visible",
+          timeout_ms: 15000,
+        },
+      ],
+    },
+  },
   obligations: {
     file: `${CLONE_RUN_PATHS.examples}/obligations.example.json`,
     document: {
@@ -156,6 +220,49 @@ export const CLONE_RUN_EXAMPLES = Object.freeze({
     document: {
       statement:
         "Whether titles are limited by characters or bytes was not probed.",
+    },
+  },
+});
+
+/** Where `init-clone-run` writes the crawl example. */
+export const CLONE_RUN_CRAWL_EXAMPLE_FILE = `${CLONE_RUN_PATHS.examples}/crawl.example.json`;
+
+/**
+ * A complete `capture-browser-scenario` input for the scout's first crawl of
+ * the original: `goto` steps in the run's browser, the accessibility text and
+ * the address after each step, and request and reply bodies on. It is a
+ * capture input, not a run scenario: the scout copies it to `scout/`, lists
+ * the pages to visit and runs the capture command on it.
+ */
+export const cloneRunCrawlExample = (target: CloneRunTarget): JsonValue => ({
+  browser: {
+    mode: "launch",
+    executable_path: target.browser.executable_path,
+  },
+  start_url: { url: `${target.original.address}/` },
+  actions: [
+    {
+      step_id: "open-home",
+      action: "goto",
+      destination: { url: `${target.original.address}/` },
+      wait_until: "load",
+      timeout_ms: 15000,
+    },
+    {
+      step_id: "open-second-page",
+      action: "goto",
+      destination: { url: `${target.original.address}/about` },
+      wait_until: "load",
+      timeout_ms: 15000,
+    },
+  ],
+  capture: {
+    after_each_step: ["url", "accessibility"],
+    at_end: ["url", "accessibility"],
+    network: {
+      request_body: true,
+      response_body: true,
+      header_values: false,
     },
   },
 });
@@ -245,6 +352,8 @@ export const initCloneRun = async (
   options: {
     readonly now?: () => Date;
     readonly signal?: AbortSignal;
+    /** How host names resolve; production uses the system resolver. */
+    readonly hostResolver?: CloneRunHostResolver;
   } = {},
 ): Promise<Result<CloneRunInitResult, AnalysisError>> => {
   const operation = INIT_CLONE_RUN_OPERATION;
@@ -302,14 +411,16 @@ export const initCloneRun = async (
       ),
     );
   const target = parsed.data;
-  if (
-    cloneRunAddressIdentity(target.original.address) ===
-    cloneRunAddressIdentity(target.clone.address)
-  )
+  const sameAddress = await cloneRunAddressConflict(
+    target.original.address,
+    target.clone.address,
+    options.hostResolver ?? SYSTEM_HOST_RESOLVER,
+  );
+  if (sameAddress !== undefined)
     return err(
       refusal(
         operation,
-        `The original (${target.original.address}) and the clone (${target.clone.address}) are one address; every loopback name counts as one host.`,
+        sameAddress.message,
         "Serve the clone on another port and pass that address as the clone's.",
       ),
     );
@@ -382,6 +493,7 @@ export const initCloneRun = async (
     ...Object.values(CLONE_RUN_EXAMPLES).map(
       ({ file, document }) => [file, document] as const,
     ),
+    [CLONE_RUN_CRAWL_EXAMPLE_FILE, cloneRunCrawlExample(target)],
   ];
   const resources = new ArtifactResourceScope();
   const created: string[] = [];
@@ -397,7 +509,32 @@ export const initCloneRun = async (
     if (!written.ok) return written;
     created.push(file);
   }
-  const evaluate = cloneRunEvaluateCommand(resolvedRun, target.rea_command);
+  // The first worklist is the referee's own: one producer, so init and the first evaluation agree.
+  const [
+    { evaluateCloneRun },
+    { digestCloneTree },
+    { SCENARIO_BEHAVIOR_COMPARER },
+  ] = await Promise.all([
+    import("./CloneRunEvaluation.js"),
+    import("./CloneRunTreeDigest.js"),
+    import("../scenarioBehavior/ScenarioBehaviorComparisonService.js"),
+  ]);
+  const first = await evaluateCloneRun(
+    resolvedRun,
+    {
+      comparer: SCENARIO_BEHAVIOR_COMPARER,
+      digestTree: digestCloneTree,
+      now: options.now ?? (() => new Date()),
+      ...(options.hostResolver === undefined
+        ? {}
+        : { hostResolver: options.hostResolver }),
+    },
+    {
+      ...(options.signal === undefined ? {} : { signal: options.signal }),
+      writeOutputs: false,
+    },
+  );
+  if (!first.ok) return first;
   return ok({
     run: resolvedRun,
     created,
@@ -408,32 +545,26 @@ export const initCloneRun = async (
         example: CLONE_RUN_EXAMPLES.scenario.file,
       },
       {
+        file: `${CLONE_RUN_PATHS.scenarios}/<scenario>.json`,
+        role: "prober",
+        example: CLONE_RUN_EXAMPLES.scenarioPages.file,
+      },
+      {
         file: `${CLONE_RUN_PATHS.obligations}/<area>.json`,
         role: "spec_writer",
         example: CLONE_RUN_EXAMPLES.obligations.file,
       },
       {
         file: `${CLONE_RUN_PATHS.unknowns}/<role>-<n>.json`,
-        role: "prober",
         example: CLONE_RUN_EXAMPLES.unknown.file,
       },
-    ],
-    next: [
       {
-        role: "prober",
-        reason: "no_scenarios",
-        file: CLONE_RUN_PATHS.scenarios,
-        command: evaluate,
-        message: `Write ${CLONE_RUN_PATHS.scenarios}/<scenario>.json for each rule to probe (${CLONE_RUN_EXAMPLES.scenario.file} is a valid example), then run the command: it renders the capture inputs and says what to capture.`,
-      },
-      {
-        role: "spec_writer",
-        reason: "no_obligations",
-        file: CLONE_RUN_PATHS.obligations,
-        command: evaluate,
-        message: `Once the original is captured, write ${CLONE_RUN_PATHS.obligations}/<area>.json from ${CLONE_RUN_PATHS.behavior}/ (${CLONE_RUN_EXAMPLES.obligations.file} is a valid example), then run the command.`,
+        file: `${CLONE_RUN_PATHS.scout}/<crawl>.json`,
+        role: "scout",
+        example: CLONE_RUN_CRAWL_EXAMPLE_FILE,
       },
     ],
+    next: first.value.next,
   });
 };
 
@@ -448,6 +579,8 @@ export interface CloneRunWorkspace {
   readonly run: string;
   /** Null when `target.json` is refused; `issues` then says why. */
   readonly target: CloneRunTarget | null;
+  /** How worklist commands spell the CLI: `target.json`'s `rea_command`, also read from a refused file that still states one. */
+  readonly reaCommand: string;
   /** Valid scenarios by id (the file's base name), in id order. */
   readonly scenarios: ReadonlyMap<string, CloneRunScenario>;
   /** Valid obligation files by area (the file's base name), in area order. */
@@ -456,12 +589,23 @@ export interface CloneRunWorkspace {
   readonly unknowns: ReadonlyMap<string, CloneRunUnknown>;
   readonly waivers: CloneRunWaivers;
   readonly intendedDifferences: CloneRunIntendedDifferences;
-  /** Evidence file paths under `evidence/<side>/<scenario>/`, sorted; contents are not read here. */
+  /** Every non-hidden entry of `evidence/<side>/<scenario>/`, sorted by name; contents are not read here. */
   readonly evidence: Readonly<
-    Record<CloneRunSide, ReadonlyMap<string, readonly string[]>>
+    Record<CloneRunSide, ReadonlyMap<string, readonly CloneRunEvidenceEntry[]>>
   >;
   /** Every refused file; a refused file is absent from the maps above. */
   readonly issues: readonly CloneRunInputIssue[];
+}
+
+/**
+ * One entry of an Evidence directory. Only a regular file can be a capture;
+ * every other entry is listed too, so the referee rejects it by name and
+ * never offers its name to a capture command.
+ */
+export interface CloneRunEvidenceEntry {
+  /** Absolute path. */
+  readonly path: string;
+  readonly kind: "file" | "directory" | "link" | "other";
 }
 
 /** JSON pointer of a schema issue path. */
@@ -642,6 +786,26 @@ const listEntries = async (
     .map((entry) => entry.name)
     .toSorted();
 };
+
+/** Every non-hidden entry of an Evidence directory with its kind, sorted by name. */
+const listEvidenceEntries = async (
+  directory: string,
+): Promise<readonly CloneRunEvidenceEntry[]> =>
+  (await readdir(directory, { withFileTypes: true }))
+    .filter((entry) => !entry.name.startsWith("."))
+    .toSorted((left, right) =>
+      left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
+    )
+    .map((entry) => ({
+      path: join(directory, entry.name),
+      kind: entry.isFile()
+        ? "file"
+        : entry.isDirectory()
+          ? "directory"
+          : entry.isSymbolicLink()
+            ? "link"
+            : "other",
+    }));
 
 const JSON_SUFFIX = ".json";
 
@@ -825,13 +989,16 @@ const crossFileIssues = (
         });
       return;
     }
-    if (!scenario.actions.some((action) => action.step_id === field.step_id))
+    if (
+      field.step_id !== CLONE_RUN_EVERY_STEP &&
+      !scenario.actions.some((action) => action.step_id === field.step_id)
+    )
       issues.push({
         reason: "intended_differences_invalid",
         file: CLONE_RUN_PATHS.intendedDifferences,
         pointer: `/volatile_fields/${index}/step_id`,
         message: `The volatile field names step ${field.step_id}, which scenario ${field.scenario} does not have`,
-        fix: "Name an existing step of that scenario, or remove the entry",
+        fix: `Name an existing step of that scenario, write "${CLONE_RUN_EVERY_STEP}" for every step, or remove the entry`,
       });
   });
 };
@@ -893,6 +1060,10 @@ export const loadCloneRunWorkspace = async (
       ),
     );
   let target: CloneRunTarget | null = null;
+  const stated =
+    targetRead.value.kind === "value" && isRecord(targetRead.value.value)
+      ? targetRead.value.value.rea_command
+      : undefined;
   if (targetRead.value.kind === "unreadable")
     issues.push({
       reason: "target_invalid",
@@ -961,24 +1132,23 @@ export const loadCloneRunWorkspace = async (
     if (!intendedDifferences.ok) return intendedDifferences;
 
     const evidence = {
-      original: new Map<string, readonly string[]>(),
-      clone: new Map<string, readonly string[]>(),
+      original: new Map<string, readonly CloneRunEvidenceEntry[]>(),
+      clone: new Map<string, readonly CloneRunEvidenceEntry[]>(),
     };
     for (const side of CLONE_RUN_SIDES) {
       const sideDirectory = join(run, CLONE_RUN_PATHS.evidence, side);
-      for (const scenario of await listEntries(sideDirectory, "directory")) {
-        const directory = join(sideDirectory, scenario);
+      for (const scenario of await listEntries(sideDirectory, "directory"))
         evidence[side].set(
           scenario,
-          (await listEntries(directory, "file")).map((name) =>
-            join(directory, name),
-          ),
+          await listEvidenceEntries(join(sideDirectory, scenario)),
         );
-      }
     }
     const workspace = {
       run,
       target,
+      reaCommand:
+        target?.rea_command ??
+        (typeof stated === "string" && stated.trim() !== "" ? stated : "rea"),
       scenarios: scenarios.value.valid,
       obligations: obligations.value.valid,
       unknowns: unknowns.value.valid,
@@ -1179,6 +1349,14 @@ export const cloneRunCaptureCommand = (
  */
 export interface CloneRunOutputs {
   readonly gate: CloneRunGate;
+  /**
+   * False when `target.json` is refused: nothing was rendered or compared, so
+   * `rendered/`, `records/`, `behavior/` and `parity/` are left as they are
+   * and only the gate and the journal line are written. No verdict reads
+   * them, so keeping them is safe, and a builder keeps the behaviour tables
+   * while the lead repairs the file.
+   */
+  readonly derived: boolean;
   /** Appended only when the state differs from the last line. */
   readonly journalEntry: CloneRunJournalEntry | null;
   readonly rendered: readonly {
@@ -1212,6 +1390,13 @@ const ownFilePath = async (path: string): Promise<void> => {
   if (existing !== undefined && !existing.isFile())
     await rm(path, { recursive: true, force: true });
 };
+
+/**
+ * A hidden entry of an output directory is the staging directory of a write
+ * in flight, possibly another evaluation's: two evaluations at once must not
+ * remove each other's. No output is ever read back, so leaving one is safe.
+ */
+const isWriteInFlight = (entry: string): boolean => entry.startsWith(".");
 
 /**
  * Replace the referee's own outputs, each file atomically, and append the
@@ -1261,22 +1446,21 @@ export const writeCloneRunOutputs = async (
   };
   let current = run;
   try {
-    for (const directory of [
-      CLONE_RUN_PATHS.rendered,
-      CLONE_RUN_PATHS.records,
-    ]) {
+    for (const directory of outputs.derived
+      ? [CLONE_RUN_PATHS.rendered, CLONE_RUN_PATHS.records]
+      : []) {
       current = join(run, directory);
       await ownDirectory(current);
       const sides: readonly string[] = CLONE_RUN_SIDES;
       for (const entry of await readdir(current))
-        if (!sides.includes(entry))
+        if (!sides.includes(entry) && !isWriteInFlight(entry))
           await rm(join(current, entry), { recursive: true, force: true });
     }
-    for (const [directory, files] of trees) {
+    for (const [directory, files] of outputs.derived ? trees : []) {
       current = join(run, directory);
       await ownDirectory(current);
       for (const entry of await readdir(current))
-        if (!files.has(entry))
+        if (!files.has(entry) && !isWriteInFlight(entry))
           await rm(join(current, entry), { recursive: true, force: true });
       for (const [name, text] of files) {
         current = join(run, directory, name);
@@ -1294,9 +1478,22 @@ export const writeCloneRunOutputs = async (
     if (outputs.journalEntry !== null) {
       current = join(run, CLONE_RUN_PATHS.journal);
       await ownFilePath(current);
-      await appendFile(current, `${JSON.stringify(outputs.journalEntry)}\n`, {
-        mode: 0o600,
+      // An interrupted append leaves a partial last line; the new entry starts its own line.
+      const existing = await readFile(current).catch((cause: unknown) => {
+        if (isAbsent(cause)) return undefined;
+        throw cause;
       });
+      const repair =
+        existing !== undefined &&
+        existing.length > 0 &&
+        existing.at(-1) !== 0x0a
+          ? "\n"
+          : "";
+      await appendFile(
+        current,
+        `${repair}${JSON.stringify(outputs.journalEntry)}\n`,
+        { mode: 0o600 },
+      );
     }
   } catch (cause: unknown) {
     return err(

@@ -81,6 +81,7 @@ export const CLONE_RUN_REASONS = {
   run_folder_inside_clone: { check: "scope", role: "lead" },
   clone_root_missing: { check: "scope", role: "builder" },
   clone_symlink_outside_root: { check: "scope", role: "builder" },
+  clone_path_unreadable: { check: "scope", role: "builder" },
   // inputs
   no_scenarios: { check: "inputs", role: "prober" },
   scenario_invalid: { check: "inputs", role: "prober" },
@@ -105,9 +106,12 @@ export const CLONE_RUN_REASONS = {
   // parity
   parity_changed: { check: "parity", role: "builder" },
   parity_unknown: { check: "parity", role: CAPTURE_ROLES },
+  // The original's own instability is the lead's to declare, or the prober's
+  // when no declaration can cover it (the finding then names the prober). The
+  // clone's is first the verifier's: its captures are taken again.
   parity_unstable: {
     check: "parity",
-    role: { original: "lead", clone: "builder" },
+    role: { original: "lead", clone: "verifier" },
   },
   // clean room
   clean_room_identical_file: { check: "clean_room", role: "builder" },
@@ -173,19 +177,74 @@ export const CLONE_RUN_NEXT_LIMIT = 10;
  */
 export const CLONE_RUN_ORIGIN_PLACEHOLDER = "{origin}";
 
-/** Host names that all reach this machine. */
-const LOOPBACK_HOST =
-  /^(?:localhost|.+\.localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0|\[::1?\])$/u;
+/**
+ * The one name every loopback address, every unspecified address and every
+ * address of this machine's own interfaces is folded to in a resolved
+ * address: a server bound to any of them is reachable through all of them.
+ */
+export const CLONE_RUN_THIS_MACHINE = "this-machine";
 
 /**
- * What the two addresses of a run must differ in: scheme, port, and host with
- * every loopback name folded to one, so `localhost` and `127.0.0.1` on one
- * port are one address. Takes an origin `browserOriginSchema` accepted.
+ * What one address of a run reaches, as the application layer resolved it
+ * (`resolveCloneRunAddress`): the port, and the hosts its host name stands
+ * for. Each host is `CLONE_RUN_THIS_MACHINE` or a normalised IP literal;
+ * `null` when the name did not resolve, which leaves identity unknown.
  */
-export const cloneRunAddressIdentity = (origin: string): string => {
-  const url = new URL(origin);
-  const host = LOOPBACK_HOST.test(url.hostname) ? "loopback" : url.hostname;
-  return `${url.protocol}//${host}:${url.port}`;
+export interface CloneRunResolvedAddress {
+  readonly port: string;
+  readonly hosts: readonly string[] | null;
+}
+
+export type CloneRunAddressRelation = "distinct" | "same" | "unknown";
+
+/**
+ * Whether two resolved addresses can be one server. They are the same
+ * address when their ports are equal and their hosts intersect; with equal
+ * ports and a host that did not resolve, nothing is known, and the referee
+ * blocks as it does for one address. The scheme decides nothing: one port of
+ * one host is one listener. Pure; resolution happens in the application
+ * layer.
+ */
+export const cloneRunAddressRelation = (
+  original: CloneRunResolvedAddress,
+  clone: CloneRunResolvedAddress,
+): CloneRunAddressRelation => {
+  if (original.port !== clone.port) return "distinct";
+  if (original.hosts === null || clone.hosts === null) return "unknown";
+  const hosts = new Set(original.hosts);
+  return clone.hosts.some((host) => hosts.has(host)) ? "same" : "distinct";
+};
+
+/**
+ * A volatile field's `step_id` that stands for every step of its scenario.
+ * The declaration is still honoured only where the original's own repeats
+ * differ, so the wildcard cannot hide a steady difference.
+ */
+export const CLONE_RUN_EVERY_STEP = "*";
+
+/** What is wrong with a `clone.exclude` entry, or undefined for a usable one. */
+export const cloneRunExcludeIssue = (exclude: string): string | undefined => {
+  const rule =
+    "an exclude is a path relative to the clone root, matched on whole leading segments, such as node_modules or data/app.db";
+  if (exclude !== exclude.trim())
+    return `Leading or trailing white space matches nothing; ${rule}`;
+  if (exclude.includes("\\"))
+    return `A backslash matches nothing: segments are separated by '/'; ${rule}`;
+  if (exclude.startsWith("/"))
+    return `An absolute path matches nothing; ${rule}`;
+  if (/[*?[\]]/u.test(exclude))
+    return `Patterns are not expanded, so this matches nothing; ${rule}: name the directory or each file`;
+  const segments = exclude
+    .replace(/^(?:\.\/)+/u, "")
+    .replace(/\/+$/u, "")
+    .split("/");
+  if (segments.includes(".."))
+    return `A path that leaves the clone root excludes nothing; ${rule}`;
+  if (segments.every((segment) => segment === "" || segment === "."))
+    return `This names the clone root itself and excludes nothing; ${rule}`;
+  if (segments.includes("") || segments.includes("."))
+    return `An empty or '.' segment matches nothing; ${rule}`;
+  return undefined;
 };
 
 /** Names of the files and directories of a run folder, relative to its root. */
@@ -263,9 +322,18 @@ export const cloneRunTargetSchema = z.strictObject({
     name: z.string().min(1),
     root: absoluteLocalPathStringSchema,
     exclude: z
-      .array(z.string().min(1))
+      .array(
+        z
+          .string()
+          .min(1)
+          .superRefine((exclude, context) => {
+            const issue = cloneRunExcludeIssue(exclude);
+            if (issue !== undefined)
+              context.addIssue({ code: "custom", message: issue });
+          }),
+      )
       .describe(
-        "Paths relative to the clone root, matched on whole leading segments, left out of the tree digest and the clean-room checks",
+        "Paths relative to the clone root, matched on whole leading segments, left out of the tree digest and the clean-room checks. No patterns, no '..', no absolute path",
       ),
     commands: sideCommandsSchema,
   }),
@@ -524,6 +592,8 @@ export const cloneRunNextItemSchema = z.strictObject({
   side: z.enum(CLONE_RUN_SIDES).optional(),
   scenario: z.string().optional(),
   step_id: z.string().optional(),
+  /** Every step this item stands for, when steps with one and the same finding were collapsed into it; `step_id` is the first. */
+  step_ids: z.array(z.string()).min(2).optional(),
   obligation: z.string().optional(),
   dimension: z.enum(SCENARIO_BEHAVIOR_DIMENSIONS).optional(),
   pointer: z.string().optional(),
@@ -605,17 +675,32 @@ export const cloneRunGateSchema = z.strictObject({
     .strictObject({
       sha256: digestSchema,
       files: z.int().min(0),
-      /** The excludes that applied: these paths are neither digested nor checked. */
+      /**
+       * The declared excludes that matched a path of the clone root. Each
+       * names one excluded path, which is neither digested (so an edit there
+       * never makes a capture stale) nor checked for copied files or names.
+       */
       exclude: z.array(z.string()),
     })
     .nullable(),
   stall: z.strictObject({
+    /** Judged clone trees so far: a judged evaluation starts a round when the clone's files differ from the last judged ones. */
     round: z.int().min(0),
     max_rounds: z.int().min(1),
-    /** The last two judged rounds had the same failures and the same clone tree. */
+    /** Whether this evaluation was judged: every scenario had its captures admitted on both sides. */
+    judged: z.boolean(),
+    /**
+     * Judged evaluations of this clone tree that found these same blocking
+     * findings from different admitted Evidence, this one included; 0 when
+     * not judged. Evaluating one state again is the same attempt.
+     */
+    attempts: z.int().min(0),
+    /** These findings were judged before on this clone tree from other Evidence. */
     repeated: z.boolean(),
+    /** What would make the next evaluation read `stalled`; null with a pass. */
+    outlook: z.string().min(1).nullable(),
   }),
-  /** What this verdict cannot establish; fixed text from the specification. */
+  /** What this verdict cannot establish; fixed text from the specification. Listed with a pass only: empty for `not_done` and `stalled`. */
   residual_trust: z.array(z.string().min(1)),
 });
 export type CloneRunGate = z.infer<typeof cloneRunGateSchema>;
@@ -624,11 +709,11 @@ export type CloneRunGate = z.infer<typeof cloneRunGateSchema>;
 export const cloneRunJournalEntrySchema = z.strictObject({
   schema: z.literal("rea.clone-run.journal/1"),
   at: utcDateTimeSchema,
-  /** Counts judged evaluations: every scenario had its captures on both sides. */
+  /** The round this evaluation belonged to (`cloneRunStall`); stall detection recounts from the lines and does not trust it. */
   round: z.int().min(0),
   judged: z.boolean(),
   verdict: z.enum(CLONE_RUN_VERDICTS),
-  /** Digest of the sorted blocking findings (reason, scenario, step, pointer). */
+  /** Digest of the sorted blocking findings (reason, side, file, scenario, step, obligation, pointer). */
   failures_sha256: digestSchema,
   clone_tree_sha256: digestSchema.nullable(),
   /** Digest of the sorted admitted Evidence ids. */
@@ -640,14 +725,15 @@ export type CloneRunJournalEntry = z.infer<typeof cloneRunJournalEntrySchema>;
 export const cloneRunInitResultSchema = z.strictObject({
   run: z.string().min(1),
   created: z.array(z.string().min(1)),
-  /** The files agents still write, each with its role and a valid example file. */
+  /** The files agents still write, each with a valid example file and its role; no role when any role writes it. */
   authored: z.array(
     z.strictObject({
       file: z.string().min(1),
-      role: z.enum(CLONE_RUN_ROLES),
+      role: z.enum(CLONE_RUN_ROLES).optional(),
       example: z.string().min(1),
     }),
   ),
+  /** The referee's own first worklist for the new folder: what `evaluate-clone-run` prints for it. */
   next: z.array(cloneRunNextItemSchema).max(CLONE_RUN_NEXT_LIMIT),
 });
 export type CloneRunInitResult = z.infer<typeof cloneRunInitResultSchema>;
