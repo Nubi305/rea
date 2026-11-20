@@ -45,3 +45,4 @@ for new work, roadmap granularity and producer-owned contracts.
 - [CycloneDX dependency view](analysis-views/cyclonedx-dependencies/spec.md) ([plan](analysis-views/cyclonedx-dependencies/plan.md), [tasks](analysis-views/cyclonedx-dependencies/tasks.md))
 
 - [NuGet package inspection](artifacts/nuget-nupkg/spec.md) ([plan](artifacts/nuget-nupkg/plan.md), [tasks](artifacts/nuget-nupkg/tasks.md))
+- [Clone runs: a referee and a team playbook for web apps](reconstruction/clone-runs/spec.md) ([plan](reconstruction/clone-runs/plan.md), [tasks](reconstruction/clone-runs/tasks.md))
