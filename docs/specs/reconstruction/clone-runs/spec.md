@@ -86,7 +86,8 @@ One folder per run, outside the clone's source. Each file has one writer. Agents
 
 `<side>` is `original` or `clone`. A file's base name is its id: no authored file repeats its own name inside. The six
 referee rows are outputs. No verdict reads them back; the one use of an output is `journal.jsonl` for stall detection,
-which can only turn `not_done` into `stalled`. Outputs of a scenario that no longer exists are removed.
+which can only turn `not_done` into `stalled`. Outputs of a scenario that no longer exists are removed. Evaluations
+are not serialised: two at once would interleave these outputs, so the playbook has one role evaluate at a time.
 
 Clean-room wall: builders read `specs/`, `obligations/`, `behavior/` and `gate.json`, never `evidence/` or `scout/`.
 In this milestone the wall is a playbook rule; nothing enforces it.
@@ -307,7 +308,9 @@ Rules:
   completed; an unmatched transaction; a differing request body, page address or text; and any reply leaf that is not
   exactly equal across sides and is stable on the left, even when the differ treated it as equal. The comparer
   therefore also compares the two replies exactly and does not let a normalisation count stand in for equality.
-- **`unstable`:** something differs between the repeats of one side and no honoured declaration covers it.
+- **`unstable`:** something differs between the repeats of one side and no honoured declaration covers it. What the
+  left side's own repeats disagree on is `unstable`, not `changed`: only a value the original holds steadily can be
+  contradicted.
 - **Volatile fields.** A declaration `{scenario, step_id, pointer, reason}` names one reply leaf (`*` for any one array
   index). It never covers the values beneath an object or array, and the empty pointer is refused. It is honoured only
   where the left side's repeats really differ at that leaf. An honoured leaf's value is not compared; its
@@ -443,21 +446,21 @@ Result: `scenarioBehaviorComparisonSchema`. Exit without `--exit-code`: 0. With 
 
 ### `rea init-clone-run <directory>`
 
-| Flag                                                       | Meaning                                                                    |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `--original <origin>`, `--clone <origin>`                  | Required. The two addresses.                                               |
-| `--clone-root <dir>`, `--clone-name <name>`                | Required. Where the clone's source lives and what it is called.            |
-| `--original-name <name>`                                   | Required, repeatable. Names that must not appear in the clone.             |
-| `--authorization <text>`                                   | Required. Why the team may study the original.                             |
-| `--stated-by <person>`                                     | Who made the statement.                                                    |
-| `--browser <path>`                                         | Chromium executable. Default `REA_BROWSER_EXECUTABLE`; refused if neither. |
-| `--browser-no-sandbox`                                     | Default: whether `REA_BROWSER_NO_SANDBOX` is `true`.                       |
-| `--exclude <path>`                                         | Repeatable. Replaces the default excludes.                                 |
-| `--material <dir>`                                         | Repeatable. Replaces the default original material (`scout`).              |
-| `--original-start`, `-reset`, `-stop`, `-health <command>` | Recorded for the team; REA never runs them.                                |
-| `--clone-start`, `-reset`, `-stop`, `-health <command>`    | The same for the clone.                                                    |
-| `--rea-command <command>`                                  | How worklist commands spell the CLI. Default `rea`.                        |
-| `--max-rounds <n>`, `--capture-timeout-seconds <n>`        | Defaults 8 and 120.                                                        |
+| Flag                                                                                     | Meaning                                                                    |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `--original <origin>`, `--clone <origin>`                                                | Required. The two addresses.                                               |
+| `--clone-root <dir>`, `--clone-name <name>`                                              | Required. Where the clone's source lives and what it is called.            |
+| `--original-name <name>`                                                                 | Required, repeatable. Names that must not appear in the clone.             |
+| `--authorization <text>`                                                                 | Required. Why the team may study the original.                             |
+| `--stated-by <person>`                                                                   | Who made the statement.                                                    |
+| `--browser <path>`                                                                       | Chromium executable. Default `REA_BROWSER_EXECUTABLE`; refused if neither. |
+| `--browser-no-sandbox`                                                                   | Default: whether `REA_BROWSER_NO_SANDBOX` is `true`.                       |
+| `--exclude <path>`                                                                       | Repeatable. Replaces the default excludes.                                 |
+| `--material <dir>`                                                                       | Repeatable. Replaces the default original material (`scout`).              |
+| `--original-start`, `--original-reset`, `--original-stop`, `--original-health <command>` | Recorded for the team; REA never runs them.                                |
+| `--clone-start`, `--clone-reset`, `--clone-stop`, `--clone-health <command>`             | The same for the clone.                                                    |
+| `--rea-command <command>`                                                                | How worklist commands spell the CLI. Default `rea`.                        |
+| `--max-rounds <n>`, `--capture-timeout-seconds <n>`                                      | Defaults 8 and 120.                                                        |
 
 The directory must be absent or empty and outside the clone root, the two addresses must differ as scope requires, and
 the clone's name must not contain an original name. Nothing is overwritten. It writes `target.json`,
