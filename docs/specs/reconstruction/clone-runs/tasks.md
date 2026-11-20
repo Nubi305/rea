@@ -58,8 +58,8 @@ Each task names the spec section it implements and the check that shows it.
 
 ## D: guidance and documentation
 
-- [ ] `references/clone-runs.md` with seven role cards and the web playbook; `SKILL.md` pointer and version.
-- [ ] `MANAGED_SKILL_FILES`, regenerated metadata and plugin copy.
-- [ ] Conformance test tying every command, reason code and role named in the reference to real ones.
-- [ ] `docs/reference/clone-runs.md` and the CLI guide.
-- [ ] Setup under a throwaway `HOME` installs the reference, and `rea guidance --query "clone parity"` matches.
+- [x] `references/clone-runs.md` with seven role cards and the web playbook; `SKILL.md` pointer and version.
+- [x] `MANAGED_SKILL_FILES`, regenerated metadata and plugin copy.
+- [x] Conformance test tying every command, reason code and role named in the reference to real ones.
+- [x] `docs/reference/clone-runs.md` and the CLI guide.
+- [x] Setup under a throwaway `HOME` installs the reference, and `rea guidance --query "clone parity"` matches.

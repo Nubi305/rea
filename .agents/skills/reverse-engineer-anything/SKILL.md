@@ -2,7 +2,7 @@
 name: reverse-engineer-anything
 description: Reverse engineer native, managed, Electron/JavaScript, packaged, firmware, and browser targets with REA, and build agent environments (AgentEnv bundles) of web applications from a live instance or a capture, and of Linux desktop apps with a task from a request. Use shipped-artifact or requested runtime evidence to explain features, compare versions, decompile code, or guide a reconstruction. Skip REA for ordinary source-repository architecture analysis.
 metadata:
-  version: "63"
+  version: "64"
 ---
 
 # REA
@@ -661,12 +661,18 @@ as complete while required questions remain open.
   [references/environments.md](references/environments.md#tasks-for-a-desktop-application-environment)
 - A desktop app environment from a request, built and witnessed on build
   computers: [references/desktop-build.md](references/desktop-build.md)
+- Rebuilding (cloning) a web application: the run folder, the seven role
+  cards for one agent or a team, and the referee that decides parity:
+  [references/clone-runs.md](references/clone-runs.md)
 
 ## Finish the task
 
 Explain findings in plain language and tie them to returned evidence. When the
-user asks to build something, use normal coding tools and separate observed
-behavior from design choices. Close an opened native session with
+user asks to rebuild or clone a web application they can run locally, follow
+[clone runs](references/clone-runs.md): `rea evaluate-clone-run` decides
+whether the rebuild matches, and no agent declares it done. For any other
+build, use normal coding tools, separate observed behavior from design
+choices, and say that no REA verdict backs the result. Close an opened native session with
 `close_binary` when its engine is no longer needed. Evidence references and Unknown
 history remain in memory on the same MCP connection. End the investigation with
 `reset_investigation`; supply `save_path` to checkpoint the complete bundle before
