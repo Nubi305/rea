@@ -19,8 +19,9 @@ Each task names the spec section it implements and the check that shows it.
       differ; volatile fields honoured only where the left repeats differ, with type and format still compared.
 - [ ] Fingerprint `start_state` per side.
 - [ ] `describeScenarioBehavior`: the behaviour table.
-- [ ] Unit tests for each rule, and the saved pilot captures: two per side unchanged, one per side unknown, mutant
-      changed at `/slug`.
+- [ ] Unit tests for each rule. The pilot's saved captures selected no accessibility text, so under this contract every
+      step of theirs is `unknown` on `text`; they can show the request, status and body rules only (mutant changed at
+      `/slug`). An all-`unchanged` result needs captures made with the rendered capture settings.
 
 ## B: run folder and referee (spec: "Run folder" to "Stall")
 
