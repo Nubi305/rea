@@ -1,0 +1,29 @@
+{
+  "start_path": "/",
+  "actions": [
+    {
+      "step_id": "fp-topics",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/topics",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "download-fetched",
+      "action": "request",
+      "method": "GET",
+      "path": "/topics.csv",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "download-link",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "link",
+        "name": "Download topics"
+      },
+      "timeout_ms": 15000
+    }
+  ]
+}

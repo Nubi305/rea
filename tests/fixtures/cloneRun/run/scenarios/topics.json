@@ -177,6 +177,132 @@
       "timeout_ms": 15000
     },
     {
+      "step_id": "create-number-title",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": 7
+      }
+    },
+    {
+      "step_id": "create-title-of-3",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "Map"
+      }
+    },
+    {
+      "step_id": "create-title-of-48",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "Minutes of the autumn planning workshop, part 12"
+      }
+    },
+    {
+      "step_id": "create-body-is-a-list",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": [
+        {
+          "title": "Listed"
+        }
+      ]
+    },
+    {
+      "step_id": "create-body-is-a-string",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": "Quoted"
+    },
+    {
+      "step_id": "list-trailing-slash",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/topics/",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-wrong-method",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "Anything"
+      }
+    },
+    {
+      "step_id": "list-wrong-method-bad-body",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": [1]
+    },
+    {
+      "step_id": "topic-wrong-method",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics/1",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "Anything"
+      }
+    },
+    {
+      "step_id": "topic-wrong-method-bad-body",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics/1",
+      "timeout_ms": 15000,
+      "json": [1]
+    },
+    {
+      "step_id": "missing-topic-wrong-method",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics/999",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "Anything"
+      }
+    },
+    {
+      "step_id": "missing-topic-bad-body",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/topics/999",
+      "timeout_ms": 15000,
+      "json": [1]
+    },
+    {
+      "step_id": "topic-below-is-missing",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/topics/1/notes",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "export-wrong-method",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/export",
+      "timeout_ms": 15000,
+      "json": {}
+    },
+    {
       "step_id": "page-home-after-writes",
       "action": "goto",
       "destination": {

@@ -1,6 +1,16 @@
 {
   "renames": [
     {
+      "from": "Quillbrook is a shared board of topics. Each topic gets a short address made from its first title.",
+      "to": "Tidewater is where a team lists what it is working on. A topic's address is short and is built once, from the title it was first given.",
+      "reason": "about page, first paragraph, rewritten for the clone"
+    },
+    {
+      "from": "Pinned topics stay at the top of the list.",
+      "to": "A pinned topic is listed before every topic that is not pinned.",
+      "reason": "about page, second paragraph, rewritten for the clone"
+    },
+    {
       "from": "Quillbrook keeps your team's topics in one place.",
       "to": "Tidewater is a small shared topic board.",
       "reason": "tagline, rewritten for the clone"
@@ -9,69 +19,15 @@
   "volatile_fields": [
     {
       "scenario": "topics",
-      "step_id": "create-spaced-title",
+      "step_id": "*",
       "pointer": "/createdAt",
-      "reason": "creation time"
+      "reason": "creation time of the topic a reply returns"
     },
     {
       "scenario": "topics",
-      "step_id": "create-same-slug",
-      "pointer": "/createdAt",
-      "reason": "creation time"
-    },
-    {
-      "scenario": "topics",
-      "step_id": "create-slug-cut",
-      "pointer": "/createdAt",
-      "reason": "creation time"
-    },
-    {
-      "scenario": "topics",
-      "step_id": "create-slug-empty",
-      "pointer": "/createdAt",
-      "reason": "creation time"
-    },
-    {
-      "scenario": "topics",
-      "step_id": "read-created",
-      "pointer": "/createdAt",
-      "reason": "creation time"
-    },
-    {
-      "scenario": "topics",
-      "step_id": "rename-keeps-slug",
-      "pointer": "/createdAt",
-      "reason": "creation time"
-    },
-    {
-      "scenario": "topics",
-      "step_id": "pin-created",
-      "pointer": "/createdAt",
-      "reason": "creation time"
-    },
-    {
-      "scenario": "topics",
-      "step_id": "list-pinned-first",
+      "step_id": "*",
       "pointer": "/items/*/createdAt",
-      "reason": "creation time"
-    },
-    {
-      "scenario": "topics",
-      "step_id": "page-add",
-      "pointer": "/createdAt",
-      "reason": "creation time"
-    },
-    {
-      "scenario": "topics",
-      "step_id": "page-find",
-      "pointer": "/items/*/createdAt",
-      "reason": "creation time"
-    },
-    {
-      "scenario": "topics",
-      "step_id": "page-rename",
-      "pointer": "/createdAt",
-      "reason": "creation time"
+      "reason": "creation time of each listed topic"
     }
   ]
 }

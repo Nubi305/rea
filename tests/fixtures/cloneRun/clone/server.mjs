@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// Tidewater: a topic board served from memory. Routes are a table of
-// [method, pattern, handler]; pages are rendered on the server and the
-// script under assets/ talks to the JSON routes. Node standard library only.
+// Tidewater: a topic board served from memory. Pages are a table of path to
+// renderer; the JSON API is two resources (the list and one topic) with a
+// handler per method. Pages are rendered on the server and the script under
+// assets/ talks to the API. Node standard library only.
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { pathToFileURL } from "node:url";
 
+import { sheetOf } from "./sheet.mjs";
 import { TopicBoard } from "./topics.mjs";
 import * as views from "./views.mjs";
 
@@ -25,6 +27,8 @@ const html = (status, body) => ({
   body,
 });
 const noSuch = () => json(404, { error: "not_found" });
+const notAllowed = () => json(405, { error: "method_not_allowed" });
+const reply = ({ status, body }) => json(status, body);
 
 /** Every archive row of the export, far more than one screen of data. */
 const archive = () =>
@@ -34,6 +38,7 @@ const archive = () =>
     kind: "archive",
   }));
 
+/** The request body as a JSON object, or undefined when it is anything else. */
 const jsonBody = async (request) => {
   let raw = "";
   for await (const chunk of request.setEncoding("utf8")) raw += chunk;
@@ -47,100 +52,89 @@ const jsonBody = async (request) => {
   }
 };
 
-const withTopic = (board, id, found) => {
-  const topic = /^\d+$/.test(id) ? board.get(Number(id)) : undefined;
-  return topic === undefined ? noSuch() : found(topic);
-};
-
-const withInput = async (request, accepted) => {
-  const input = await jsonBody(request);
-  return input === undefined
-    ? json(400, { error: "invalid_json" })
-    : accepted(input);
-};
-
-const reply = ({ status, body }) => json(status, body);
+/** @param {TopicBoard} board */
+const pages = (board) =>
+  new Map([
+    ["/", () => html(200, views.home(board.search()))],
+    ["/about", () => html(200, views.about())],
+    [
+      "/topic",
+      ({ url }) => {
+        const id = url.searchParams.get("id") ?? "";
+        const topic = /^\d+$/.test(id) ? board.get(Number(id)) : undefined;
+        return topic === undefined
+          ? html(404, views.missing())
+          : html(200, views.topic(topic));
+      },
+    ],
+    [
+      "/topics.csv",
+      () => ({
+        status: 200,
+        type: "text/csv; charset=utf-8",
+        headers: { "content-disposition": 'attachment; filename="topics.csv"' },
+        body: sheetOf(board.search()),
+      }),
+    ],
+  ]);
 
 /** @param {TopicBoard} board */
-const routes = (board) => [
-  ["GET", /^\/$/, () => html(200, views.home(board.search()))],
-  ["GET", /^\/about$/, () => html(200, views.about())],
-  [
-    "GET",
-    /^\/topic$/,
-    ({ url }) => {
-      const id = url.searchParams.get("id") ?? "";
-      const topic = /^\d+$/.test(id) ? board.get(Number(id)) : undefined;
-      return topic === undefined
-        ? html(404, views.missing())
-        : html(200, views.topic(topic));
-    },
-  ],
-  [
-    "GET",
-    /^\/api\/export$/,
-    () =>
-      json(200, {
-        format: "topics-export/1",
-        topics: board.search(),
-        archive: archive(),
-      }),
-  ],
-  [
-    "GET",
-    /^\/api\/topics$/,
-    ({ url }) => {
+const resources = (board) => ({
+  list: {
+    GET: ({ url }) => {
       const items = board.search(url.searchParams.get("q") ?? "");
       return json(200, { items, total: items.length });
     },
-  ],
-  [
-    "POST",
-    /^\/api\/topics$/,
-    ({ request }) => withInput(request, (input) => reply(board.add(input))),
-  ],
-  [
-    "GET",
-    /^\/api\/topics\/([^/]+)$/,
-    ({ match }) => withTopic(board, match[1], (topic) => json(200, topic)),
-  ],
-  [
-    "PUT",
-    /^\/api\/topics\/([^/]+)$/,
-    ({ request, match }) =>
-      withInput(request, (input) =>
-        withTopic(board, match[1], (topic) =>
-          reply(board.change(topic, input)),
-        ),
-      ),
-  ],
-  [
-    "DELETE",
-    /^\/api\/topics\/([^/]+)$/,
-    ({ match }) =>
-      withTopic(board, match[1], (topic) => reply(board.drop(topic))),
-  ],
-];
+    POST: ({ input }) => reply(board.add(input)),
+  },
+  topic: {
+    GET: ({ topic }) => json(200, topic),
+    PUT: ({ topic, input }) => reply(board.change(topic, input)),
+    DELETE: ({ topic }) => reply(board.drop(topic)),
+  },
+});
 
-const answer = async (table, request) => {
+const WRITES = new Set(["POST", "PUT"]);
+
+/**
+ * The API reads a path by its non-empty segments, so a trailing or doubled
+ * slash names the same resource. A written body is judged before the topic
+ * is looked up, and the topic before the method.
+ */
+const answerApi = async (board, api, request, url) => {
+  const [, collection, id, ...deeper] = url.pathname
+    .split("/")
+    .filter((segment) => segment !== "");
+  if (collection === "export" && id === undefined && request.method === "GET")
+    return json(200, {
+      format: "topics-export/1",
+      topics: board.search(),
+      archive: archive(),
+    });
+  if (collection !== "topics" || deeper.length > 0) return noSuch();
+  const input = WRITES.has(request.method) ? await jsonBody(request) : {};
+  if (input === undefined) return json(400, { error: "invalid_json" });
+  if (id === undefined)
+    return (api.list[request.method] ?? notAllowed)({ url, input });
+  const topic = /^\d+$/.test(id) ? board.get(Number(id)) : undefined;
+  if (topic === undefined) return noSuch();
+  return (api.topic[request.method] ?? notAllowed)({ topic, input });
+};
+
+const answer = async (site, request) => {
   const url = new URL(request.url ?? "/", "http://board.invalid");
+  if (url.pathname.startsWith("/api/"))
+    return answerApi(site.board, site.api, request, url);
+  if (request.method !== "GET") return html(405, views.missing());
   const asset = ASSETS.get(url.pathname);
-  if (asset !== undefined && request.method === "GET")
+  if (asset !== undefined)
     return {
       status: 200,
       type: asset,
       body: await readFile(new URL(`.${url.pathname}`, import.meta.url)),
     };
-  let pathKnown = false;
-  for (const [method, pattern, handler] of table) {
-    const match = pattern.exec(url.pathname);
-    if (match === null) continue;
-    pathKnown = true;
-    if (method === request.method) return handler({ request, url, match });
-  }
-  if (url.pathname.startsWith("/api/"))
-    return pathKnown ? json(405, { error: "method_not_allowed" }) : noSuch();
-  return html(pathKnown ? 405 : 404, views.missing());
+  const page = site.pages.get(url.pathname);
+  return page === undefined ? html(404, views.missing()) : page({ url });
 };
 
 /**
@@ -150,18 +144,19 @@ const answer = async (table, request) => {
  */
 export const startBoard = async ({ port = 0 } = {}) => {
   const board = new TopicBoard();
-  const table = routes(board);
+  const site = { board, api: resources(board), pages: pages(board) };
   const server = createServer((request, response) => {
-    answer(table, request)
+    answer(site, request)
       .catch((error) => ({
         status: 500,
         type: "text/plain",
         body: String(error),
       }))
-      .then(({ status, type, body }) => {
+      .then(({ status, type, body, headers = {} }) => {
         response.writeHead(status, {
           "content-type": type,
           "content-length": Buffer.byteLength(body),
+          ...headers,
         });
         response.end(body);
       });

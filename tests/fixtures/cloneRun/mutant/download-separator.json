@@ -1,0 +1,6 @@
+{
+  "description": "Turns the fixture clone into a mutant whose downloaded topic file separates its cells with semicolons where the original uses commas.",
+  "file": "sheet.mjs",
+  "find": "const SEPARATOR = \",\";",
+  "replace": "const SEPARATOR = \";\";"
+}

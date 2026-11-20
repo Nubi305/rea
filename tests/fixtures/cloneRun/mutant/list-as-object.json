@@ -1,0 +1,6 @@
+{
+  "description": "Turns the fixture clone into a mutant whose topic list is an object keyed by position (\"0\", \"1\", ...) where the original answers an array. Every item sits at the same JSON pointer on both sides, so only the kind of the container differs.",
+  "file": "server.mjs",
+  "find": "return json(200, { items, total: items.length });",
+  "replace": "return json(200, { items: { ...items }, total: items.length });"
+}

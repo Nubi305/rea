@@ -12,10 +12,23 @@ if (executable === undefined || executable === "")
 if (process.platform === "win32")
   throw new Error("verify:clone-run needs a POSIX shell with timeout and rm");
 await access(executable);
+// An interruption stops the command in hand and skips the remaining cases, so
+// the verifier's own cleanup releases the servers, the browser and the root.
+const interruption = new AbortController();
+for (const name of /** @type {const} */ (["SIGINT", "SIGTERM"]))
+  process.once(name, () => {
+    interruption.abort(
+      new Error(`verify:clone-run was interrupted by ${name}`),
+    );
+  });
 const run = createVerifierRun();
-const proof = await verifyCloneRun(executable, (line) => {
-  process.stdout.write(`${line}\n`);
-});
+const proof = await verifyCloneRun(
+  executable,
+  (line) => {
+    process.stdout.write(`${line}\n`);
+  },
+  { signal: interruption.signal },
+);
 process.stdout.write(
   `${JSON.stringify({ ...proof, verifier_run: await completeVerifierRun(run) })}\n`,
 );

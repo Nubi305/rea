@@ -33,12 +33,16 @@ const cliError = (error: AnalysisError): JsonValue => ({
   ...projectAnalysisError(error),
 });
 
-const exitCodeOption = (meaning: string) =>
+/**
+ * The one way to gate on a verdict. `caution` is what a reader of this
+ * command's output most easily gets wrong.
+ */
+const exitCodeOption = (meaning: string, caution = "") =>
   z
     .boolean()
     .default(false)
     .describe(
-      `Exit by verdict: ${meaning}. Without it a completed command exits 0 whatever the verdict. A refusal exits 1 either way and its JSON has no verdict member`,
+      `Exit by verdict: ${meaning}. Without it a completed command exits 0 whatever the verdict. A refusal, an unknown flag included, exits 1 either way and its JSON has no verdict member${caution}`,
     );
 
 interface CompareArguments {
@@ -79,7 +83,7 @@ const captureFile = (side: string) =>
     .array(localPathStringSchema)
     .min(1)
     .describe(
-      `Capture Evidence JSON of the ${side} side: a file capture-browser-scenario wrote with --evidence_output, or its JSON output. Repeat once per capture of the same scenario; two or more show what varies between runs`,
+      `Required. Capture Evidence JSON of the ${side} side: a file capture-browser-scenario wrote with --evidence_output, or its JSON output. Repeat once per capture of the same scenario; two or more show what varies between runs`,
     );
 
 const registerCompareCommand = (cli: CliInstance, logger: Logger): void => {
@@ -92,7 +96,7 @@ const registerCompareCommand = (cli: CliInstance, logger: Logger): void => {
       differences: localPathStringSchema
         .optional()
         .describe(
-          'Declared differences JSON, the intended-differences.json of a clone run: {"renames": [{"from", "to", "reason"}], "volatile_fields": [{"scenario", "step_id", "pointer", "reason"}]}. A rename replaces text on the left before comparing; a volatile field names one reply leaf that the left side\'s own repeats show varying, compared by shape only',
+          'Declared differences JSON, the intended-differences.json of a clone run: {"renames": [{"from", "to", "reason"}], "volatile_fields": [{"scenario", "step_id", "pointer", "reason"}]}. A rename replaces text on the left before comparing. A volatile field names one reply leaf by JSON pointer (* for any list position) at one step, or at every step with step_id "*"; it is honoured only where the left side\'s own repeats differ, and that leaf is then compared by shape only',
         ),
       scenario: z
         .string()
@@ -132,34 +136,34 @@ const initOptions = z.object({
     .string()
     .min(1)
     .describe(
-      "Address of the running original: one HTTP(S) origin without a path, such as http://127.0.0.1:4000",
+      "Required. Address of the running original: one HTTP(S) origin without a path, such as http://127.0.0.1:4000",
     ),
   clone: z
     .string()
     .min(1)
     .describe(
-      "Address the clone is served at. It must differ from the original's in scheme, host or port; every loopback name counts as one host",
+      "Required. Address the clone is served at. It must be another server than the original's: on one port, two hosts that resolve to a common address are one address, and every loopback name or address, 0.0.0.0 and this machine's own interface addresses are one host. A host that does not resolve is refused when the ports are equal",
     ),
   cloneRoot: localPathStringSchema.describe(
-    "Directory of the clone's source. It may not exist yet. The run directory must be outside it",
+    "Required. Directory of the clone's source. It may not exist yet. The run directory must be outside it",
   ),
   cloneName: z
     .string()
     .min(1)
     .describe(
-      "The clone's own product name. It must not contain an original name",
+      "Required. The clone's own product name. It must not contain an original name",
     ),
   originalName: z
     .array(z.string().min(3))
     .min(1)
     .describe(
-      "A product or brand name of the original that must not appear in the clone's files; repeat per name. Choose distinctive names: one that also occurs in a route or field name can never be satisfied",
+      "Required. A product or brand name of the original, three characters or more, that must not appear in the clone's files; repeat per name. Choose distinctive names: one that also occurs in a route or field name can never be satisfied",
     ),
   authorization: z
     .string()
     .min(1)
     .describe(
-      "Why the team may study the original, such as ownership or written permission. Recorded as given; REA cannot verify it",
+      "Required. Why the team may study the original, such as ownership or written permission. Recorded as given; REA cannot verify it",
     ),
   statedBy: z
     .string()
@@ -181,7 +185,7 @@ const initOptions = z.object({
     .array(z.string().min(1))
     .optional()
     .describe(
-      `Path under the clone root left out of the clone tree digest and the clean-room checks, such as a database or log the clone writes while it runs; repeat per path. Replaces the default ${CLONE_RUN_DEFAULT_EXCLUDES.join(" and ")}`,
+      `Path under the clone root left out of the clone tree digest and the clean-room checks, such as a database or log the clone writes while it runs; repeat per path. A relative path of whole /-separated segments, with no pattern characters, backslash or .. segment. The summary of every verdict lists the excludes that matched a path, because neither staleness nor the clean-room check covers them. Replaces the default ${CLONE_RUN_DEFAULT_EXCLUDES.join(" and ")}`,
     ),
   material: z
     .array(localPathStringSchema)
@@ -210,7 +214,7 @@ const initOptions = z.object({
       .min(1)
       .optional()
       .describe(
-        `Judged evaluations after which a run that is not done reads stalled; default ${String(CLONE_RUN_DEFAULT_LIMITS.max_rounds)}`,
+        `Rounds after which a run that is not done reads stalled. A round is one clone tree judged with every capture admitted; new captures and edits to authored files use up none; default ${String(CLONE_RUN_DEFAULT_LIMITS.max_rounds)}`,
       ),
   ),
   captureTimeoutSeconds: cliDecimalField(
@@ -301,7 +305,7 @@ const registerInitCommand = (
 ): void => {
   registerCliCommand(cli, CLI_COMMANDS.initCloneRun, {
     description:
-      "Create the run folder a team works from while it rebuilds a web application as new code under a new name, and that evaluate-clone-run judges. Writes target.json (both addresses, the clone root, the names that must not appear in the clone, the recorded authorization), intended-differences.json with one rename per original name, waivers.json, the empty directories and examples/ with one valid example of each file an agent writes: scenarios/<id>.json, obligations/<area>.json and unknowns/<role>-<n>.json. Nothing is overwritten and no target is started. Next: write a scenario, then run evaluate-clone-run and follow its worklist",
+      "Create the run folder a team works from while it rebuilds a web application as new code under a new name, and that evaluate-clone-run judges. Writes target.json (both addresses, the clone root, the names that must not appear in the clone, the recorded authorization), intended-differences.json with one rename per original name, waivers.json, the empty directories and examples/ with a valid example of each file an agent writes: scenarios/<id>.json twice (request steps, and page steps), obligations/<area>.json, unknowns/<role>-<n>.json and a crawl capture input for the scout. Nothing is overwritten and no target is started. The result's next is the referee's first worklist for the new folder: do it, then run evaluate-clone-run and follow its worklist",
     args: z.object({
       directory: localPathStringSchema.describe(
         "Run folder to create; must be absent or empty, and outside the clone root",
@@ -349,7 +353,7 @@ const evaluateCloneRunCommand = async (
 const registerEvaluateCommand = (cli: CliInstance, logger: Logger): void => {
   registerCliCommand(cli, CLI_COMMANDS.evaluateCloneRun, {
     description:
-      "Referee a clone run: decide from capture Evidence REA recorded and authenticates, and from the clone's files as they are now, whether the clone behaves as the original. Prints the verdict (done, done_with_waivers, not_done or stalled), the eight checks, every blocking reason with its count, and next: at most ten items, each with the role that acts, the reason code, the file, a message naming the fix, and the exact command to run. Loop: evaluate, do next, evaluate. Capture a side only from the rendered input this command wrote, after resetting that side, and evaluate before capturing the clone again after any edit to it. It reads the folder, rewrites its own outputs (rendered/, records/, behavior/, parity/, gate.json, journal.jsonl) and never reads a verdict from them; it never starts, stops or resets a target. No file an agent writes can produce a pass, and gate.json on disk is only a copy of the last verdict",
+      "Referee a clone run: decide from capture Evidence REA recorded and authenticates, and from the clone's files as they are now, whether the clone behaves as the original. Prints the verdict (done, done_with_waivers, not_done or stalled), the eight checks, every blocking reason with its count, and next: at most ten items, each with the role that acts, the reason code, the file, a message naming the fix, and the exact command to run. stall gives the round and what would make the next evaluation read stalled; residual_trust, what a pass does not cover, is listed only with a pass. Loop: evaluate, do next, evaluate. Capture a side only from the rendered input this command wrote, after resetting that side, and evaluate before capturing the clone again after any edit to it. It reads the folder, rewrites its own outputs (rendered/, records/, behavior/, parity/, gate.json, journal.jsonl) and never reads a verdict from them; it never starts, stops or resets a target. No file an agent writes can produce a pass, and gate.json on disk is only a copy of the last verdict",
     args: z.object({
       directory: localPathStringSchema.describe(
         "Run folder that init-clone-run created",
@@ -358,6 +362,7 @@ const registerEvaluateCommand = (cli: CliInstance, logger: Logger): void => {
     options: z.object({
       exitCode: exitCodeOption(
         "0 done or done_with_waivers, 1 not_done, 2 stalled",
+        ". Gate on this exit status or on the verdict member, never on finding the word done in the output: not_done and the summary of a run that is not done contain it",
       ),
     }),
     run: ({ args, options }) =>

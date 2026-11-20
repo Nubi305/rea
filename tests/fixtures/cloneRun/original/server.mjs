@@ -165,7 +165,7 @@ function homePage(store) {
       '<form id="find-form">\n<label>Find <input type="text" name="q"></label>\n<button type="submit">Search</button>\n</form>\n' +
       '<ul id="topics" aria-label="Topic list">\n' +
       store.list("").map(topicRow).join("") +
-      "</ul>\n<h2>New topic</h2>\n" +
+      '</ul>\n<p><a href="/topics.csv">Download topics</a></p>\n<h2>New topic</h2>\n' +
       '<form id="add-form">\n<label>Title <input type="text" name="title"></label>\n' +
       '<label><input type="checkbox" name="pinned"> Pinned</label>\n<button type="submit">Add topic</button>\n</form>\n' +
       '<div id="notice"></div>\n',
@@ -217,6 +217,26 @@ function exportDocument(store) {
   return { format: "topics-export/1", topics: store.list(""), archive: rows };
 }
 
+function csvCell(value) {
+  const text = String(value);
+  return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+}
+
+// The list as a file the browser saves: one row per topic, in list order.
+function topicsCsv(store) {
+  let out = "id,title,slug,pinned\n";
+  store.list("").forEach(function (topic) {
+    out +=
+      [
+        topic.id,
+        csvCell(topic.title),
+        csvCell(topic.slug),
+        topic.pinned ? "yes" : "no",
+      ].join(",") + "\n";
+  });
+  return out;
+}
+
 function readBody(request) {
   return new Promise(function (resolve, reject) {
     const chunks = [];
@@ -228,6 +248,21 @@ function readBody(request) {
     });
     request.on("error", reject);
   });
+}
+
+// The JSON object a POST or PUT sent, {} for any other method, or null when
+// the body is not a JSON object.
+async function readInput(request) {
+  if (request.method !== "POST" && request.method !== "PUT") return {};
+  let input;
+  try {
+    input = JSON.parse(await readBody(request));
+  } catch {
+    return null;
+  }
+  if (input === null || typeof input !== "object" || Array.isArray(input))
+    return null;
+  return input;
 }
 
 function sendJson(response, status, body) {
@@ -263,16 +298,8 @@ async function handleApi(store, request, response, url) {
   if (parts[1] !== "topics" || parts.length > 3)
     return sendJson(response, 404, { error: "not_found" });
 
-  let input = {};
-  if (request.method === "POST" || request.method === "PUT") {
-    try {
-      input = JSON.parse(await readBody(request));
-    } catch {
-      return sendJson(response, 400, { error: "invalid_json" });
-    }
-    if (input === null || typeof input !== "object" || Array.isArray(input))
-      return sendJson(response, 400, { error: "invalid_json" });
-  }
+  const input = await readInput(request);
+  if (input === null) return sendJson(response, 400, { error: "invalid_json" });
 
   if (parts.length === 2) {
     if (request.method === "GET") {
@@ -311,6 +338,15 @@ async function handle(store, request, response) {
     return sendFile(response, "app.js", "text/javascript; charset=utf-8");
   if (url.pathname === "/style.css")
     return sendFile(response, "style.css", "text/css; charset=utf-8");
+  if (url.pathname === "/topics.csv") {
+    const csv = topicsCsv(store);
+    response.writeHead(200, {
+      "content-type": "text/csv; charset=utf-8",
+      "content-disposition": 'attachment; filename="topics.csv"',
+      "content-length": Buffer.byteLength(csv),
+    });
+    return response.end(csv);
+  }
   if (url.pathname === "/topic") {
     const id = url.searchParams.get("id") || "";
     const topic = /^[0-9]+$/.test(id) ? store.find(Number(id)) : null;

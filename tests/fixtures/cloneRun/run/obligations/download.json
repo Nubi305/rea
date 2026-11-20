@@ -1,0 +1,15 @@
+{
+  "obligations": [
+    {
+      "id": "download-topics",
+      "statement": "The Download topics link saves the list as comma-separated lines: a header line id,title,slug,pinned, then one line per topic in list order with pinned as yes or no.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "download",
+          "step_ids": ["download-fetched", "download-link"]
+        }
+      ]
+    }
+  ]
+}

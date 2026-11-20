@@ -13,18 +13,18 @@
     },
     {
       "id": "topic-title-required",
-      "statement": "Creating a topic without a string title answers 422 with error title_required.",
+      "statement": "Creating a topic without a string title answers 422 with error title_required, also when the title is a number.",
       "basis": "observed",
       "cases": [
         {
           "scenario": "topics",
-          "step_ids": ["create-missing-title"]
+          "step_ids": ["create-missing-title", "create-number-title"]
         }
       ]
     },
     {
       "id": "topic-title-length",
-      "statement": "A title is trimmed and its inner runs of whitespace become one space; outside 3 to 48 characters it is refused with 422, error title_length and the two bounds.",
+      "statement": "A title is trimmed and its inner runs of whitespace become one space; outside 3 to 48 characters it is refused with 422, error title_length and the two bounds, and a title of exactly 3 or exactly 48 characters is accepted.",
       "basis": "observed",
       "cases": [
         {
@@ -33,7 +33,9 @@
             "create-blank-title",
             "create-short-title",
             "create-long-title",
-            "create-spaced-title"
+            "create-spaced-title",
+            "create-title-of-3",
+            "create-title-of-48"
           ]
         }
       ]
@@ -129,6 +131,53 @@
       ]
     },
     {
+      "id": "api-body",
+      "statement": "A POST or PUT to a topic path whose body is not a JSON object answers 400 with error invalid_json. The body is judged before the topic is looked up and before the method is.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": [
+            "create-body-is-a-list",
+            "create-body-is-a-string",
+            "list-wrong-method-bad-body",
+            "topic-wrong-method-bad-body",
+            "missing-topic-bad-body"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "api-method",
+      "statement": "The list takes GET and POST and a topic takes GET, PUT and DELETE; any other method answers 405 with error method_not_allowed. A topic that does not exist answers 404 whatever the method.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": [
+            "list-wrong-method",
+            "topic-wrong-method",
+            "missing-topic-wrong-method"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "api-path",
+      "statement": "An API path is read by its non-empty segments, so a trailing slash names the same resource. A path below a topic answers 404 with error not_found, and so does the export for any method but GET.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": [
+            "list-trailing-slash",
+            "topic-below-is-missing",
+            "export-wrong-method"
+          ]
+        }
+      ]
+    },
+    {
       "id": "topic-add-form",
       "statement": "The add form refuses an empty title in the page without a request; otherwise it posts title and pinned, adds the new row to the list and reports Added with the stored title.",
       "basis": "observed",
@@ -141,7 +190,7 @@
     },
     {
       "id": "about-page",
-      "statement": "The about page describes the board and its pinned rule.",
+      "statement": "The about page says what the board is for, how a topic's address is made, and where pinned topics are listed.",
       "basis": "observed",
       "cases": [
         {

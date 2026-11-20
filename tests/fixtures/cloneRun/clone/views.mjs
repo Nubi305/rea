@@ -38,6 +38,7 @@ export const home = (topics) =>
           <button>Search</button>
         </form>
         <ul aria-label="Topic list" data-list>${topics.map(topicItem).join("")}</ul>
+        <p><a href="/topics.csv">Download topics</a></p>
       </section>
       <section>
         <h2>New topic</h2>
@@ -72,8 +73,8 @@ export const about = () =>
     "About",
     `
       <h2>About</h2>
-      <p>Tidewater is a shared board of topics. Each topic gets a short address made from its first title.</p>
-      <p>Pinned topics stay at the top of the list.</p>
+      <p>Tidewater is where a team lists what it is working on. A topic's address is short and is built once, from the title it was first given.</p>
+      <p>A pinned topic is listed before every topic that is not pinned.</p>
     `,
   );
 
