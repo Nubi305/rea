@@ -26,7 +26,7 @@ export const registerWebScriptCommands = (
       fields: {
         capture_path: {
           description:
-            "Saved inspect_web_page or capture_browser_scenario JSON, normalized result or complete Evidence; a relative path resolves against the current directory",
+            "Saved inspect_web_page or capture_browser_scenario JSON: a normalized result, complete Evidence, or an Evidence bundle (--evidence_output) holding one such capture; a relative path resolves against the current directory",
         },
         output_directory: {
           description:

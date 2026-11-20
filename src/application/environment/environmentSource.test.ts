@@ -16,6 +16,7 @@ import {
 import { AnalysisInputError } from "../../domain/analysisErrorCore.js";
 import { projectAnalysisError } from "../../domain/analysisErrorProjection.js";
 import { createEvidence, type Evidence } from "../../domain/evidence.js";
+import { createEvidenceBundle } from "../../domain/evidenceBundle.js";
 import { inspectAnalysisView } from "../analysisView/AnalysisViewService.js";
 import type { WebNetworkCaptureRecord } from "../../domain/webNetworkCapture.js";
 import {
@@ -403,5 +404,36 @@ describe("parseCaptureEvidence scenario facts", () => {
     );
     if (!har.ok) throw har.error;
     expect(har.value.scenario).toBeNull();
+  });
+});
+
+describe("an Evidence bundle where one record is read", () => {
+  it("is refused as a bundle with its record count, not as a list of missing record fields", () => {
+    const capture = scenarioCaptureEvidence();
+    const bundle: unknown = JSON.parse(
+      JSON.stringify(createEvidenceBundle([capture])),
+    );
+    const parsed = parseCaptureEvidence("environment-compare", bundle);
+    if (parsed.ok) throw new Error("Expected a refusal");
+    const refused = projectAnalysisError(parsed.error);
+    expect(refused).toMatchObject({
+      code: "invalid_request",
+      details: {
+        operation: "environment-compare",
+        issues: [
+          {
+            path: ["evidence"],
+            reason: "invalid_value",
+            expected: "one Evidence record",
+          },
+        ],
+      },
+    });
+    expect(refused.message).toContain(
+      "The evidence file appears to be an Evidence bundle holding 1 record, the form --evidence_output saves, not one Evidence record.",
+    );
+    expect(refused.message).toContain("--format json");
+    // The record the bundle holds is still read when it is passed on its own.
+    expect(parseCaptureEvidence("environment-compare", capture).ok).toBe(true);
   });
 });

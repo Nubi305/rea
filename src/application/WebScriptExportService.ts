@@ -10,7 +10,12 @@ import {
   bindArtifactFileCleanup,
 } from "../resources/index.js";
 import { publishWebScripts } from "./PublishWebScripts.js";
-import { selectScriptCapture } from "../domain/webScriptCaptureAdapters.js";
+import {
+  SCRIPT_CAPTURE_ADAPTERS,
+  selectEvidenceScriptCapture,
+  selectScriptCapture,
+} from "../domain/webScriptCaptureAdapters.js";
+import { savedBundleCapture } from "./EvidenceBundleCapture.js";
 import {
   AnalysisAccessDeniedError,
   AnalysisInputError,
@@ -149,6 +154,7 @@ const prepareCapture = async (
   const cleanup = read.value.cleanup;
   const loaded = parseCapture(
     read.value.bytes,
+    path,
     cleanup === undefined || cleanup.incomplete
       ? undefined
       : { cause: cleanup.cause },
@@ -405,15 +411,31 @@ const incompleteCaptureCleanup = (
   return error;
 };
 
+/**
+ * Select the scripts of the capture these bytes hold: a normalized result, one
+ * Evidence record, or the Evidence bundle `--evidence_output` saved, whose one
+ * capture record the bundle owner authenticates.
+ */
 const parseCapture = (
   bytes: Buffer,
+  path: string,
   closeFailure?: { readonly cause: unknown },
 ): Result<ReturnType<typeof selectScriptCapture>, AnalysisError> => {
   try {
     const text = decodeStrictUtf8(bytes, "preserve");
     const json = safeParseJson(text);
     if (!json.ok) throw new TypeError(json.error);
-    return ok(selectScriptCapture(json.value));
+    const bundled = savedBundleCapture(json.value, path, {
+      operation: OPERATION,
+      path: ["capture_path"],
+      captureOperations: SCRIPT_CAPTURE_ADAPTERS.map(
+        ({ operation }) => operation,
+      ),
+    });
+    if (bundled === undefined) return ok(selectScriptCapture(json.value));
+    return bundled.ok
+      ? ok(selectEvidenceScriptCapture(bundled.value))
+      : bundled;
   } catch (cause: unknown) {
     const causeWithClose =
       closeFailure === undefined

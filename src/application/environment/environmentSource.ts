@@ -37,6 +37,7 @@ import {
   unsupportedEvidenceFormatError,
 } from "../../domain/evidenceValidation.js";
 import { isUnsupportedEvidenceFormat } from "../../domain/evidenceFormat.js";
+import { evidenceFileEnvelopeKind } from "../EvidenceFileEnvelope.js";
 import { parseExactJson } from "../../domain/exactJsonNumber.js";
 import { projectInputIssues } from "../../domain/inputIssueProjection.js";
 import { immutableJsonSnapshotMember } from "../../domain/immutableJson.js";
@@ -158,6 +159,8 @@ export const parseEvidenceFile = (
   if (parsed.ok) return parsed;
   if (isUnsupportedEvidenceFormat(parsed.error))
     return err(unsupportedEvidenceFormatError(parsed.error));
+  if (evidenceFileEnvelopeKind(value) === "evidence-bundle")
+    return err(bundleAsRecord(operation, role, value, parsed.error));
   return err(
     schemaInputError(
       operation,
@@ -165,6 +168,34 @@ export const parseEvidenceFile = (
       `The ${role} file is not authenticated REA Evidence JSON.`,
     ),
   );
+};
+
+/**
+ * Refusal of a bundle where one record is read: it names the cause, the record
+ * count the unauthenticated envelope states, and what to pass instead.
+ */
+const bundleAsRecord = (
+  operation: string,
+  role: "manifest" | "evidence" | "state",
+  value: unknown,
+  cause: z.ZodError,
+): AnalysisInputError => {
+  const records: unknown =
+    typeof value === "object" && value !== null
+      ? Reflect.get(value, "records")
+      : undefined;
+  const held = Array.isArray(records)
+    ? ` holding ${String(records.length)} ${records.length === 1 ? "record" : "records"}`
+    : "";
+  const message = `The ${role} file appears to be an Evidence bundle${held}, the form --evidence_output saves, not one Evidence record. Pass one record: the --format json output of the command that produced it.`;
+  return new AnalysisInputError(operation, { userMessage: message, cause }, [
+    {
+      path: [role],
+      reason: "invalid_value",
+      expected: "one Evidence record",
+      message,
+    },
+  ]);
 };
 
 /** A schema refusal of `value`, found at `prefix`; issue paths extend the prefix and the schema failure is retained. */
