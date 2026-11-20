@@ -1390,6 +1390,37 @@ without response bodies, or without the request bodies its writes need. See
 rea environment-compare manifest.json --evidence capture.json --probe probe.json --json
 ```
 
+## Rebuild a web application with a referee
+
+Three CLI-only commands support a clone run: rebuilding a web application you can run and reset locally as new code
+under a new name, with REA deciding whether the rebuild matches.
+
+`rea init-clone-run <dir> --original <origin> --clone <origin> --clone-root <dir> --clone-name <name>
+--original-name <name> [--original-name <name> ...] --authorization <text>` creates the run folder: `target.json`
+with both addresses, the names that must not appear in the clone and your statement that you may study the original,
+the two files the lead edits, and a valid example of each file an agent writes. It refuses a directory that is not
+empty or lies inside the clone's source, two addresses that are one, and a clone name that contains an original name.
+
+`rea evaluate-clone-run <dir> [--exit-code]` is the referee. It reads the folder, never starts, stops or resets
+either application, recomputes every check from capture Evidence REA authenticated and from the clone's files as they
+are now, and prints the verdict with a worklist of at most ten items: the role that acts, the reason code, the file
+and the exact command. With `--exit-code` it exits `0` for `done` or `done_with_waivers`, `1` for `not_done` and `2`
+for `stalled`; without it, `0` whatever the verdict.
+
+`rea compare-scenario-behavior --left <capture.json> [--left ...] --right <capture.json> [--right ...]
+[--differences <file>] [--scenario <id>] [--detail summary|complete] [--exit-code]` compares captures of one scenario
+taken at two addresses, step by step, on requests, statuses, reply bodies, page address and on-screen text. A step
+whose data was not recorded is `unknown`, never a match. With `--exit-code` it exits `0` for `unchanged`, `1` for
+`changed` and `2` for `unknown`.
+
+```sh
+rea evaluate-clone-run /work/runs/notes --exit-code --json
+```
+
+A refusal by any of the three prints a structured error and exits `1`, with or without `--exit-code`; the JSON of a
+refusal has no `verdict` member. See [clone runs](../reference/clone-runs.md) for the run folder, the done rules and
+the reason codes.
+
 ## Report version and runtime
 
 `rea --version` prints the package version. Add an output format to get the

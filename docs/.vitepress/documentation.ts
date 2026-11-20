@@ -363,6 +363,11 @@ export const documentationSections = [
         source: "reference/reconstruction-obligation-ledgers.md",
         route: "/reconstruction-obligation-ledgers",
       },
+      {
+        text: "Clone runs",
+        source: "reference/clone-runs.md",
+        route: "/clone-runs",
+      },
     ],
   },
   {
