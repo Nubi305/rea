@@ -41,8 +41,6 @@ export interface ProbeStep {
   readonly ordinal: number;
   readonly request: ProbeRequest;
   readonly live?: Answer;
-  /** The scenario step that made the request, when the caller supplied the capture's step ids. */
-  readonly step_id?: string;
 }
 
 /** What a caller that knows the capture better than its records can state. */
@@ -52,8 +50,6 @@ export interface ProbeRequestOptions {
    * records is taken, which is another server's when a page was sent there.
    */
   readonly origin?: string;
-  /** A browser scenario's step per record ordinal; a HAR has none. */
-  readonly stepIds?: ReadonlyMap<number, { readonly step_id: string }>;
 }
 
 /** Statuses whose answers carry no body, so a missing body is known to be empty. */
@@ -69,19 +65,50 @@ const startedInstant = (
   return readRecordedStart(started.data.startedDateTime)?.instant;
 };
 
+/**
+ * What a record holds of the body its request sent. `none` is a request the
+ * record states sent nothing (`bodySize` 0). `not-recorded` is a body that was
+ * sent, or may have been, and whose content the record does not hold: over
+ * the capture's body limit, not UTF-8, without a media type, or not stated.
+ */
+export type RecordedRequestBodyValue =
+  | { readonly kind: "none" }
+  | { readonly kind: "json"; readonly value: JsonValue }
+  | { readonly kind: "text"; readonly text: string }
+  | { readonly kind: "not-recorded" };
+
+/** Read a record's request body once, keeping "sent nothing" apart from "not recorded". */
+export const recordedRequestBody = (
+  record: WebNetworkCaptureRecord,
+): RecordedRequestBodyValue => {
+  const facts = readRecordedRequestBody(record.reported);
+  if (facts.kind !== "request") return { kind: "not-recorded" };
+  if (facts.postData.kind === "object") {
+    const { mimeType, text } = facts.postData;
+    if (mimeType !== undefined && text !== undefined) {
+      const value = isJsonLike(mediaTypeEssence(mimeType))
+        ? parseExactJson(text)
+        : undefined;
+      return value === undefined
+        ? { kind: "text", text }
+        : { kind: "json", value };
+    }
+  }
+  return facts.bodySize.kind === "number" && facts.bodySize.value === 0
+    ? { kind: "none" }
+    : { kind: "not-recorded" };
+};
+
 /** The JSON a request body holds, its text when it is not JSON, or undefined without one. */
 export const requestBody = (
   record: WebNetworkCaptureRecord,
 ): JsonValue | undefined => {
-  const facts = readRecordedRequestBody(record.reported);
-  if (facts.kind !== "request" || facts.postData.kind !== "object")
-    return undefined;
-  const { mimeType, text } = facts.postData;
-  if (mimeType === undefined || text === undefined) return undefined;
-  const value = isJsonLike(mediaTypeEssence(mimeType))
-    ? parseExactJson(text)
-    : undefined;
-  return value === undefined ? text : value;
+  const body = recordedRequestBody(record);
+  return body.kind === "json"
+    ? body.value
+    : body.kind === "text"
+      ? body.text
+      : undefined;
 };
 
 /** The application's answer as an environment answer carries it: JSON, text, or null when it is empty; a body the probe did not record is marked. */
@@ -114,11 +141,20 @@ const probeOrigin = (
   return primaryOrigin(origins);
 };
 
-/** The probe's requests in the order they were made, each with the application's answer, and the records left uncompared. */
+/**
+ * The probe's requests in the order they were made, each with the
+ * application's answer, and the records left uncompared. `lines` is every
+ * record's request line as parsed here, keyed by ordinal, so a caller that
+ * needs the origin or media type of a record does not parse it again.
+ */
 export const probeRequests = (
   records: readonly WebNetworkCaptureRecord[],
   options: ProbeRequestOptions = {},
-): { steps: ProbeStep[]; unobserved: UnobservedRecord[] } => {
+): {
+  steps: ProbeStep[];
+  unobserved: UnobservedRecord[];
+  lines: ReadonlyMap<number, RecordedRequestLine | null>;
+} => {
   const steps: ProbeStep[] = [];
   const unobserved: UnobservedRecord[] = [];
   // Without a start time for every record the probe keeps its recorded order, as state extraction does.
@@ -146,8 +182,6 @@ export const probeRequests = (
   for (const record of ordered) {
     const line = lines.get(record.ordinal);
     const { ordinal } = record;
-    const stepId = options.stepIds?.get(ordinal)?.step_id;
-    const step = stepId === undefined ? {} : { step_id: stepId };
     if (line?.kind === "line" && line.origin !== origin)
       unobserved.push({ ordinal, reason: "other-origin" });
     else if (line?.kind !== "line")
@@ -166,12 +200,11 @@ export const probeRequests = (
       // A request whose answer was lost may still have changed the application, so it is made but not compared.
       if (exchange.status === null) {
         unobserved.push({ ordinal, reason: "no-response" });
-        steps.push({ ordinal, request, ...step });
+        steps.push({ ordinal, request });
       } else
         steps.push({
           ordinal,
           request,
-          ...step,
           live: liveAnswer(
             line.method,
             exchange.status,
@@ -180,5 +213,5 @@ export const probeRequests = (
         });
     }
   }
-  return { steps, unobserved };
+  return { steps, unobserved, lines };
 };

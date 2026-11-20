@@ -1,401 +1,107 @@
-import { z } from "zod";
-
 import type { AnalysisError } from "../../domain/analysisErrorBase.js";
-import { readRecordedRequestLine } from "../../domain/analysisView/webNetworkRouteTemplates.js";
-import { digestCanonicalValue } from "../../domain/canonicalDigest.js";
-import { cloneRunIntendedDifferencesSchema } from "../../domain/cloneRun/cloneRunSchemas.js";
 import { boundedList } from "../../domain/boundedList.js";
-import { SHA256_PATTERN } from "../../domain/digests.js";
-import { ellipsisExcerpt } from "../../domain/excerpt.js";
+import { cloneRunIntendedDifferencesSchema } from "../../domain/cloneRun/cloneRunSchemas.js";
 import { projectInputIssues } from "../../domain/inputIssueProjection.js";
-import { equalJsonValues, type JsonValue } from "../../domain/jsonValue.js";
+import { equalJsonValues } from "../../domain/jsonValue.js";
 import { err, ok, type Result } from "../../domain/result.js";
 import {
-  COMPARED_RESOURCE_TYPES,
+  EVERY_STEP,
   SCENARIO_BEHAVIOR_OPERATION,
-  jsonLeaves,
+  STEP_VOLATILE_FIELD_LIMIT,
   judgeReplyLeaves,
   orderScenarioFindings,
   renameScenarioJson,
   renameScenarioText,
-  replyBodyExpected,
   scenarioBehaviorVerdict,
   scenarioStartState,
   scenarioStepKind,
   scenarioStepStatus,
   volatilePointerMatches,
   volatilePointerPattern,
-  type JsonLeaf,
-  type ScenarioBehaviorCaptureFacts,
   type ScenarioBehaviorComparer,
   type ScenarioBehaviorComparison,
   type ScenarioBehaviorComparisonRequest,
   type ScenarioBehaviorDimension,
-  type ScenarioBehaviorFinding,
   type ScenarioBehaviorRename,
   type ScenarioBehaviorTable,
   type ScenarioBehaviorVolatileField,
-  type ScenarioStepKind,
 } from "../../domain/scenarioBehaviorComparison.js";
-import { readEvidenceFileSource } from "../analysisView/evidenceFileSource.js";
-import { compareAnswers } from "../environment/environmentCompareDiff.js";
-import { IdMap } from "../environment/environmentCompareIds.js";
-import { probeRequests } from "../environment/environmentCompareProbe.js";
-import {
-  inputError,
-  parseCaptureEvidence,
-} from "../environment/environmentSource.js";
+import { inputError } from "../environment/environmentSource.js";
 import { readJsonFile } from "../JsonFiles.js";
+import {
+  readScenarioBehaviorCapture,
+  scenarioBehaviorRefusal as refusal,
+  type RecordedBody,
+  type ScenarioBehaviorCapture,
+  type SentBody,
+  type StepObservation,
+  type TransactionObservation,
+} from "./scenarioBehaviorCapture.js";
+import {
+  bodyLeaves,
+  compareReplies,
+  finding,
+  repliesAsJson,
+  shown,
+  sideValues,
+  type Side,
+  type StepContext,
+} from "./scenarioBehaviorReplies.js";
 
 /**
  * Behaviour comparison of browser scenario captures.
  * Contract: docs/specs/reconstruction/clone-runs/spec.md, "The comparer".
  *
- * Reuses the capture owners instead of reading Evidence JSON itself:
- * `readEvidenceFileSource` authenticates the file, `parseCaptureEvidence`
- * (purpose "manifest", which keeps request bodies) validates the capture,
- * `probeRequests` yields each request with its answer and step id, and
- * `compareAnswers` is the differ.
- *
- * Three behaviours of those owners must not leak into a verdict (each was
- * observed on real captures; see the specification's verified facts):
- * `probeRequests` picks the origin with the most JSON-like records, so this
- * module passes the capture's start origin instead; `compareAnswers` notices
- * a missing or oversized body on its first argument only and treats clocks of
- * one format as equal, so missing data is classified on both sides before it
- * is called and an exact comparison runs beside it; and a redirect reply is
- * marked unobserved although it has no body (`replyBodyExpected`).
+ * `scenarioBehaviorCapture.ts` reads one capture into per-step observations;
+ * `scenarioBehaviorReplies.ts` compares the reply bodies of one transaction.
+ * This module aligns the steps of two sides, compares every other dimension
+ * and assembles the result and the behaviour table.
  */
 
-/** A reply or request body the capture recorded whole. */
-type RecordedBody =
-  | { readonly kind: "none" }
-  | { readonly kind: "json"; readonly value: JsonValue }
-  | { readonly kind: "text"; readonly text: string }
-  | { readonly kind: "base64"; readonly encoded: string; readonly whole: true };
+export { readScenarioBehaviorCapture, type ScenarioBehaviorCapture };
 
-/** One compared request of a step with what the application answered. */
-interface TransactionObservation {
-  /** Request line and occurrence within the step, such as `POST /api/notes#1`. */
-  readonly request: string;
-  readonly method: string;
-  readonly resource_type: string;
-  readonly request_body: JsonValue | undefined;
-  /** Null when no response was recorded. */
-  readonly status: number | null;
-  /** Null when no capture recorded the reply body whole; `none` is a recorded empty reply. */
-  readonly reply: RecordedBody | null;
-}
-
-/** A compared request that cannot be compared: sent elsewhere, or without a usable request line. */
-interface TransactionGap {
-  readonly category: "other-origin" | "not-recorded";
-  readonly request: string;
-}
-
-/** What one capture observed at one step, without its address. */
-interface StepObservation {
-  readonly step_id: string;
-  readonly kind: ScenarioStepKind;
-  readonly action: string;
-  readonly outcome: "completed" | "failed" | "cancelled";
-  /** Path, query and fragment at the start origin, a whole URL elsewhere, null when redacted. */
-  readonly page_address: string | null;
-  /** Accessibility text after the step; null when not selected or not recorded whole. */
-  readonly text: string | null;
-  readonly transactions: readonly TransactionObservation[];
-  readonly gaps: readonly TransactionGap[];
-}
-
-/** Per-step observations of one capture; opaque to consumers. */
-export interface ScenarioBehaviorObservations {
-  readonly steps: readonly StepObservation[];
-  /** Transactions of resource types that are not compared. */
-  readonly ignored_transactions: number;
-}
-
-/**
- * One authenticated capture as the comparer holds it. Consumers read only the
- * `ScenarioBehaviorCaptureFacts` members; the rest belongs to this module.
- */
-export interface ScenarioBehaviorCapture extends ScenarioBehaviorCaptureFacts {
-  /** Per-step observations this module derived; opaque to consumers. */
-  readonly observations: ScenarioBehaviorObservations;
-}
-
-const COMPARED: ReadonlySet<string> = new Set(COMPARED_RESOURCE_TYPES);
 /** Findings kept per step; the most severe are kept and the rest counted in `limitations`. */
 const STEP_FINDING_LIMIT = 20;
-const VALUE_CHARS = 120;
 /** Characters of equal text shown before the first difference of two on-screen texts. */
 const TEXT_CONTEXT_CHARS = 30;
 /** Reply bodies larger than this are left out of the behaviour table, not out of the comparison. */
 const TABLE_BODY_LIMIT_BYTES = 8 * 1024;
 
-const refusal = (
-  path: readonly (string | number)[],
-  message: string,
-): AnalysisError =>
-  inputError(
-    SCENARIO_BEHAVIOR_OPERATION,
-    [{ path, reason: "invalid_value", message }],
-    message,
-  );
+/** Declared renames applied to a left value at the point it is compared, so only compared values are counted. */
+interface Renamer {
+  readonly text: (text: string) => string;
+  readonly sent: (body: SentBody) => SentBody;
+  readonly reply: (body: RecordedBody) => RecordedBody;
+}
 
-const parametersSchema = z.object({
-  start_url: z.object({ url: z.string() }),
-  actions: z.array(z.object({ step_id: z.string().min(1) })),
-  scenario_sha256: z.string().regex(SHA256_PATTERN).optional(),
-});
-
-const requestLine = (request: {
-  readonly method: string;
-  readonly path: string;
-  readonly query: string | null;
-}): string => `${request.method} ${request.path}${request.query ?? ""}`;
-
-/** The step's address without the application's origin; another origin keeps its whole URL. */
-const pageAddress = (
-  url: {
-    readonly url: string;
-    readonly origin: string | null;
-    readonly redacted: boolean;
-  },
-  startOrigin: string,
-): string | null =>
-  url.redacted
-    ? null
-    : url.origin === startOrigin && url.url.startsWith(startOrigin)
-      ? url.url.slice(startOrigin.length)
-      : url.url;
-
-/** What the fingerprint steps observed, or null when any observation of theirs is missing. */
-const fingerprint = (steps: readonly StepObservation[]): string | null => {
-  const opening = steps.filter((step) => step.kind === "fingerprint");
-  if (opening.length === 0) return null;
-  const observed: JsonValue[] = [];
-  for (const step of opening) {
-    if (
-      step.outcome !== "completed" ||
-      step.page_address === null ||
-      step.text === null ||
-      step.gaps.length > 0
-    )
-      return null;
-    const transactions: JsonValue[] = [];
-    for (const transaction of step.transactions) {
-      const compared = transaction.resource_type !== "document";
-      if (transaction.status === null) return null;
-      if (compared && transaction.reply === null) return null;
-      transactions.push({
-        request: transaction.request,
-        request_body:
-          transaction.request_body === undefined
-            ? null
-            : [transaction.request_body],
-        status: transaction.status,
-        reply: compared ? transaction.reply : null,
-      });
-    }
-    observed.push({
-      step_id: step.step_id,
-      page_address: step.page_address,
-      text: step.text,
-      transactions,
-    });
-  }
-  return digestCanonicalValue(
-    { fingerprint: "rea.scenario-fingerprint/1", steps: observed },
-    "Scenario fingerprint",
-  );
-};
-
-/**
- * Read and authenticate one capture-browser-scenario Evidence file, a record
- * or a bundle holding exactly one capture record. An edited file, another
- * operation's Evidence or a capture without step ids is refused.
- */
-export const readScenarioBehaviorCapture = async (
-  file: string,
-  options: { readonly signal?: AbortSignal } = {},
-): Promise<Result<ScenarioBehaviorCapture, AnalysisError>> => {
-  const evidence = await readEvidenceFileSource(file, options, undefined, {
-    operation: SCENARIO_BEHAVIOR_OPERATION,
-    path: ["capture"],
-  });
-  if (!evidence.ok) return evidence;
-  const parsed = parseCaptureEvidence(
-    SCENARIO_BEHAVIOR_OPERATION,
-    evidence.value,
-    "manifest",
-  );
-  if (!parsed.ok) return parsed;
-  const { scenario, records } = parsed.value;
-  if (scenario === null)
-    return err(
-      refusal(
-        ["capture", "operation"],
-        `${file} is a network capture without scenario steps. Compare capture-browser-scenario Evidence, whose steps carry the ids the comparison aligns by.`,
-      ),
-    );
-  const parameters = parametersSchema.safeParse(scenario.parameters);
-  if (!parameters.success)
-    return err(
-      refusal(
-        ["capture", "parameters"],
-        `${file} does not record the scenario it ran (start_url and actions with step ids), so its steps cannot be aligned.`,
-      ),
-    );
-  const startOrigin = scenario.startOrigin;
-  const { steps: probed, unobserved } = probeRequests(records, {
-    origin: startOrigin,
-    stepIds: scenario.recordSteps,
-  });
-  const byOrdinal = new Map(records.map((record) => [record.ordinal, record]));
-  const transactions = new Map<string, TransactionObservation[]>();
-  const gaps = new Map<string, TransactionGap[]>();
-  const occurrences = new Map<string, number>();
-  const occurrence = (stepId: string, line: string): string => {
-    const key = `${stepId}\n${line}`;
-    const count = (occurrences.get(key) ?? 0) + 1;
-    occurrences.set(key, count);
-    return `${line}#${String(count)}`;
-  };
-  const replyBodies: ScenarioBehaviorCaptureFacts["reply_bodies"][number][] =
-    [];
-  let ignored = 0;
-  for (const probe of probed) {
-    const body = byOrdinal
-      .get(probe.ordinal)
-      ?.binary_fields.find(
-        (field) =>
-          field.pointer === "/response/content/text" &&
-          field.state === "retained",
-      );
-    const line = requestLine(probe.request);
-    if (body?.state === "retained")
-      replyBodies.push({
-        request: line,
-        sha256: body.sha256,
-        bytes: body.bytes,
-      });
-    const step = scenario.recordSteps.get(probe.ordinal);
-    if (step === undefined || !COMPARED.has(step.resource_type)) {
-      ignored += 1;
-      continue;
-    }
-    const live = probe.live;
-    const status = live?.status ?? null;
-    const reply: RecordedBody | null =
-      live === undefined || status === null
-        ? null
-        : !replyBodyExpected(probe.request.method, status)
-          ? { kind: "none" }
-          : live.unobserved === true || live.body.kind === "cut"
-            ? null
-            : live.body.kind === "base64"
-              ? live.body.whole
-                ? { kind: "base64", encoded: live.body.encoded, whole: true }
-                : null
-              : live.body;
-    const list = transactions.get(step.step_id) ?? [];
-    list.push({
-      request: occurrence(step.step_id, line),
-      method: probe.request.method,
-      resource_type: step.resource_type,
-      request_body: probe.request.body,
-      status,
-      reply,
-    });
-    transactions.set(step.step_id, list);
-  }
-  for (const { ordinal, reason } of unobserved) {
-    // A request without an answer is among the probed requests above.
-    if (reason === "no-response") continue;
-    const step = scenario.recordSteps.get(ordinal);
-    if (step === undefined || !COMPARED.has(step.resource_type)) {
-      ignored += 1;
-      continue;
-    }
-    const line = readRecordedRequestLine(
-      byOrdinal.get(ordinal)?.reported,
-      true,
-      () => true,
-    );
-    const list = gaps.get(step.step_id) ?? [];
-    list.push(
-      reason === "other-origin" && line?.kind === "line"
-        ? {
-            category: "other-origin",
-            request: occurrence(
-              step.step_id,
-              `${line.method} ${line.origin}${line.path}${line.query ?? ""}`,
-            ),
-          }
-        : {
-            category: "not-recorded",
-            request: occurrence(step.step_id, `${step.resource_type} request`),
-          },
-    );
-    gaps.set(step.step_id, list);
-  }
-  const steps = scenario.steps.map((step): StepObservation => {
-    const accessibility = step.artifacts.accessibility;
-    return {
-      step_id: step.step_id,
-      kind: scenarioStepKind(step.step_id),
-      action: step.action,
-      outcome: step.status,
-      page_address: pageAddress(step.after_url, startOrigin),
-      text:
-        accessibility.state === "captured" ? accessibility.value.text : null,
-      transactions: transactions.get(step.step_id) ?? [],
-      gaps: gaps.get(step.step_id) ?? [],
-    };
-  });
-  return ok({
-    file,
-    evidence_id: parsed.value.evidenceId,
-    start_origin: startOrigin,
-    scenario_sha256: parameters.data.scenario_sha256 ?? null,
-    definition: {
-      start_url: parameters.data.start_url.url,
-      step_ids: parameters.data.actions.map((action) => action.step_id),
-    },
-    steps: steps.map(({ step_id, outcome }) => ({ step_id, outcome })),
-    fingerprint_sha256: fingerprint(steps),
-    reply_bodies: replyBodies,
-    observations: { steps, ignored_transactions: ignored },
-  });
-};
-
-const shown = (value: JsonValue | undefined): string =>
-  value === undefined
-    ? "<absent>"
-    : ellipsisExcerpt(JSON.stringify(value), VALUE_CHARS);
-
-/** A whole body as leaves; a body that is not JSON is one leaf no JSON leaf can equal. */
-const bodyLeaves = (body: RecordedBody): readonly JsonLeaf[] => {
-  if (body.kind === "json") return jsonLeaves(body.value);
-  const value: JsonValue =
-    body.kind === "text"
-      ? { "text body": body.text }
-      : body.kind === "base64"
-        ? { "binary body": body.encoded }
-        : { "no body": true };
-  return [{ pointer: "", path: [], value }];
-};
-
-const renameBody = (
-  body: RecordedBody,
+const renamer = (
   renames: readonly ScenarioBehaviorRename[],
   counts: number[],
-): RecordedBody =>
-  body.kind === "json"
-    ? { kind: "json", value: renameScenarioJson(body.value, renames, counts) }
-    : body.kind === "text"
-      ? { kind: "text", text: renameScenarioText(body.text, renames, counts) }
-      : body;
+): Renamer => ({
+  text: (text) => renameScenarioText(text, renames, counts),
+  sent: (body) =>
+    body.kind === "json"
+      ? { kind: "json", value: renameScenarioJson(body.value, renames, counts) }
+      : body.kind === "text"
+        ? { kind: "text", text: renameScenarioText(body.text, renames, counts) }
+        : body,
+  reply: (body) =>
+    body.kind === "json"
+      ? { kind: "json", value: renameScenarioJson(body.value, renames, counts) }
+      : body.kind === "text"
+        ? { kind: "text", text: renameScenarioText(body.text, renames, counts) }
+        : body,
+});
+
+/** What the comparison of one step needs beyond what the reply comparison does. */
+interface ComparisonContext extends StepContext {
+  readonly rename: Renamer;
+  /**
+   * Whether this step's on-screen text is, in every capture, the previous
+   * step's, whose difference between the sides is already reported there.
+   */
+  readonly textCarried: boolean;
+}
 
 /** The step ids a comparison aligns by: REA's own steps are never compared. */
 const comparedStepIds = (capture: ScenarioBehaviorCapture): string[] =>
@@ -413,48 +119,14 @@ const distinct = <Value>(
   return kept;
 };
 
-type Side = "left" | "right";
-
-/** What the comparison of one step collects. */
-interface StepContext {
-  readonly findings: ScenarioBehaviorFinding[];
-  readonly volatile: ScenarioBehaviorComparison["volatile_fields"];
-  readonly stepId: string;
-  /** Whether a volatile declaration names this reply leaf of this step. */
-  readonly declared: (leaf: JsonLeaf) => boolean;
-  /** Whether the left side has repeats, so a value can be shown to be steady. */
-  readonly leftRepeated: boolean;
-}
-
-const finding = (
-  dimension: ScenarioBehaviorDimension,
-  category: string,
-  rest: Partial<Omit<ScenarioBehaviorFinding, "dimension" | "category">> = {},
-): ScenarioBehaviorFinding => ({
-  dimension,
-  category,
-  request: null,
-  pointer: null,
-  expected: null,
-  actual: null,
-  side: null,
-  ...rest,
-});
-
-/** Both values of a side that disagrees with itself, in that side's member. */
-const sideValues = (
-  side: Side,
-  text: string,
-): Pick<ScenarioBehaviorFinding, "expected" | "actual" | "side"> =>
-  side === "left"
-    ? { expected: text, actual: null, side }
-    : { expected: null, actual: text, side };
-
 /**
- * Compare one recorded value per capture across both sides. A value no
- * capture of a side recorded is a gap; a value the left's repeats disagree on
- * is unstable and is not compared; otherwise any right repeat that differs
- * from the left's steady value is a difference.
+ * Compare one value per capture across both sides; null is a value the
+ * capture did not record. A value no capture of a side recorded is a gap. A
+ * side whose captures disagree, in what they recorded or in whether they
+ * recorded it, is unstable. The left's one recorded value is contradicted
+ * only when no right capture agrees with it: a right side that agrees in one
+ * capture and not in another disagrees with itself, which is its only
+ * finding.
  */
 const compareRecorded = <Value>(
   context: StepContext,
@@ -492,18 +164,32 @@ const compareRecorded = <Value>(
           ),
         }),
       );
+    // Only a reply body is supplied by another capture; here a capture without the value disagrees with one that has it.
+    else if (sides[side].length < values[side].length)
+      context.findings.push(
+        finding(dimension, "repeats-differ", {
+          request,
+          ...sideValues(
+            side,
+            `recorded in ${String(sides[side].length)} of ${String(values[side].length)} captures`,
+          ),
+        }),
+      );
   }
   const [expected, unsteady] = distinct(sides.left, compare.equal);
   if (expected === undefined || unsteady !== undefined) return;
-  const actual = sides.right.find((value) => !compare.equal(expected, value));
-  if (actual !== undefined)
-    context.findings.push(
-      finding(dimension, where.category, {
-        request,
-        expected: compare.show(expected, actual),
-        actual: compare.show(actual, expected),
-      }),
-    );
+  const differing = sides.right.filter(
+    (value) => !compare.equal(expected, value),
+  );
+  const [actual] = differing;
+  if (actual === undefined || differing.length < sides.right.length) return;
+  context.findings.push(
+    finding(dimension, where.category, {
+      request,
+      expected: compare.show(expected, actual),
+      actual: compare.show(actual, expected),
+    }),
+  );
 };
 
 const exact = <Value extends string | number>(
@@ -519,142 +205,74 @@ const textAtDifference = (text: string, other: string): string => {
   return shown(`${start > 0 ? "…" : ""}${text.slice(start)}`);
 };
 
-/** Whether a differ difference at `outer` is about the leaf at `pointer`. */
-const covers = (outer: string, pointer: string): boolean =>
-  outer === "" || pointer === outer || pointer.startsWith(`${outer}/`);
+const sameSentBody = (left: SentBody, right: SentBody): boolean =>
+  left.kind === "json" && right.kind === "json"
+    ? equalJsonValues(left.value, right.value)
+    : left.kind === "text" && right.kind === "text"
+      ? left.text === right.text
+      : left.kind === right.kind;
 
-/** Compare the reply bodies of one matched transaction: exactly by leaf, with the differ naming what it sees. */
-const compareReplies = (
+const shownSentBody = (body: SentBody): string =>
+  shown(
+    body.kind === "json"
+      ? body.value
+      : body.kind === "text"
+        ? body.text
+        : undefined,
+  );
+
+/** How a request was made: a navigation's reply is a page or a download, a script's is data. */
+const requestKind = (transaction: TransactionObservation): string =>
+  transaction.resource_type === "document"
+    ? "document request"
+    : "fetch or xhr request";
+
+/**
+ * The recorded replies of one side's answered requests, a gap when none was
+ * recorded, or undefined when no request was answered: that is already a gap
+ * in the status dimension.
+ */
+const recordedReplies = (
   context: StepContext,
   request: string,
-  left: readonly RecordedBody[],
-  right: readonly RecordedBody[],
-): void => {
-  const judgements = judgeReplyLeaves(
-    left.map(bodyLeaves),
-    right.map(bodyLeaves),
-    context.declared,
+  side: Side,
+  transactions: readonly TransactionObservation[],
+): RecordedBody[] | undefined => {
+  const answered = transactions.filter(
+    (transaction) => transaction.status !== null,
   );
-  const patterns = new Set<string>();
-  for (const judgement of judgements) {
-    const pattern = volatilePointerPattern(judgement.path);
-    const honoured =
-      judgement.outcome === "honoured" || judgement.outcome === "shape";
-    for (const side of judgement.varies)
-      if (
-        !context.volatile.some(
-          (field) =>
-            field.step_id === context.stepId &&
-            field.side === side &&
-            field.pointer === pattern &&
-            field.declared === honoured,
-        )
-      )
-        context.volatile.push({
-          step_id: context.stepId,
-          side,
-          pointer: pattern,
-          declared: honoured,
-        });
-    if (judgement.outcome === "shape")
-      context.findings.push(
-        finding("body", "shape", {
-          request,
-          pointer: judgement.pointer,
-          expected: shown(judgement.expected),
-          actual: shown(judgement.actual),
-        }),
-      );
-    // One finding per declarable pattern, so a list of varying items is one line of work.
-    const repeats = (side: Side, values: string): void => {
-      if (patterns.has(`${side}${pattern}`)) return;
-      patterns.add(`${side}${pattern}`);
-      context.findings.push(
-        finding("body", "undeclared-volatile", {
-          request,
-          pointer: pattern,
-          ...sideValues(side, values),
-        }),
-      );
-    };
-    if (judgement.outcome === "unstable")
-      repeats(
-        "left",
-        `${shown(judgement.expected)} | ${shown(judgement.other)}`,
-      );
-    if (judgement.outcome === "changed" && judgement.varies.includes("right"))
-      repeats("right", shown(judgement.actual));
-  }
-  const changed = judgements.filter(({ outcome }) => outcome === "changed");
-  const named = new Set<string>();
-  const reported = new Set<string>();
-  const leftBody = left[0];
-  if (leftBody !== undefined && changed.length > 0)
-    for (const rightBody of right) {
-      // Statuses are compared in their own dimension.
-      const { differences } = compareAnswers(
-        { status: 0, body: leftBody },
-        { status: 0, body: rightBody },
-        new IdMap(),
-      );
-      for (const difference of differences) {
-        const about = changed.filter((judgement) =>
-          covers(difference.pointer, judgement.pointer),
-        );
-        // What the left's repeats disagree on is unstable or honoured, never a difference.
-        if (about.length === 0) continue;
-        for (const judgement of about) named.add(judgement.pointer);
-        const key = `${difference.category}\n${difference.pointer}`;
-        if (reported.has(key)) continue;
-        reported.add(key);
-        context.findings.push(
-          finding("body", difference.category, {
-            request,
-            pointer: difference.pointer,
-            expected: difference.live ?? null,
-            actual: difference.env ?? null,
-          }),
-        );
-      }
-    }
-  for (const judgement of changed) {
-    if (named.has(judgement.pointer)) continue;
-    const values = {
-      request,
-      pointer: judgement.pointer,
-      expected: shown(judgement.expected),
-      actual: shown(judgement.actual),
-    };
-    // The differ treats this pair as equal (two clocks of one format, an absent body and null).
-    // Repeats of the left show the value is steady, so it is contradicted; one capture cannot.
-    context.findings.push(
-      context.leftRepeated
-        ? finding("body", "value", values)
-        : finding("body", "not-recorded", { ...values, side: "left" }),
-    );
-  }
+  if (answered.length === 0) return undefined;
+  const recorded = answered.flatMap(({ reply }) =>
+    reply === null ? [] : [reply],
+  );
+  if (recorded.length === 0)
+    context.findings.push(finding("body", "not-recorded", { request, side }));
+  return recorded;
 };
 
 /** Compare one transaction present on both sides. */
 const compareTransaction = (
-  context: StepContext,
+  context: ComparisonContext,
   request: string,
   left: readonly TransactionObservation[],
   right: readonly TransactionObservation[],
 ): void => {
-  const body = (value: JsonValue | undefined): JsonValue[] =>
-    value === undefined ? [] : [value];
-  compareRecorded<JsonValue[]>(
+  compareRecorded(
+    context,
+    { dimension: "request", category: "value", request },
+    { left: left.map(requestKind), right: right.map(requestKind) },
+    { equal: exact, show: (value) => shown(value) },
+  );
+  compareRecorded<SentBody>(
     context,
     { dimension: "request", category: "value", request },
     {
-      left: left.map((transaction) => body(transaction.request_body)),
-      right: right.map((transaction) => body(transaction.request_body)),
+      left: left.map(({ request_body: body }) =>
+        body === null ? null : context.rename.sent(body),
+      ),
+      right: right.map((transaction) => transaction.request_body),
     },
-    {
-      equal: equalJsonValues,
-      show: ([value]) => shown(value),
-    },
+    { equal: sameSentBody, show: shownSentBody },
   );
   compareRecorded(
     context,
@@ -665,67 +283,54 @@ const compareTransaction = (
     },
     { equal: exact, show: String },
   );
-  if (left[0]?.resource_type === "document") return;
-  const replies = (side: Side): RecordedBody[] | undefined => {
-    const answered = (side === "left" ? left : right).filter(
-      (transaction) => transaction.status !== null,
-    );
-    // An unanswered request is already a gap in the status dimension.
-    if (answered.length === 0) return undefined;
-    const recorded = answered.flatMap(({ reply }) =>
-      reply === null ? [] : [reply],
-    );
-    if (recorded.length === 0)
-      context.findings.push(finding("body", "not-recorded", { request, side }));
-    return recorded;
+  // A capture that recorded the reply as a page settles it for its side's repeats.
+  const markup = {
+    left: left.some((transaction) => transaction.markup),
+    right: right.some((transaction) => transaction.markup),
   };
-  const leftReplies = replies("left");
-  const rightReplies = replies("right");
+  // Page markup is the application's own source: what it shows is compared as on-screen text.
+  if (markup.left && markup.right) return;
+  if (markup.left !== markup.right) {
+    const data: Side = markup.left ? "right" : "left";
+    const replies = recordedReplies(
+      context,
+      request,
+      data,
+      data === "left" ? left : right,
+    );
+    // Recorded data where the other side shows a page is a difference; unrecorded data is the gap reported above.
+    if (replies !== undefined && replies.length > 0)
+      context.findings.push(
+        finding("body", "value", {
+          request,
+          expected: markup.left ? "an HTML page" : "a reply that is not a page",
+          actual: markup.left ? "a reply that is not a page" : "an HTML page",
+        }),
+      );
+    return;
+  }
+  const leftReplies = recordedReplies(context, request, "left", left);
+  const rightReplies = recordedReplies(context, request, "right", right);
   if (
     leftReplies !== undefined &&
     rightReplies !== undefined &&
     leftReplies.length > 0 &&
     rightReplies.length > 0
   )
-    compareReplies(context, request, leftReplies, rightReplies);
+    compareReplies(
+      context,
+      request,
+      leftReplies.map(context.rename.reply),
+      rightReplies,
+    );
 };
 
-/** Compare the completed captures of one step on every dimension but the step's own outcome. */
-const compareObservations = (
-  context: StepContext,
+/** Compare the requests the completed captures of one step made, by request line. */
+const compareRequests = (
+  context: ComparisonContext,
   left: readonly StepObservation[],
   right: readonly StepObservation[],
 ): void => {
-  compareRecorded(
-    context,
-    { dimension: "page_address", category: "value", request: null },
-    {
-      left: left.map((step) => step.page_address),
-      right: right.map((step) => step.page_address),
-    },
-    { equal: exact, show: (value) => shown(value) },
-  );
-  compareRecorded(
-    context,
-    { dimension: "text", category: "value", request: null },
-    {
-      left: left.map((step) => step.text),
-      right: right.map((step) => step.text),
-    },
-    { equal: exact, show: textAtDifference },
-  );
-  for (const [side, steps] of [
-    ["left", left],
-    ["right", right],
-  ] as const)
-    for (const gap of distinct(
-      steps.flatMap((step) => step.gaps),
-      (one, other) =>
-        one.category === other.category && one.request === other.request,
-    ))
-      context.findings.push(
-        finding("request", gap.category, { request: gap.request, side }),
-      );
   const requests = (steps: readonly StepObservation[]) =>
     steps.map(
       (step) =>
@@ -739,6 +344,13 @@ const compareObservations = (
   const sides = { left: requests(left), right: requests(right) };
   const keys = new Set(
     [...sides.left, ...sides.right].flatMap((map) => [...map.keys()]),
+  );
+  // Only a request set the left sends in every capture can be contradicted by a request the right adds.
+  const leftSteady = sides.left.every((map) =>
+    [...keys].every(
+      (request) =>
+        map.has(request) || !sides.left.some((other) => other.has(request)),
+    ),
   );
   for (const request of keys) {
     const present = (side: Side): TransactionObservation[] =>
@@ -760,21 +372,81 @@ const compareObservations = (
         );
     if (found.left.length > 0 && found.right.length > 0)
       compareTransaction(context, request, found.left, found.right);
-    // A request the left's own repeats disagree on is unstable above, not a difference.
+    // A request only some left captures sent is unstable above, not a difference.
     else if (found.left.length === sides.left.length)
       context.findings.push(
         finding("request", "value", { request, expected: request }),
       );
-    else if (found.left.length === 0)
+    else if (found.left.length === 0 && leftSteady)
       context.findings.push(
         finding("request", "value", { request, actual: request }),
+      );
+    // The left's own request lines vary, so this line contradicts nothing; a line only some right captures sent is listed above.
+    else if (
+      found.left.length === 0 &&
+      found.right.length === sides.right.length
+    )
+      context.findings.push(
+        finding("request", "repeats-differ", {
+          request,
+          expected: "the left captures do not send the same requests",
+          actual: request,
+          side: "left",
+        }),
       );
   }
 };
 
+/** Compare the completed captures of one step on every dimension but the step's own outcome. */
+const compareObservations = (
+  context: ComparisonContext,
+  left: readonly StepObservation[],
+  right: readonly StepObservation[],
+): void => {
+  compareRecorded(
+    context,
+    { dimension: "page_address", category: "value", request: null },
+    {
+      left: left.map((step) => step.page_address),
+      right: right.map((step) => step.page_address),
+    },
+    { equal: exact, show: (value) => shown(value) },
+  );
+  if (!context.textCarried)
+    compareRecorded(
+      context,
+      { dimension: "text", category: "value", request: null },
+      {
+        left: left.map((step) =>
+          step.text === null ? null : context.rename.text(step.text),
+        ),
+        right: right.map((step) => step.text),
+      },
+      { equal: exact, show: textAtDifference },
+    );
+  for (const [side, steps] of [
+    ["left", left],
+    ["right", right],
+  ] as const)
+    for (const gap of distinct(
+      steps.flatMap((step) => step.gaps),
+      (one, other) =>
+        one.category === other.category && one.request === other.request,
+    ))
+      context.findings.push(
+        finding("request", gap.category, {
+          request: gap.request,
+          ...(gap.detail === undefined
+            ? { side }
+            : sideValues(side, gap.detail)),
+        }),
+      );
+  compareRequests(context, left, right);
+};
+
 /** The step's own outcome across a side's captures, then everything its completed captures observed. */
 const compareStep = (
-  context: StepContext,
+  context: ComparisonContext,
   left: readonly StepObservation[],
   right: readonly StepObservation[],
 ): void => {
@@ -816,33 +488,6 @@ const compareStep = (
   if (completed(left).length > 0 && completed(right).length > 0)
     compareObservations(context, completed(left), completed(right));
 };
-
-/** Apply the renames to everything of a left step that renames cover. */
-const renameStep = (
-  step: StepObservation,
-  renames: readonly ScenarioBehaviorRename[],
-  counts: number[],
-): StepObservation =>
-  renames.length === 0
-    ? step
-    : {
-        ...step,
-        text:
-          step.text === null
-            ? null
-            : renameScenarioText(step.text, renames, counts),
-        transactions: step.transactions.map((transaction) => ({
-          ...transaction,
-          request_body:
-            transaction.request_body === undefined
-              ? undefined
-              : renameScenarioJson(transaction.request_body, renames, counts),
-          reply:
-            transaction.reply === null
-              ? null
-              : renameBody(transaction.reply, renames, counts),
-        })),
-      };
 
 const comparedSide = (
   captures: readonly ScenarioBehaviorCapture[],
@@ -887,6 +532,124 @@ const sideStepIds = (
       );
 };
 
+type ComparedStep = ScenarioBehaviorComparison["steps"][number];
+type VolatileField = ScenarioBehaviorComparison["volatile_fields"][number];
+
+/** Each capture's steps by id, with the step observed before each. */
+const stepsById = (
+  captures: readonly ScenarioBehaviorCapture[],
+): ReadonlyMap<
+  string,
+  { readonly step: StepObservation; readonly before?: StepObservation }
+>[] =>
+  captures.map(
+    (capture) =>
+      new Map(
+        capture.observations.steps.map((step, index, steps) => {
+          const before = steps[index - 1];
+          return [
+            step.step_id,
+            before === undefined ? { step } : { step, before },
+          ];
+        }),
+      ),
+  );
+
+/**
+ * One on-screen text difference between the sides is reported once, at the
+ * first step that shows the text. A later step carries it without a finding
+ * of its own only when, in every capture of both sides, its text is exactly
+ * the text of the step before it. A text that is unstable or was not
+ * recorded is never carried: those are judged at every step, so a step that
+ * could not be compared is never counted as compared.
+ */
+class TextCarry {
+  readonly #captures: ReturnType<typeof stepsById>;
+  readonly #carried: { readonly from: string; steps: number }[] = [];
+  #previous: string | undefined;
+  #open = false;
+
+  constructor(captures: readonly ScenarioBehaviorCapture[]) {
+    this.#captures = stepsById(captures);
+  }
+
+  /** Whether this step's text is the previous step's in every capture, and its difference was reported there. */
+  carries(stepId: string): boolean {
+    const previous = this.#previous;
+    return (
+      this.#open &&
+      previous !== undefined &&
+      this.#captures.every((steps) => {
+        const found = steps.get(stepId);
+        return (
+          found?.before?.step_id === previous &&
+          found.step.outcome === "completed" &&
+          found.before.outcome === "completed" &&
+          found.step.text !== null &&
+          found.step.text === found.before.text
+        );
+      })
+    );
+  }
+
+  /** Record what the comparison of a step made of its text. */
+  compared(step: ComparedStep, carried: boolean, complete: boolean): void {
+    const text = step.findings.filter(({ dimension }) => dimension === "text");
+    if (carried) {
+      const last = this.#carried.at(-1);
+      if (last !== undefined) last.steps += 1;
+    } else {
+      // A step whose findings were cut may hold more than the one difference.
+      this.#open =
+        complete &&
+        text.length === 1 &&
+        text.every(({ category }) => category === "value");
+      if (this.#open) this.#carried.push({ from: step.step_id, steps: 0 });
+    }
+    this.#previous = step.step_id;
+  }
+
+  limitations(): string[] {
+    return this.#carried
+      .filter(({ steps }) => steps > 0)
+      .map(
+        ({ from, steps }) =>
+          `The on-screen text difference at step ${from} is listed there only: ${String(steps)} later steps show the same text on both sides and carry no finding of their own for it.`,
+      );
+  }
+}
+
+/** The findings and volatile fields of one step, bounded, with what was left out. */
+const boundedStep = (
+  stepId: string,
+  context: Pick<StepContext, "findings">,
+  volatile: readonly VolatileField[],
+  limitations: string[],
+): {
+  readonly findings: ComparedStep["findings"];
+  readonly volatile: readonly VolatileField[];
+  readonly complete: boolean;
+} => {
+  const findings = boundedList(
+    orderScenarioFindings(context.findings),
+    STEP_FINDING_LIMIT,
+  );
+  if (findings.omitted > 0)
+    limitations.push(
+      `Step ${stepId} has ${String(findings.omitted)} more findings than the ${String(STEP_FINDING_LIMIT)} most severe listed.`,
+    );
+  const fields = boundedList(volatile, STEP_VOLATILE_FIELD_LIMIT);
+  if (fields.omitted > 0)
+    limitations.push(
+      `Step ${stepId} has ${String(fields.omitted)} more volatile fields than the ${String(STEP_VOLATILE_FIELD_LIMIT)} listed.`,
+    );
+  return {
+    findings: [...findings.items],
+    volatile: fields.items,
+    complete: findings.omitted === 0,
+  };
+};
+
 /**
  * Compare already read captures; complete detail, every left-side step.
  * Refused when a side is empty or its captures list different step ids.
@@ -899,6 +662,7 @@ export const compareScenarioBehaviorCaptures = (
   const rightIds = sideStepIds("right", request.right);
   if (!rightIds.ok) return rightIds;
   const counts: number[] = [];
+  const rename = renamer(request.renames, counts);
   const stepsOf = (
     captures: readonly ScenarioBehaviorCapture[],
     stepId: string,
@@ -906,55 +670,62 @@ export const compareScenarioBehaviorCaptures = (
     captures.flatMap((capture) =>
       capture.observations.steps.filter((step) => step.step_id === stepId),
     );
-  const volatile: ScenarioBehaviorComparison["volatile_fields"] = [];
+  const volatile: VolatileField[] = [];
   const limitations: string[] = [];
-  const steps = leftIds.value.map(
-    (stepId): ScenarioBehaviorComparison["steps"][number] => {
-      const kind = scenarioStepKind(stepId);
-      const declarations = request.volatile_fields.filter(
-        (field: ScenarioBehaviorVolatileField) => field.step_id === stepId,
+  const carry = new TextCarry([...request.left, ...request.right]);
+  const steps = leftIds.value.map((stepId): ComparedStep => {
+    const kind = scenarioStepKind(stepId);
+    const declarations = request.volatile_fields.filter(
+      (field: ScenarioBehaviorVolatileField) =>
+        field.step_id === stepId || field.step_id === EVERY_STEP,
+    );
+    const stepVolatile = new Map<string, VolatileField>();
+    const shared = rightIds.value.includes(stepId);
+    const textCarried = shared && carry.carries(stepId);
+    const context: ComparisonContext = {
+      findings: [],
+      volatile: (field) => {
+        const key = `${field.side}\n${field.pointer}\n${String(field.declared)}\n${String(field.honoured)}`;
+        if (!stepVolatile.has(key))
+          stepVolatile.set(key, { step_id: stepId, ...field });
+      },
+      declared: (path) =>
+        declarations.some((field) =>
+          volatilePointerMatches(field.pointer, path),
+        ),
+      // Declarations do not apply to the fingerprint: it shows the start state as it is.
+      declarationsApply: kind !== "fingerprint",
+      rename,
+      textCarried,
+    };
+    if (!shared)
+      context.findings.push(
+        finding("step", "missing-step", { expected: stepId }),
       );
-      const context: StepContext = {
-        findings: [],
-        volatile,
-        stepId,
-        // Declarations do not apply to the fingerprint: it shows the start state as it is.
-        declared: (leaf) =>
-          kind !== "fingerprint" &&
-          declarations.some((field) =>
-            volatilePointerMatches(field.pointer, leaf.path),
-          ),
-        leftRepeated: request.left.length > 1,
-      };
-      if (!rightIds.value.includes(stepId))
-        context.findings.push(
-          finding("step", "missing-step", { expected: stepId }),
-        );
-      else
-        compareStep(
-          context,
-          stepsOf(request.left, stepId).map((step) =>
-            renameStep(step, request.renames, counts),
-          ),
-          stepsOf(request.right, stepId),
-        );
-      const findings = boundedList(
-        orderScenarioFindings(context.findings),
-        STEP_FINDING_LIMIT,
+    else
+      compareStep(
+        context,
+        stepsOf(request.left, stepId),
+        stepsOf(request.right, stepId),
       );
-      if (findings.omitted > 0)
-        limitations.push(
-          `Step ${stepId} has ${String(findings.omitted)} more findings than the ${String(STEP_FINDING_LIMIT)} most severe listed.`,
-        );
-      return {
-        step_id: stepId,
-        kind,
-        // The status is the worst of all findings, listed or not.
-        status: scenarioStepStatus(context.findings),
-        findings: [...findings.items],
-      };
-    },
-  );
+    const bounded = boundedStep(
+      stepId,
+      context,
+      [...stepVolatile.values()],
+      limitations,
+    );
+    volatile.push(...bounded.volatile);
+    const step: ComparedStep = {
+      step_id: stepId,
+      kind,
+      // The status is the worst of all findings, listed or not.
+      status: scenarioStepStatus(context.findings),
+      findings: bounded.findings,
+    };
+    carry.compared(step, textCarried, shared && bounded.complete);
+    return step;
+  });
+  limitations.push(...carry.limitations());
   const rightOnly = rightIds.value.filter(
     (stepId) => !leftIds.value.includes(stepId),
   );
@@ -975,9 +746,8 @@ export const compareScenarioBehaviorCaptures = (
         `The ${side} side has one capture: a reply body it lost stays unknown${side === "left" ? ", and no value of it is shown to be steady or volatile" : ""}. Add a repeat.`,
       );
   }
-  const count = (
-    status: ScenarioBehaviorComparison["steps"][number]["status"],
-  ) => steps.filter((step) => step.status === status).length;
+  const count = (status: ComparedStep["status"]) =>
+    steps.filter((step) => step.status === status).length;
   return ok({
     comparison: "scenario-behavior",
     verdict: scenarioBehaviorVerdict(steps.map((step) => step.status)),
@@ -992,9 +762,11 @@ export const compareScenarioBehaviorCaptures = (
     },
     steps,
     volatile_fields: volatile,
-    renames_applied: request.renames.flatMap((rename, index) => {
+    renames_applied: request.renames.flatMap((rename_, index) => {
       const values = counts[index] ?? 0;
-      return values === 0 ? [] : [{ from: rename.from, to: rename.to, values }];
+      return values === 0
+        ? []
+        : [{ from: rename_.from, to: rename_.to, values }];
     }),
     limitations,
   });
@@ -1003,7 +775,7 @@ export const compareScenarioBehaviorCaptures = (
 type TableBody =
   ScenarioBehaviorTable["steps"][number]["transactions"][number]["reply"];
 
-const tableBody = (body: RecordedBody | null): TableBody => {
+const tableBody = (body: RecordedBody | SentBody | null): TableBody => {
   if (body === null) return { kind: "not-recorded" };
   if (body.kind === "base64") return { kind: "omitted", reason: "binary" };
   if (body.kind === "none") return body;
@@ -1021,8 +793,9 @@ const tableBody = (body: RecordedBody | null): TableBody => {
 
 /**
  * One side's behaviour table: what the builders read instead of Evidence.
- * Every value is the first one a capture recorded; a document's reply is the
- * original's own markup and is never copied into the table.
+ * Every value is the first one a capture recorded; a page's markup is the
+ * original's own source and is never copied into the table. The side's own
+ * origin reads `{origin}` wherever the application printed it.
  */
 export const describeScenarioBehavior = (
   captures: readonly ScenarioBehaviorCapture[],
@@ -1048,27 +821,25 @@ export const describeScenarioBehavior = (
         const replies = same.flatMap(({ reply }) =>
           reply === null ? [] : [reply],
         );
-        const document = transaction.resource_type === "document";
-        if (!document && replies.length > 1)
+        // A repeat that recorded the reply as a page settles it: markup never enters the table.
+        const markup = same.some((other) => other.markup);
+        if (!markup && replies.length > 1)
           for (const judgement of judgeReplyLeaves(
-            replies.map(bodyLeaves),
+            repliesAsJson(replies, []).left.map(bodyLeaves),
             [],
             () => false,
           ))
             volatile.add(volatilePointerPattern(judgement.path));
+        const sent =
+          same.find((other) => other.request_body !== null)?.request_body ??
+          null;
         return {
           request: transaction.request,
-          request_body: tableBody(
-            transaction.request_body === undefined
-              ? { kind: "none" }
-              : typeof transaction.request_body === "string"
-                ? { kind: "text", text: transaction.request_body }
-                : { kind: "json", value: transaction.request_body },
-          ),
+          request_body: tableBody(sent),
           status:
             same.find(({ status }) => status !== null)?.status ??
             transaction.status,
-          reply: document
+          reply: markup
             ? ({ kind: "omitted", reason: "document" } as const)
             : tableBody(replies[0] ?? null),
         };

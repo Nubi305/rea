@@ -9,21 +9,10 @@ import {
   analysisViewNativeEvidence,
 } from "../../../tests/fixtures/analysisView.js";
 import { createTestTempDirectory } from "../../../tests/fixtures/temporaryDirectory.js";
-import { sanitizeBrowserUrl } from "../../domain/browserObservation.js";
-import { browserScenarioSchema } from "../../domain/browserScenario.js";
-import { browserScenarioCaptureSchema } from "../../domain/browserScenarioCapture.js";
-import { DEFAULT_BROWSER_SCENARIO_CAPTURE_LIMITS } from "../../domain/browserScenarioCaptureLimits.js";
 import type { Evidence } from "../../domain/evidence.js";
 import { createEvidenceBundle } from "../../domain/evidenceBundle.js";
-import { jsonValueSchema, type JsonValue } from "../../domain/jsonValue.js";
-import {
-  scenarioBehaviorComparisonSchema,
-  scenarioBehaviorTableSchema,
-  type ScenarioBehaviorComparison,
-  type ScenarioBehaviorRename,
-  type ScenarioBehaviorVolatileField,
-} from "../../domain/scenarioBehaviorComparison.js";
-import { createBrowserScenarioEvidence } from "../BrowserScenarioEvidence.js";
+import type { JsonValue } from "../../domain/jsonValue.js";
+import { scenarioBehaviorTableSchema } from "../../domain/scenarioBehaviorComparison.js";
 import {
   compareScenarioBehaviorCaptures,
   compareScenarioBehaviorFiles,
@@ -31,283 +20,20 @@ import {
   readScenarioBehaviorCapture,
   type ScenarioBehaviorCapture,
 } from "./ScenarioBehaviorComparisonService.js";
-
-const LEFT = "http://127.0.0.1:4101";
-const RIGHT = "http://127.0.0.1:4202";
-const ELSEWHERE = "http://127.0.0.1:4303";
-
-/** What a recorded reply holds: JSON, text, a body the capture lost, or one over its limit. */
-type Reply =
-  | { readonly json: JsonValue }
-  | { readonly text: string }
-  | { readonly lost: "body-read-failed" | "body-size-limit" };
-
-/** One request a step made; `at` sends it to another origin, `status` null leaves it unanswered. */
-interface Call {
-  readonly line: string;
-  readonly type?: string;
-  readonly at?: string;
-  readonly status?: number | null;
-  readonly reply?: Reply;
-  readonly send?: JsonValue;
-}
-
-/** One scenario step as a capture records it. */
-interface Step {
-  readonly id: string;
-  readonly outcome?: "failed" | "cancelled";
-  /** The page address after the step: a path at the capture's origin, or a whole URL. */
-  readonly page?: string;
-  /** Accessibility text; null when the capture did not record it. */
-  readonly text?: string | null;
-  readonly calls?: readonly Call[];
-}
-
-const recorded = (content: string, mediaType: string, request: boolean) => {
-  const bytes = Buffer.from(content, "utf8");
-  return {
-    state: "captured",
-    representation: request
-      ? "browser-exposed-request-bytes"
-      : "playwright-response-body-bytes",
-    encoding: "base64",
-    content: bytes.toString("base64"),
-    bytes: bytes.length,
-    sha256: createHash("sha256").update(bytes).digest("hex"),
-    media_type: mediaType,
-    redacted: false,
-  };
-};
-
-const replyBody = (reply: Reply | undefined) => {
-  if (reply === undefined) return { state: "not_requested" };
-  if ("json" in reply)
-    return recorded(JSON.stringify(reply.json), "application/json", false);
-  if ("text" in reply) return recorded(reply.text, "text/plain", false);
-  return reply.lost === "body-size-limit"
-    ? {
-        state: "unavailable",
-        reason: reply.lost,
-        message: "over the limit",
-        limit_bytes: 65_536,
-        observed_bytes: 102_410,
-      }
-    : { state: "unavailable", reason: reply.lost, message: "lost" };
-};
-
-/** A capture of `steps` at `origin`, after REA's own first step, as authenticated Evidence. */
-const captureEvidence = (origin: string, steps: readonly Step[]): Evidence => {
-  const all: readonly Step[] = [
-    {
-      id: "scenario_start",
-      calls: [{ line: "GET /", type: "document", reply: { text: "<p>app" } }],
-    },
-    ...steps,
-  ];
-  const items: unknown[] = [];
-  let transactions = 0;
-  for (const [stepIndex, step] of all.entries())
-    for (const call of step.calls ?? []) {
-      const [method = "GET", path = "/"] = call.line.split(" ");
-      transactions += 1;
-      const event = (kind: string, status: number | null) => ({
-        sequence: items.length + 1,
-        step_index: stepIndex,
-        transaction_id: `request-${String(transactions)}`,
-        redirected_from_transaction_id: null,
-        redirected_from_transaction_state: "root",
-        method,
-        url: sanitizeBrowserUrl(`${call.at ?? origin}${path}`),
-        resource_type: call.type ?? "fetch",
-        header_names: [],
-        kind,
-        status,
-        failure: null,
-      });
-      const content = (phase: string, body: unknown) => ({
-        sequence: items.length + 1,
-        step_index: stepIndex,
-        kind: "network-content",
-        transaction_id: `request-${String(transactions)}`,
-        source_event_sequence: items.length,
-        phase,
-        headers: { state: "not_requested" },
-        body,
-      });
-      items.push(event("request", null));
-      if (call.send !== undefined)
-        items.push(
-          content(
-            "request",
-            recorded(JSON.stringify(call.send), "application/json", true),
-          ),
-        );
-      if (call.status === null) continue;
-      items.push(event("response", call.status ?? 200));
-      items.push(content("response", replyBody(call.reply)));
-    }
-  const capture = browserScenarioCaptureSchema.parse({
-    browser: {
-      mode: "launch",
-      process_ownership: "provider-owned",
-      cleanup: "terminated-owned-process",
-      product: "Chromium",
-      version: "fixture",
-    },
-    scenario: {
-      start_origin: origin,
-      action_count: steps.length,
-      secret_references: [],
-      network_content: {
-        request_body: true,
-        response_body: true,
-        header_values: false,
-      },
-      event_families: ["network"],
-      limits: DEFAULT_BROWSER_SCENARIO_CAPTURE_LIMITS,
-    },
-    duration_ms: 1,
-    steps: all.map((step, index) => {
-      const text = step.text === undefined ? `screen ${step.id}` : step.text;
-      const page = step.page ?? "/";
-      const url = sanitizeBrowserUrl(
-        page.startsWith("/") ? `${origin}${page}` : page,
-      );
-      return {
-        step_index: index,
-        step_id: step.id,
-        action: index === 0 ? "goto_start" : "request",
-        elapsed_ms: 0,
-        before_url: url,
-        after_url: url,
-        event_sequence_start: 1,
-        event_sequence_end: 0,
-        artifacts: {
-          screenshot: { state: "not_requested" },
-          dom: { state: "not_requested" },
-          accessibility:
-            text === null
-              ? { state: "not_requested" }
-              : {
-                  state: "captured",
-                  value: {
-                    sha256: createHash("sha256").update(text).digest("hex"),
-                    bytes: Buffer.byteLength(text),
-                    text,
-                  },
-                },
-          url: { state: "not_requested" },
-          history: { state: "not_requested" },
-          storage: { state: "not_requested" },
-        },
-        completeness: {
-          status: "complete",
-          equality_eligible: true,
-          missing_sections: [],
-          truncated_sections: [],
-        },
-        status: step.outcome ?? "completed",
-        error: step.outcome === undefined ? null : "step did not complete",
-      };
-    }),
-    events: {
-      retained: items.length,
-      dropped: 0,
-      items,
-      omissions: {
-        by_kind: [],
-        network_transactions: [],
-        network_transaction_range: null,
-      },
-    },
-    completeness: {
-      status: "complete",
-      equality_eligible: true,
-      missing_sections: [],
-      truncated_sections: [],
-    },
-    limitations: [],
-  });
-  return createBrowserScenarioEvidence(
-    browserScenarioSchema.parse({
-      browser: { mode: "launch", executable_path: process.execPath },
-      start_url: { url: `${origin}/`, query: [] },
-      actions: steps.map((step) => ({
-        step_id: step.id,
-        action: "wait_for_timeout",
-        duration_ms: 1,
-      })),
-    }),
-    { source: jsonValueSchema.parse(capture), facts: capture },
-    { id: "fixture", name: "fixture", version: "1" },
-  );
-};
-
-let files = 0;
-
-/** Write Evidence as `capture-browser-scenario --evidence_output` does, and read it back through the comparer. */
-const readCapture = async (
-  origin: string,
-  steps: readonly Step[],
-): Promise<ScenarioBehaviorCapture> => {
-  const root = await createTestTempDirectory("rea-scenario-behavior-");
-  files += 1;
-  const file = join(root, `run-${String(files)}.json`);
-  await writeFile(
-    file,
-    JSON.stringify(createEvidenceBundle([captureEvidence(origin, steps)])),
-  );
-  const capture = await readScenarioBehaviorCapture(file);
-  if (!capture.ok) throw capture.error;
-  return capture.value;
-};
-
-interface Declarations {
-  readonly renames?: readonly ScenarioBehaviorRename[];
-  readonly volatile_fields?: readonly ScenarioBehaviorVolatileField[];
-}
-
-/** Compare captures of the given step lists: one list per capture, per side. */
-const compare = async (
-  left: readonly (readonly Step[])[],
-  right: readonly (readonly Step[])[],
-  declarations: Declarations = {},
-): Promise<ScenarioBehaviorComparison> => {
-  const compared = compareScenarioBehaviorCaptures({
-    left: await Promise.all(left.map((steps) => readCapture(LEFT, steps))),
-    right: await Promise.all(right.map((steps) => readCapture(RIGHT, steps))),
-    renames: declarations.renames ?? [],
-    volatile_fields: declarations.volatile_fields ?? [],
-  });
-  if (!compared.ok) throw compared.error;
-  return scenarioBehaviorComparisonSchema.parse(compared.value);
-};
-
-const stepOf = (comparison: ScenarioBehaviorComparison, id: string) => {
-  const step = comparison.steps.find(({ step_id }) => step_id === id);
-  if (step === undefined) throw new Error(`no step ${id}`);
-  return step;
-};
-
-const list: Step = {
-  id: "fp-notes",
-  calls: [{ line: "GET /api/notes", reply: { json: [] } }],
-};
-const create = (reply: Reply | undefined, status = 201): Step => ({
-  id: "create-note",
-  page: "/notes?sort=new#top",
-  calls: [
-    {
-      line: "POST /api/notes",
-      status,
-      send: { title: "Hello World" },
-      ...(reply === undefined ? {} : { reply }),
-    },
-  ],
-});
-const note = (slug = "hello-world"): Reply => ({
-  json: { title: "Hello World", slug, tags: ["a", "b"] },
-});
+import {
+  ELSEWHERE,
+  LEFT,
+  RIGHT,
+  captureEvidence,
+  compare,
+  create,
+  list,
+  note,
+  readCapture,
+  stepOf,
+  type Call,
+  type Step,
+} from "./scenarioBehaviorCapture.fixture.js";
 
 it("finds two addresses unchanged when every dimension of every step matches", async () => {
   const steps = [list, create(note())];
@@ -586,21 +312,14 @@ it("calls a step unstable when one side's repeats disagree, and never changed fo
     ],
   });
   expect(comparison.volatile_fields).toEqual([
-    { step_id: "create-note", side: "left", pointer: "/slug", declared: false },
+    {
+      step_id: "create-note",
+      side: "left",
+      pointer: "/slug",
+      declared: false,
+      honoured: false,
+    },
   ]);
-  // The right disagreeing with itself contradicts the left's steady value as well.
-  const right = await compare([steady, steady], [steady, other]);
-  expect(
-    stepOf(right, "create-note").findings.map(
-      ({ category, side }) => `${category} ${String(side)}`,
-    ),
-  ).toEqual([
-    "value null",
-    "value null",
-    "repeats-differ right",
-    "undeclared-volatile right",
-  ]);
-  expect(stepOf(right, "create-note").status).toBe("changed");
   // A request only some repeats made is unstable too.
   const extra: Step = {
     ...create(note()),
@@ -728,35 +447,62 @@ it("honours a volatile field only where the left's repeats differ, counts it, an
   ];
   const honoured = await compare(left, right, { volatile_fields });
   expect(honoured.verdict).toBe("unchanged");
-  expect(honoured.volatile_fields).toEqual([
-    { step_id: "create-note", side: "left", pointer: "/id", declared: true },
-    { step_id: "create-note", side: "right", pointer: "/id", declared: true },
-    {
+  expect(honoured.volatile_fields).toEqual(
+    [
+      { side: "left", pointer: "/id" },
+      { side: "right", pointer: "/id" },
+      { side: "left", pointer: "/createdAt" },
+      { side: "right", pointer: "/createdAt" },
+    ].map((field) => ({
       step_id: "create-note",
-      side: "left",
-      pointer: "/createdAt",
+      ...field,
       declared: true,
-    },
-    {
-      step_id: "create-note",
-      side: "right",
-      pointer: "/createdAt",
-      declared: true,
-    },
-  ]);
+      honoured: true,
+    })),
+  );
   // Undeclared, the same captures are unstable: the lead has a declaration to make.
   const undeclared = await compare(left, right);
   expect(stepOf(undeclared, "create-note").status).toBe("unstable");
-  expect(undeclared.volatile_fields.every(({ declared }) => !declared)).toBe(
-    true,
-  );
-  // A declared field that is steady on the left is compared like any other.
+  expect(
+    undeclared.volatile_fields.every(
+      ({ declared, honoured: took }) => !declared && took === false,
+    ),
+  ).toBe(true);
+  // A declaration does not make a field the left holds steadily match: it is never unchanged.
   const mutant = await compare(
     left,
     [made("99999999", "2027-02-03T04:05:06.007Z", "HELLO")],
     { volatile_fields },
   );
   expect(stepOf(mutant, "create-note")).toMatchObject({
+    status: "unknown",
+    findings: [
+      {
+        category: "declared-not-shown",
+        pointer: "/slug",
+        expected: '"hello"',
+        actual: '"HELLO"',
+        side: "left",
+      },
+    ],
+  });
+  // Without the declaration the same difference is the clone's.
+  const withdrawn = await compare(
+    left,
+    [made("99999999", "2027-02-03T04:05:06.007Z", "HELLO")],
+    { volatile_fields: volatile_fields.slice(0, 2) },
+  );
+  expect(stepOf(withdrawn, "create-note")).toMatchObject({
+    status: "changed",
+    findings: [{ category: "value", pointer: "/slug" }],
+  });
+  // A declared steady field of another type or layout is a difference, declaration or not.
+  const retyped = await compare(
+    left,
+    [made("99999999", "2027-02-03T04:05:06.007Z", "hello world")],
+    { volatile_fields },
+  );
+  expect(stepOf(retyped, "create-note")).toMatchObject({
     status: "changed",
     findings: [{ category: "value", pointer: "/slug" }],
   });
@@ -805,7 +551,13 @@ it("does not let two clocks of one format or two ids stand in for equality", asy
   expect(stepOf(single, "create-note")).toMatchObject({
     status: "unknown",
     findings: [
-      { category: "not-recorded", pointer: "/createdAt", side: "left" },
+      {
+        category: "single-observation",
+        pointer: "/createdAt",
+        expected: '"2026-11-20T01:00:00.000Z"',
+        actual: '"2027-02-03T04:05:06.007Z"',
+        side: "left",
+      },
     ],
   });
   expect(single.limitations).toContainEqual(
@@ -988,8 +740,19 @@ it("gives equal fingerprints to equal start states at any address, and none when
     calls: [{ line: "GET /api/notes", reply: { json: [{ id: 1 }] } }],
   };
   expect(await fingerprint(LEFT, [dirty])).not.toBe(clean);
+  // A request step's fingerprint is its reply: the text of the page behind it is not part of it.
+  expect(await fingerprint(LEFT, [{ ...list, text: null }])).toBe(clean);
+  expect(await fingerprint(LEFT, [{ ...list, text: "10:00:01" }])).toBe(clean);
+  const shown = (text: string | null): Step => ({
+    ...list,
+    action: "click",
+    text,
+  });
+  expect(await fingerprint(LEFT, [shown("a")])).not.toBe(
+    await fingerprint(LEFT, [shown("b")]),
+  );
   for (const missing of [
-    { ...list, text: null },
+    shown(null),
     { ...list, outcome: "failed" as const },
     { ...list, calls: [{ line: "GET /api/notes", status: null }] },
     {
@@ -997,14 +760,15 @@ it("gives equal fingerprints to equal start states at any address, and none when
       calls: [{ line: "GET /api/notes", reply: { lost: "body-read-failed" } }],
     } satisfies Step,
     { ...list, calls: [{ line: "GET /api/notes", at: ELSEWHERE }] },
+    {
+      ...list,
+      calls: [{ line: "POST /api/notes", sendLost: true, reply: note() }],
+    } satisfies Step,
   ])
     expect(await fingerprint(LEFT, [missing])).toBeNull();
   // No fingerprint step, no fingerprint.
   expect(await fingerprint(LEFT, [create(note())])).toBeNull();
-  const comparison = await compare(
-    [[list], [dirty]],
-    [[list], [{ ...list, text: null }]],
-  );
+  const comparison = await compare([[list], [dirty]], [[list], [shown(null)]]);
   expect(comparison.left.start_state).toBe("dirty");
   expect(comparison.right.start_state).toBe("unknown");
 });
@@ -1078,6 +842,7 @@ it("describes one side's behaviour without its address or its markup", async () 
           request: "GET /#1",
           request_body: { kind: "none" },
           status: 200,
+          // A page's markup never enters the table.
           reply: { kind: "omitted", reason: "document" },
         },
       ],

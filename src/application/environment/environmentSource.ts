@@ -24,6 +24,7 @@ import {
 import { retainedBrowserScenarioCaptureSchema } from "../../domain/browserScenarioCapture.js";
 import type {
   BrowserScenarioEvent,
+  BrowserScenarioEventOmissions,
   BrowserScenarioStep,
 } from "../../domain/browserScenarioCaptureValues.js";
 import type { AnalysisError } from "../../domain/analysisErrorBase.js";
@@ -299,6 +300,12 @@ export interface CapturedScenario {
   readonly steps: readonly BrowserScenarioStep[];
   /** Each record's step and resource type, keyed by record ordinal. */
   readonly recordSteps: ReadonlyMap<number, ScenarioRecordStep>;
+  /**
+   * The capture's own account of the events it left out (`events.omissions`).
+   * An omitted event names no step, so a consumer cannot tell which step's
+   * records are missing: what was omitted is unknown, not absent.
+   */
+  readonly omissions: BrowserScenarioEventOmissions;
   /** The Evidence record's parameters: the scenario REA ran, not validated here. */
   readonly parameters: unknown;
 }
@@ -346,6 +353,7 @@ const parseScenarioCapture = (
       startOrigin: scenario.data.scenario.start_origin,
       steps: scenario.data.steps,
       recordSteps: projected.steps,
+      omissions: scenario.data.events.omissions,
       parameters,
     },
   });

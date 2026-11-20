@@ -19,6 +19,9 @@ import type { Result } from "./result.js";
 /** Operation name every refusal of the comparer reports. */
 export const SCENARIO_BEHAVIOR_OPERATION = "compare-scenario-behavior";
 
+/** The `step_id` of a volatile declaration that applies to every step of its scenario. */
+export const EVERY_STEP = "*";
+
 /** Steps with this prefix are the opening fingerprint of the start state. */
 export const FINGERPRINT_STEP_PREFIX = "fp-";
 /**
@@ -129,6 +132,9 @@ export const volatileValueShape = (value: JsonValue): string => {
   return Array.isArray(value) ? "array" : typeof value;
 };
 
+/** Volatile field entries kept per step in a comparison. */
+export const STEP_VOLATILE_FIELD_LIMIT = 20;
+
 /** A changed step outranks an unknown or unstable one; missing data never yields `unchanged`. */
 export const scenarioBehaviorVerdict = (
   statuses: readonly ScenarioStepStatus[],
@@ -144,13 +150,35 @@ export const scenarioBehaviorExitCode = (
   verdict: ScenarioBehaviorVerdict,
 ): 0 | 1 | 2 => (verdict === "unchanged" ? 0 : verdict === "changed" ? 1 : 2);
 
-/** Finding categories that say data is missing: the step is `unknown`. */
+/**
+ * Finding categories that say a judgement cannot be made: the step is
+ * `unknown`.
+ *
+ * - `not-recorded`: no capture recorded the data (a lost or oversize body, a
+ *   request body that was sent and not recorded, requests the capture itself
+ *   reports as omitted).
+ * - `single-observation`: the value was recorded, but the left side observed
+ *   it once, so it cannot be shown steady or volatile. One more capture of
+ *   that side settles it.
+ * - `declared-not-shown`: a leaf is declared volatile, the left's repeats
+ *   agree at it and the right's value differs with the same shape. Capturing
+ *   the left again may show it varying; withdrawing the declaration makes
+ *   the difference `changed`.
+ * - `not-completed`, `other-origin`: the step or request proves nothing.
+ */
 const GAP_CATEGORIES: ReadonlySet<string> = new Set([
   "not-recorded",
+  "single-observation",
+  "declared-not-shown",
   "not-completed",
   "other-origin",
 ]);
-/** Finding categories that say one side's repeats disagree: the step is `unstable`. */
+/**
+ * Finding categories that say one side's repeats disagree: the step is
+ * `unstable`. `undeclared-volatile` is a reply leaf the left's repeats
+ * disagree on that no declaration names; `repeats-differ` is every other
+ * disagreement of one side with itself.
+ */
 const REPEAT_CATEGORIES: ReadonlySet<string> = new Set([
   "repeats-differ",
   "undeclared-volatile",
@@ -212,7 +240,11 @@ export interface JsonLeaf {
   readonly value: JsonValue;
 }
 
-/** Every leaf of a JSON value in document order. Two values are equal exactly when their leaves are. */
+/**
+ * Every leaf of a JSON value in document order. Two values are equal exactly
+ * when their leaves are equal in pointer, `path` and value: the pointer alone
+ * does not tell an array item from an object member named like its index.
+ */
 export const jsonLeaves = (root: JsonValue): JsonLeaf[] => {
   const leaves: JsonLeaf[] = [];
   const visit = (
@@ -276,19 +308,36 @@ export const volatilePointerMatches = (
  * whose own repeats disagree at it (a leaf present in one repeat and absent
  * in another disagrees).
  *
- * - `honoured`: the left varies and a declaration names the leaf; the value
- *   is not compared.
+ * - `honoured`: a declaration names the leaf and the left shows it varying:
+ *   at the leaf itself, or, for a leaf the left holds in every repeat, at
+ *   another leaf of the same pattern (`volatilePointerPattern`), so a list in
+ *   varying order is covered at every index. The value is not compared.
  * - `shape`: honoured, the left's values share one shape and a right value
  *   has another or is absent.
  * - `unstable`: the left varies and no declaration names the leaf.
- * - `changed`: the left holds one value in every repeat and a right repeat
- *   holds another. A declaration on such a leaf is ignored.
+ * - `right-unsteady`: the left holds one value in every repeat, the right's
+ *   repeats disagree and one of them equals the left's. The right disagrees
+ *   with itself; nothing shows it differs from the left.
+ * - `declared-not-shown`: a declaration names the leaf, the left's repeats
+ *   agree at it, no leaf of its pattern varies on the left, and every right
+ *   value differs from the left's only within its shape.
+ * - `single-observation`: as `declared-not-shown`, with one left reply, which
+ *   cannot show the leaf steady or volatile.
+ * - `changed`: the left holds one value and no right repeat agrees with it,
+ *   in none of the cases above.
  */
 export interface ReplyLeafJudgement {
   readonly pointer: string;
   readonly path: readonly (string | number)[];
   readonly varies: readonly ("left" | "right")[];
-  readonly outcome: "honoured" | "shape" | "unstable" | "changed";
+  readonly outcome:
+    | "honoured"
+    | "shape"
+    | "unstable"
+    | "right-unsteady"
+    | "declared-not-shown"
+    | "single-observation"
+    | "changed";
   /** A left value and a right value that show the judgement; undefined where the leaf is absent. */
   readonly expected: JsonValue | undefined;
   readonly actual: JsonValue | undefined;
@@ -296,13 +345,87 @@ export interface ReplyLeafJudgement {
   readonly other: JsonValue | undefined;
 }
 
+/** Whether two paths walk the same kinds of container: an array index and an object member spelled alike differ. */
+const sameContainerKinds = (
+  left: readonly (string | number)[],
+  right: readonly (string | number)[],
+): boolean =>
+  left.length === right.length &&
+  left.every((segment, index) => typeof segment === typeof right[index]);
+
 const sameLeafValue = (
   left: JsonLeaf | undefined,
   right: JsonLeaf | undefined,
 ): boolean =>
   left === undefined || right === undefined
     ? left === right
-    : equalJsonValues(left.value, right.value);
+    : sameContainerKinds(left.path, right.path) &&
+      equalJsonValues(left.value, right.value);
+
+/**
+ * The index of the first right value whose shape differs from the one shape
+ * the left's values share, or that is absent; -1 when every right value has
+ * that shape or the left's values share none.
+ */
+const misshapenIndex = (
+  leftValues: readonly (JsonLeaf | undefined)[],
+  rightValues: readonly (JsonLeaf | undefined)[],
+): number => {
+  const shapes = new Set(
+    leftValues.map((value) =>
+      value === undefined ? undefined : volatileValueShape(value.value),
+    ),
+  );
+  const [shape] = shapes;
+  return shapes.size === 1 && shape !== undefined
+    ? rightValues.findIndex(
+        (value) =>
+          value === undefined || volatileValueShape(value.value) !== shape,
+      )
+    : -1;
+};
+
+/** One pointer's values across every reply of both sides. */
+interface LeafAcrossReplies {
+  readonly leaf: JsonLeaf;
+  readonly leftValues: readonly (JsonLeaf | undefined)[];
+  readonly rightValues: readonly (JsonLeaf | undefined)[];
+  readonly leftVaries: boolean;
+  readonly rightVaries: boolean;
+  /** Index of the first right value that is not the left's first, or -1. */
+  readonly contradiction: number;
+}
+
+/** Judge a leaf the left holds in one value where a right repeat holds another. */
+const judgeSteadyLeaf = (
+  across: LeafAcrossReplies,
+  facts: {
+    readonly declared: boolean;
+    /** Whether another leaf of this leaf's pattern varies on the left. */
+    readonly patternVaries: boolean;
+    readonly singleLeftReply: boolean;
+  },
+): Pick<ReplyLeafJudgement, "outcome" | "actual"> => {
+  const { leftValues, rightValues } = across;
+  const first = leftValues[0];
+  const contradicting = rightValues[across.contradiction]?.value;
+  const misshapen = misshapenIndex(leftValues, rightValues);
+  // A leaf the left never holds is not shown to vary by its neighbours: an extra item is a difference.
+  if (facts.declared && facts.patternVaries && first !== undefined)
+    return misshapen === -1
+      ? { outcome: "honoured", actual: contradicting }
+      : { outcome: "shape", actual: rightValues[misshapen]?.value };
+  if (rightValues.some((value) => sameLeafValue(value, first)))
+    return { outcome: "right-unsteady", actual: contradicting };
+  if (facts.declared && first !== undefined && misshapen === -1)
+    return {
+      outcome: facts.singleLeftReply
+        ? "single-observation"
+        : "declared-not-shown",
+      actual: contradicting,
+    };
+  return { outcome: "changed", actual: contradicting };
+};
 
 /**
  * Compare the replies of one transaction exactly, leaf by leaf, across every
@@ -310,8 +433,8 @@ const sameLeafValue = (
  * with no right reply only the left's own disagreements are judged. Leaves
  * that are equal everywhere are not returned.
  * No normalisation applies: only a value the left holds steadily can be
- * contradicted, and only a leaf the left's own repeats disagree on can be
- * declared volatile.
+ * contradicted, and a declaration takes effect only where the left's own
+ * repeats show the leaf, or another leaf of its pattern, varying.
  */
 export const judgeReplyLeaves = (
   left: readonly (readonly JsonLeaf[])[],
@@ -328,69 +451,68 @@ export const judgeReplyLeaves = (
   for (const leaves of [...left, ...right])
     for (const leaf of leaves)
       if (!order.has(leaf.pointer)) order.set(leaf.pointer, leaf);
-  const judgements: ReplyLeafJudgement[] = [];
+  const uneven: LeafAcrossReplies[] = [];
+  const variedPatterns = new Set<string>();
   for (const [pointer, leaf] of order) {
     const leftValues = lefts.map((reply) => reply.get(pointer));
     const rightValues = rights.map((reply) => reply.get(pointer));
     const first = leftValues[0];
-    const leftOther = leftValues.find((value) => !sameLeafValue(value, first));
     const leftVaries = leftValues.some((value) => !sameLeafValue(value, first));
-    const rightVaries = rightValues.some(
-      (value) => !sameLeafValue(value, rightValues[0]),
-    );
     const contradiction = rightValues.findIndex(
       (value) => !sameLeafValue(value, first),
     );
     if (!leftVaries && contradiction === -1) continue;
-    const varies = [
-      ...(leftVaries ? (["left"] as const) : []),
-      ...(rightVaries ? (["right"] as const) : []),
-    ];
-    const base = { pointer, path: leaf.path, varies };
-    if (!leftVaries) {
-      judgements.push({
+    if (leftVaries) variedPatterns.add(volatilePointerPattern(leaf.path));
+    uneven.push({
+      leaf,
+      leftValues,
+      rightValues,
+      leftVaries,
+      rightVaries: rightValues.some(
+        (value) => !sameLeafValue(value, rightValues[0]),
+      ),
+      contradiction,
+    });
+  }
+  return uneven.map((across): ReplyLeafJudgement => {
+    const { leaf, leftValues, rightValues, leftVaries } = across;
+    const first = leftValues[0];
+    const base = {
+      pointer: leaf.pointer,
+      path: leaf.path,
+      varies: [
+        ...(leftVaries ? (["left"] as const) : []),
+        ...(across.rightVaries ? (["right"] as const) : []),
+      ],
+    };
+    if (!leftVaries)
+      return {
         ...base,
-        outcome: "changed",
         expected: first?.value,
-        actual: rightValues[contradiction]?.value,
         other: undefined,
-      });
-      continue;
-    }
+        ...judgeSteadyLeaf(across, {
+          declared: declared(leaf),
+          patternVaries: variedPatterns.has(volatilePointerPattern(leaf.path)),
+          singleLeftReply: left.length === 1,
+        }),
+      };
+    const leftOther = leftValues.find((value) => !sameLeafValue(value, first));
     const shown = {
       expected: first?.value ?? leftOther?.value,
       actual: rightValues[0]?.value,
       other: first === undefined ? undefined : leftOther?.value,
     };
-    if (!declared(leaf)) {
-      judgements.push({ ...base, outcome: "unstable", ...shown });
-      continue;
-    }
-    const shapes = new Set(
-      leftValues.map((value) =>
-        value === undefined ? undefined : volatileValueShape(value.value),
-      ),
-    );
-    const [shape] = shapes;
-    const misshapen =
-      shapes.size === 1 && shape !== undefined
-        ? rightValues.findIndex(
-            (value) =>
-              value === undefined || volatileValueShape(value.value) !== shape,
-          )
-        : -1;
-    judgements.push(
-      misshapen === -1
-        ? { ...base, outcome: "honoured", ...shown }
-        : {
-            ...base,
-            outcome: "shape",
-            ...shown,
-            actual: rightValues[misshapen]?.value,
-          },
-    );
-  }
-  return judgements;
+    if (!declared(leaf)) return { ...base, outcome: "unstable", ...shown };
+    const misshapen = misshapenIndex(leftValues, rightValues);
+    return misshapen === -1
+      ? { ...base, outcome: "honoured", ...shown }
+      : {
+          ...base,
+          outcome: "shape",
+          ...shown,
+          actual: rightValues[misshapen]?.value,
+        };
+  });
 };
 
 /**
@@ -450,7 +572,8 @@ export type ScenarioBehaviorRename = z.infer<
  * A reply leaf declared to differ between repeats; a `*` segment stands for
  * any one array index. The pointer names a leaf exactly: it never covers the
  * values beneath an object or array, and the whole body (the empty pointer)
- * cannot be declared.
+ * cannot be declared. The step id `*` (`EVERY_STEP`) names every step of the
+ * scenario.
  */
 export const scenarioBehaviorVolatileFieldSchema = z.strictObject({
   step_id: z.string().min(1),
@@ -472,13 +595,19 @@ export const scenarioBehaviorFindingSchema = z.strictObject({
   dimension: z.enum(SCENARIO_BEHAVIOR_DIMENSIONS),
   /**
    * The differ's category, or the comparer's own: `not-recorded`,
-   * `not-completed`, `missing-step`, `other-origin`, `repeats-differ`,
-   * `undeclared-volatile`, `shape`.
+   * `single-observation`, `declared-not-shown`, `not-completed`,
+   * `other-origin`, `repeats-differ`, `undeclared-volatile`, `missing-step`,
+   * `shape`, `value`. `scenarioFindingStatus` reads the step status from it.
    */
   category: z.string().min(1),
   /** Request line and occurrence within the step, such as `POST /api/notes#1`; null for step-level facts. */
   request: z.string().nullable(),
-  /** JSON pointer into the reply body; null outside the `body` dimension. */
+  /**
+   * JSON pointer into the reply body; null outside the `body` dimension. A
+   * `*` segment stands for every array index: `undeclared-volatile`,
+   * `repeats-differ`, `single-observation` and `declared-not-shown` findings
+   * name the pattern a declaration would use, once per pattern.
+   */
   pointer: z.string().nullable(),
   /** Left value. */
   expected: z.string().nullable(),
@@ -530,16 +659,27 @@ export const scenarioBehaviorComparisonSchema = z.strictObject({
       findings: z.array(scenarioBehaviorFindingSchema),
     }),
   ),
-  /** Reply leaves seen to differ between one side's repeats, with whether a declaration covers them. */
+  /**
+   * Reply leaves seen to differ between one side's repeats, by pattern; at
+   * most `STEP_VOLATILE_FIELD_LIMIT` per step, the rest counted in
+   * `limitations`.
+   */
   volatile_fields: z.array(
     z.strictObject({
       step_id: z.string().min(1),
       side: sideSchema,
       pointer: z.string(),
+      /** Whether a volatile declaration names this pointer at this step. */
       declared: z.boolean(),
+      /**
+       * Whether that declaration took effect: the values were not compared.
+       * The comparer writes it on every entry; a result written before the
+       * member existed lacks it.
+       */
+      honoured: z.boolean().optional(),
     }),
   ),
-  /** Each declared rename that changed at least one compared left value, with how many. */
+  /** Each declared rename that changed at least one left value that was compared, with how many. */
   renames_applied: z.array(
     scenarioBehaviorRenameSchema.extend({ values: z.int().min(1) }),
   ),
@@ -612,9 +752,12 @@ export interface ScenarioBehaviorCaptureFacts {
   }[];
   /**
    * Digest of everything the `fp-` steps observed, in every compared
-   * dimension, without the address. Null when the capture has no `fp-` step,
-   * one did not complete, or one lacks an observation (no response, a body
-   * that was expected and not recorded, text or page address not recorded).
+   * dimension, without the address. A `request` step observes its reply, not
+   * the page behind it, so its on-screen text is left out. Null when the
+   * capture has no `fp-` step, one did not complete, or one lacks an
+   * observation (no response, a body that was expected and not recorded, a
+   * request body or requests the capture did not record, text or page address
+   * not recorded).
    */
   readonly fingerprint_sha256: string | null;
   /**
