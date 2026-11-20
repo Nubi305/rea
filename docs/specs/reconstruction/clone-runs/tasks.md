@@ -93,3 +93,98 @@ On the merged branch, in a container with Chromium and no native provider:
 - `npm run check:fast` and `npm run verify:test-discovery` passed.
 
 Not verified: the playbook has not been followed by an agent, and the full test suite was not run on this branch.
+
+## Fix round (2026-11-20)
+
+A proof round followed the build: a blind trial in which a fresh agent cloned an unseen application from the playbook
+alone, two adversarial attacks and three line-by-line reviews. It found about eighty defects. Each box below is one
+group of them; the finding ids are those of the proof round's record. The boxes of the comparer, the referee and the
+tool readers are ticked on those packages' own reports and the join's; what was run again for this text is under
+[Verification of the fix round](#verification-of-the-fix-round).
+
+### A: comparer (spec: "The comparer")
+
+- [x] Missing data is `unknown` in the cases the first build read as a match: a request body that was not recorded,
+      request events the capture omitted, a download's body (comparer-2, comparer-3, reality-1).
+- [x] An array and an object with index-like keys differ (comparer-1); same-length lists compare by position
+      (trial-10); a text reply that is JSON on both sides compares by leaves (reality-14).
+- [x] New categories `single-observation` and `declared-not-shown`, both `unknown` (surface-2, comparer-8,
+      reality-7); `declared` and `honoured` are separate (comparer-9); `step_id` `*` covers every step (trial-11); a
+      declared pattern is honoured at every index once one varies (reality-12).
+- [x] A clone-side repeat difference is `repeats-differ` alone, never `changed` (reality-5, trial-15, judge-1); a
+      request line only the clone sent beside an unsteady original is `repeats-differ` (reality-4, comparer-5).
+- [x] The side's own origin reads `{origin}` in text and bodies (reality-6); a `request` fingerprint step leaves out
+      the page text (reality-3); one text difference is reported once (judge-8); a JSON string request body is shown
+      as JSON (trial-12).
+
+### B: referee (spec: "What done means" to "Stall")
+
+- [x] Address identity by port and resolved host, at init and at every evaluation (cheat-1, referee-1).
+- [x] The stall rule as a pure function: a round is a judged clone tree, one state is one attempt, the referee's own
+      capture remedy does not stall on its first try, the gate prints `stall.outlook` (referee-2, referee-3,
+      referee-5, referee-9, trial-7, trial-16).
+- [x] Excludes are validated and named in every summary when one matched (cheat-2, referee-8); a link that cannot be
+      resolved is flagged (cheat-3, referee-4, referee-14); unreadable clone entries are the finding
+      `clone_path_unreadable` (referee-6); non-regular Evidence entries are rejected (referee-7); a refused
+      `target.json` leaves the other outputs alone (referee-10).
+- [x] Who is told what: no `repeats-differ` finding reaches a builder, a rename that settles a difference goes to
+      the lead with the entry to add, a failed step is named with why its kind of step fails (reality-6, reality-10,
+      reality-11, reality-13, reality-15).
+- [x] `init-clone-run` prints the referee's own first worklist and writes a page-step scenario and a crawl input
+      (surface-3, trial-3, trial-17); `residual_trust` is listed with a pass only and gains two lines; equal findings
+      collapse into one item (surface-10, reality-2, reality-8, reality-9, judge-5, judge-6).
+
+### Tool readers
+
+- [x] `export-web-scripts` and `environment-build` read the bundle `--evidence_output` saves when it holds one
+      capture record, and say so when it does not (surface-1, trial-4).
+
+### D: guidance and documentation
+
+- [x] `SKILL.md` routes a request to rebuild or clone a web application to the playbook before the original is
+      touched, in its description and at the top of the routing list (surface-9, trial-2); version 65.
+- [x] Playbook: every command a card names was run on the file the card has the agent save, in a run made from the
+      fixture pair; the cards for scout, mapper and prober give the exact commands (surface-1, trial-5, trial-6,
+      trial-9); the loop defines a judged round and the stall rule as built (trial-7); the prober card states the
+      step id pattern, the locator rule, the tie rule for rounding and how a refusal notice is probed (trial-8,
+      trial-14, judge-3, judge-7); the mapper card names the operator's own addresses (judge-4); the lead card shows a
+      wildcard volatile field and where candidates are listed (trial-11); the rules say what to do with an input REA
+      cannot send (trial-13); what a step compares is stated where probes are designed (reality-9).
+- [x] Reference page and specification: every changed category, reason code, message, flag, exit status, example
+      file and limit; the false-pass table row by row and the residual-trust list against the code's fourteen lines
+      (comparer-13, referee-11, surface-13, reality-2, reality-8, reality-9, reality-11).
+- [x] Conformance test: flags against the option schema of the command they are written with, and the reason
+      table's check and role columns against the code (surface-5).
+
+### Tests, verifier and fixtures
+
+Not recorded here: that package was still at work when this text was reconciled. Its boxes are the fixture probes
+and the corrected fixture clone (surface-4, surface-13), the verifier's exact assertions and new cases (surface-6,
+surface-7, surface-11), and one in-process test of the referee with the real comparer.
+
+### Verification of the fix round
+
+On `claude/dreamy-hamilton-vczp59` after the three code packages were joined, as the join reported it:
+
+- `npm run verify:clone-run`: 11 of 11 cases passed, twice, with real Chromium.
+- The blind trial's run folder, copied: `not_done` with one blocking finding, the open unknown; no step `changed`.
+- Thirteen copies of the attacks' run folders: each wrong clone stayed `not_done`, each new category reached the
+  role the contract names.
+
+On the documentation branch, in a container with Chromium and no native provider:
+
+- A run driven by hand from the fixture pair on two loopback ports, with every command the playbook's cards name:
+  the crawl from `examples/crawl.example.json`, `export-web-scripts` and `analyze-javascript-application` on what it
+  saved, the two `inspect-analysis-view` inputs, `validate-browser-scenario` and the prober's preview. With both
+  fixture scenarios the worklist's capture commands led to `parity_unknown` for the `export` scenario, whose reply is
+  over the body limit, and to `stalled` on its third attempt, as the stall rule says; with that scenario taken out,
+  the same captures read `done`. The slug mutant then read `evidence_stale`, and after two clone captures
+  `parity_changed` at `/slug` in round 2, with five steps collapsed into one item; a matched exclude added its clause
+  to every summary; a wildcard volatile field was honoured for the eleven fields the per-step entries had covered;
+  a loopback alias and a pattern exclude were refused at init.
+- `tests/conformance/cloneRunGuidance.test.ts`, `npm run docs:check`, `npm run check:fast` and
+  `npm run verify:test-discovery` passed. `rea setup` under a throwaway `HOME` installed the playbook, and
+  `rea guidance --query` returned its sections for `clone a web application`, `clone parity`, `judged round stalled`
+  and each role card.
+
+Not verified: the corrected playbook has not been followed by a fresh agent, and the full test suite was not run.

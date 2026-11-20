@@ -1305,7 +1305,8 @@ return and do not establish.
 [--format-rules-only] [--package-tarball <path>] [--capture-timeout-ms <ms>] [--dry-run]` builds the bundle
 `environment-export` writes from one recorded capture: a `.har` file, which it
 inspects as `inspect-web-network-capture` does, or capture Evidence JSON from
-`inspect-web-network-capture` (HAR) or `capture-browser-scenario`. It projects
+`inspect-web-network-capture` (HAR) or `capture-browser-scenario`: one record,
+or the bundle `--evidence_output` saves when it holds one capture record. It projects
 the environment manifest from the in-memory Evidence with the opt-in rules
 `after-uid-literal`, `opaque-token`, `sibling-variance` and `prefix-variance`
 unless `--template-rule` or `--format-rules-only` selects others, prepares the
@@ -1398,21 +1399,28 @@ under a new name, with REA deciding whether the rebuild matches.
 `rea init-clone-run <dir> --original <origin> --clone <origin> --clone-root <dir> --clone-name <name>
 --original-name <name> [--original-name <name> ...] --authorization <text>` creates the run folder: `target.json`
 with both addresses, the names that must not appear in the clone and your statement that you may study the original,
-the two files the lead edits, and a valid example of each file an agent writes. It needs the Chromium executable the
-captures launch, from `--browser <path>` or `REA_BROWSER_EXECUTABLE`. It refuses a directory that is not empty or lies
-inside the clone's source, two addresses that are one, and a clone name that contains an original name.
+the two files the lead edits, and `examples/` with a valid example of each file an agent writes and of a crawl
+capture input. Its result ends with the referee's first worklist for the new folder. It needs the Chromium executable
+the captures launch, from `--browser <path>` or `REA_BROWSER_EXECUTABLE`. It refuses a directory that is not empty or
+lies inside the clone's source, a clone name that contains an original name, an `--exclude` that can never match, and
+two addresses that are one: equal ports on hosts that reach a common machine, where every loopback name counts as
+this machine and any other host name as the addresses it resolves to.
 
 `rea evaluate-clone-run <dir> [--exit-code]` is the referee. It reads the folder, never starts, stops or resets
 either application, recomputes every check from capture Evidence REA authenticated and from the clone's files as they
 are now, and prints the verdict with a worklist of at most ten items: the role that acts, the reason code, the file
 and the exact command. With `--exit-code` it exits `0` for `done` or `done_with_waivers`, `1` for `not_done` and `2`
-for `stalled`; without it, `0` whatever the verdict.
+for `stalled`; without it, `0` whatever the verdict, so gate on the exit status of a run with the flag. A result that
+is not a pass says under `stall` which round it is and what would make the next evaluation read `stalled`; a pass
+lists under `residual_trust` what the verdict does not establish.
 
 `rea compare-scenario-behavior --left <capture.json> [--left ...] --right <capture.json> [--right ...]
 [--differences <file>] [--scenario <id>] [--detail summary|complete] [--exit-code]` compares captures of one scenario
-taken at two addresses, step by step, on requests, statuses, reply bodies, page address and on-screen text. A step
-whose data was not recorded is `unknown`, never a match. With `--exit-code` it exits `0` for `unchanged`, `1` for
-`changed` and `2` for `unknown`.
+taken at two addresses, step by step, on requests, statuses, reply bodies, page address and accessibility text.
+`--left` and `--right` are required; each file holds one capture, as `rea capture-browser-scenario --evidence_output`
+saves it. A step whose data
+was not recorded is `unknown`, never a match, and a step on which one side's own captures disagree is `unstable`.
+With `--exit-code` it exits `0` for `unchanged`, `1` for `changed` and `2` for `unknown`.
 
 ```sh
 rea evaluate-clone-run /work/runs/notes --exit-code --json
