@@ -1,3 +1,9 @@
+import type {
+  EVALUATE_CLONE_RUN_OPERATION,
+  INIT_CLONE_RUN_OPERATION,
+} from "../domain/cloneRun/cloneRunSchemas.js";
+import type { SCENARIO_BEHAVIOR_OPERATION } from "../domain/scenarioBehaviorComparison.js";
+
 /** The kebab-case spelling of a contract name, which names its CLI command. */
 export type CliCommandName<Name extends string> =
   Name extends `${infer Head}_${infer Tail}`
@@ -47,6 +53,13 @@ export const CLI_COMMANDS = Object.freeze({
   exportDesktopApplication: "export-desktop-application",
   describeDesktopApplicationTask: "describe-desktop-application-task",
   validateBrowserScenario: "validate-browser-scenario",
+  // Each clone-run command is named by the operation its domain module
+  // reports. The type-only check keeps this module free of runtime imports.
+  compareScenarioBehavior:
+    "compare-scenario-behavior" satisfies typeof SCENARIO_BEHAVIOR_OPERATION,
+  initCloneRun: "init-clone-run" satisfies typeof INIT_CLONE_RUN_OPERATION,
+  evaluateCloneRun:
+    "evaluate-clone-run" satisfies typeof EVALUATE_CLONE_RUN_OPERATION,
 });
 
 /**

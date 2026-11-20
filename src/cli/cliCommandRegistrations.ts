@@ -354,6 +354,15 @@ export const CLI_COMMAND_REGISTRATIONS = {
         context.environment,
       ),
   ),
+  cloneRun: plain(
+    () => import("./cloneRunCommands.js"),
+    (module, context) =>
+      module.registerCloneRunCommands(
+        context.cli,
+        context.logger,
+        context.environment,
+      ),
+  ),
   process: plain(
     () => import("./processCommands.js"),
     (module, context) =>
@@ -489,6 +498,7 @@ const CLI_FAMILY_REGISTRATIONS: {
     "analysisView",
     "evidence",
     "environment",
+    "cloneRun",
     "process",
     "desktopCapture",
     "javaScriptRecovery",

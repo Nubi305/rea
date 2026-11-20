@@ -59,6 +59,7 @@ import * as guidedWorkflowModule from "./cli/guidedWorkflowCommands.js";
 import * as analysisViewModule from "./cli/analysisViewCommands.js";
 import * as evidenceModule from "./cliEvidenceCommands.js";
 import * as environmentModule from "./cli/environmentCommands.js";
+import * as cloneRunModule from "./cli/cloneRunCommands.js";
 import * as processModule from "./cli/processCommands.js";
 import * as desktopCaptureModule from "./cli/desktopCaptureCommands.js";
 import * as javaScriptRecoveryModule from "./cli/javascriptRecoveryCommands.js";
@@ -118,6 +119,7 @@ const CLI_COMMAND_MODULES: CliCommandModules = {
   analysisView: analysisViewModule,
   evidence: evidenceModule,
   environment: environmentModule,
+  cloneRun: cloneRunModule,
   process: processModule,
   desktopCapture: desktopCaptureModule,
   javaScriptRecovery: javaScriptRecoveryModule,

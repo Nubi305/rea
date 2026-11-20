@@ -1,0 +1,154 @@
+{
+  "obligations": [
+    {
+      "id": "topic-find",
+      "statement": "Listing with q keeps the topics whose title contains q, ignoring letter case, and reports their count as total.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": ["find-ignores-case", "page-type-find", "page-find"]
+        }
+      ]
+    },
+    {
+      "id": "topic-title-required",
+      "statement": "Creating a topic without a string title answers 422 with error title_required.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": ["create-missing-title"]
+        }
+      ]
+    },
+    {
+      "id": "topic-title-length",
+      "statement": "A title is trimmed and its inner runs of whitespace become one space; outside 3 to 48 characters it is refused with 422, error title_length and the two bounds.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": [
+            "create-blank-title",
+            "create-short-title",
+            "create-long-title",
+            "create-spaced-title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-title-unique",
+      "statement": "A title already in use, compared without letter case, is refused with 409, error title_taken and the id of the topic that holds it, on create and on rename.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": ["create-same-title-other-case", "rename-to-taken-title"]
+        }
+      ]
+    },
+    {
+      "id": "topic-slug",
+      "statement": "A slug is the lower-cased title with every run of other characters replaced by one dash, cut to 24 characters and stripped of dashes at both ends; an empty result is topic; a slug in use gets -2, -3 and so on.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": [
+            "create-spaced-title",
+            "create-same-slug",
+            "create-slug-cut",
+            "create-slug-empty",
+            "read-created"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-slug-fixed",
+      "statement": "Renaming a topic changes its title and keeps the slug it was created with.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": [
+            "rename-keeps-slug",
+            "page-type-new-title",
+            "page-rename"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-read",
+      "statement": "Reading a topic by id answers the topic, or 404 with error not_found.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": [
+            "read-created",
+            "read-missing",
+            "page-topic",
+            "page-topic-missing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-order",
+      "statement": "The list shows pinned topics first, then the others, each group by ascending id.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": [
+            "pin-created",
+            "list-pinned-first",
+            "page-home-after-writes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-delete",
+      "statement": "Deleting a pinned topic is refused with 409 and error pinned; deleting another answers its id as deleted, and a second delete answers 404.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": [
+            "delete-pinned",
+            "delete-plain",
+            "delete-again",
+            "page-delete"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-add-form",
+      "statement": "The add form refuses an empty title in the page without a request; otherwise it posts title and pinned, adds the new row to the list and reports Added with the stored title.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": ["page-add-without-title", "page-type-title", "page-add"]
+        }
+      ]
+    },
+    {
+      "id": "about-page",
+      "statement": "The about page describes the board and its pinned rule.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "topics",
+          "step_ids": ["page-about"]
+        }
+      ]
+    }
+  ]
+}

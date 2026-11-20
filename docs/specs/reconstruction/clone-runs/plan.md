@@ -90,11 +90,12 @@ owns the end-to-end run; D builds in parallel with C.
 ### C: CLI, fixtures and the end-to-end run
 
 - `src/cli/cloneRunCommands.ts` (`registerCloneRunCommands(cli, logger, environment)`)
-- `src/contracts/cliCommandNames.ts` (three `CLI_COMMANDS` entries whose values are the operation constants of the two
-  domain modules), `src/cli/cliCommandRegistrations.ts` (registration `cloneRun`, listed under the `application`
-  family), `src/cli.ts`
+- `src/contracts/cliCommandNames.ts` (three `CLI_COMMANDS` entries, each a literal that the type checker holds equal
+  to the operation constant of its domain module, so the module keeps no runtime import),
+  `src/cli/cliCommandRegistrations.ts` (registration `cloneRun`, listed under the `application` family), `src/cli.ts`
 - `tests/boundary/cli/cliContractSchemaParity.uncomparable.json`, `tests/boundary/cli/cloneRunCli.test.ts`
-- `tests/fixtures/cloneRun/`: original, renamed clone, mutant switch, scenario, obligations. The clone is new code:
+- `tests/fixtures/cloneRun/`: original, renamed clone, mutant switch (`mutant/switch.json`, one replacement in the
+  clone's `slug.mjs`), and under `run/` the two scenarios, their obligations and the declared differences. The clone is new code:
   no file of 64 bytes or more equals a file the original serves, and neither it nor the mutant switch mentions the
   original's name. The original's name is distinctive (it occurs in no route or field name) and one of its routes
   answers with more than 64 KiB for the unknown case.

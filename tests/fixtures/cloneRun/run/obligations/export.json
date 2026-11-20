@@ -1,0 +1,15 @@
+{
+  "obligations": [
+    {
+      "id": "export-all",
+      "statement": "The export answers every topic and the archive rows in one document.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "export",
+          "step_ids": ["export-all"]
+        }
+      ]
+    }
+  ]
+}

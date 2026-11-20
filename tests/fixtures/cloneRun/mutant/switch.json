@@ -1,0 +1,6 @@
+{
+  "description": "Turns the fixture clone into a mutant whose slug rule is wrong: it cuts a slug at 20 characters where the original cuts at 24.",
+  "file": "slug.mjs",
+  "find": "const LIMIT = 24;",
+  "replace": "const LIMIT = 20;"
+}

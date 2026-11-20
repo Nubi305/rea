@@ -51,10 +51,10 @@ Each task names the spec section it implements and the check that shows it.
 
 ## C: CLI, fixtures and end to end (spec: "Commands", "Acceptance")
 
-- [ ] Register the three commands CLI-only; `--exit-code` for the comparer and the referee.
-- [ ] Boundary test of the three commands over the built CLI.
-- [ ] Fixture trio and scenario under `tests/fixtures/cloneRun/`, with the properties the plan lists.
-- [ ] `npm run verify:clone-run` shows each line of acceptance item 2 and stops every server and browser it started.
+- [x] Register the three commands CLI-only; `--exit-code` for the comparer and the referee.
+- [x] Boundary test of the three commands over the built CLI.
+- [x] Fixture trio and scenario under `tests/fixtures/cloneRun/`, with the properties the plan lists.
+- [x] `npm run verify:clone-run` shows each line of acceptance item 2 and stops every server and browser it started.
 
 ## D: guidance and documentation
 

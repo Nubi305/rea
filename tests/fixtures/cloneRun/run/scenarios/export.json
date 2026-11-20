@@ -1,0 +1,29 @@
+{
+  "start_path": "/about",
+  "actions": [
+    {
+      "step_id": "fp-topics",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/topics",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "export-all",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/export",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-leave-a-trace",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "json": {
+        "title": "Exported once"
+      },
+      "timeout_ms": 15000
+    }
+  ]
+}

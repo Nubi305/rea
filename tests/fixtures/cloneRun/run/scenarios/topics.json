@@ -1,0 +1,348 @@
+{
+  "start_path": "/",
+  "actions": [
+    {
+      "step_id": "fp-topics",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/topics",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "find-ignores-case",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/topics?q=NOTES",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "create-missing-title",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {}
+    },
+    {
+      "step_id": "create-blank-title",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "   "
+      }
+    },
+    {
+      "step_id": "create-short-title",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "ab"
+      }
+    },
+    {
+      "step_id": "create-long-title",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "step_id": "create-spaced-title",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "  Launch   plan  "
+      }
+    },
+    {
+      "step_id": "create-same-title-other-case",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "LAUNCH PLAN"
+      }
+    },
+    {
+      "step_id": "create-same-slug",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "Launch: plan?",
+        "pinned": false
+      }
+    },
+    {
+      "step_id": "create-slug-cut",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "Quarterly planning plan review"
+      }
+    },
+    {
+      "step_id": "create-slug-empty",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/topics",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "!!!"
+      }
+    },
+    {
+      "step_id": "read-created",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/topics/6",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "read-missing",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/topics/999",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "rename-keeps-slug",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/topics/4",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "Launch checklist"
+      }
+    },
+    {
+      "step_id": "rename-to-taken-title",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/topics/5",
+      "timeout_ms": 15000,
+      "json": {
+        "title": "welcome"
+      }
+    },
+    {
+      "step_id": "pin-created",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/topics/6",
+      "timeout_ms": 15000,
+      "json": {
+        "pinned": true
+      }
+    },
+    {
+      "step_id": "list-pinned-first",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/topics",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "delete-pinned",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/topics/1",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "delete-plain",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/topics/7",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "delete-again",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/topics/7",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-home-after-writes",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-add-without-title",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Add topic"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-type-title",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Title"
+      },
+      "value": {
+        "source": "literal",
+        "value": "Field notes"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-add",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Add topic"
+      },
+      "timeout_ms": 15000,
+      "save_response": {
+        "method": "POST",
+        "path": "/api/topics",
+        "save": [
+          {
+            "name": "added",
+            "json_pointer": "/id"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": "page-type-find",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Find"
+      },
+      "value": {
+        "source": "literal",
+        "value": "notes"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-find",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Search"
+      },
+      "timeout_ms": 15000,
+      "save_response": {
+        "method": "GET",
+        "path": "/api/topics",
+        "save": [
+          {
+            "name": "found",
+            "json_pointer": "/total"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": "page-topic",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/topic?id=4"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-type-new-title",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "New title"
+      },
+      "value": {
+        "source": "literal",
+        "value": "Launch day"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-rename",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Rename"
+      },
+      "timeout_ms": 15000,
+      "save_response": {
+        "method": "PUT",
+        "path": "/api/topics/{*}",
+        "save": [
+          {
+            "name": "renamed",
+            "json_pointer": "/id"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": "page-delete",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Delete topic"
+      },
+      "timeout_ms": 15000,
+      "save_response": {
+        "method": "DELETE",
+        "path": "/api/topics/{*}",
+        "save": [
+          {
+            "name": "deleted",
+            "json_pointer": "/deleted"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": "page-topic-missing",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/topic?id=4"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-about",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/about"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    }
+  ]
+}

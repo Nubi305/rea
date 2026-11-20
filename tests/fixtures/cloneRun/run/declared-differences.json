@@ -1,0 +1,77 @@
+{
+  "renames": [
+    {
+      "from": "Quillbrook keeps your team's topics in one place.",
+      "to": "Tidewater is a small shared topic board.",
+      "reason": "tagline, rewritten for the clone"
+    }
+  ],
+  "volatile_fields": [
+    {
+      "scenario": "topics",
+      "step_id": "create-spaced-title",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "topics",
+      "step_id": "create-same-slug",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "topics",
+      "step_id": "create-slug-cut",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "topics",
+      "step_id": "create-slug-empty",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "topics",
+      "step_id": "read-created",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "topics",
+      "step_id": "rename-keeps-slug",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "topics",
+      "step_id": "pin-created",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "topics",
+      "step_id": "list-pinned-first",
+      "pointer": "/items/*/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "topics",
+      "step_id": "page-add",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "topics",
+      "step_id": "page-find",
+      "pointer": "/items/*/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "topics",
+      "step_id": "page-rename",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    }
+  ]
+}
