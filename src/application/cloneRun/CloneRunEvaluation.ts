@@ -44,6 +44,7 @@ import type { JsonValue } from "../../domain/jsonValue.js";
 import { err, ok, type Result } from "../../domain/result.js";
 import {
   CLONE_TREE_STEP_PREFIX,
+  SCENARIO_OMITTED_REQUESTS,
   scenarioFindingStatus,
   scenarioStartState,
   scenarioStepKind,
@@ -567,6 +568,21 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
         command: original.sharedCaptureCommand(),
         message: `${steps} of scenario ${scenario}: ${at} is declared volatile in ${CLONE_RUN_PATHS.intendedDifferences}, but the original's captures all gave ${shown.expected ?? "one value"} and the clone gave ${shown.actual ?? "another"}. A declaration is honoured only where the original's own captures differ, so nothing was ignored and nothing is held against the clone yet. A value that changes by the day or the hour looks steady in captures taken together: capture the original again now. ${resetHint(target, "original")}, then run the command and evaluate again. If the original still gives one value, the lead removes the entry from volatile_fields, and the difference is then the builder's to fix.`,
       };
+    if (
+      shown?.category === "not-recorded" &&
+      shown.request === SCENARIO_OMITTED_REQUESTS
+    )
+      return {
+        ...common,
+        reason: "parity_unknown",
+        role: "prober",
+        side,
+        file: scenarioFile,
+        command: context.evaluate,
+        message: `${steps} of scenario ${scenario} cannot be compared: the ${side}'s capture left out part of what the scenario did (${
+          shown.expected ?? shown.actual ?? "request events omitted"
+        }), so no step's requests are known to be all it made. Another capture of the same scenario leaves out the same, so no capture command is given: the prober splits ${scenarioFile} into shorter scenarios that each stay within the capture's limit; both sides are then captured again.`,
+      };
     const sideState = state.sides[side];
     if (
       (shown?.category === "not-recorded" ||
@@ -586,10 +602,14 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
                 target,
                 side,
               )}, then run the command and evaluate again.`
-            : `${steps} of scenario ${scenario}: ${at} was not recorded on the ${side}. Captures fold, so one more can supply it. ${resetHint(
+            : `${steps} of scenario ${scenario}: ${at} was not recorded on the ${side}. ${
+                shown.dimension === "body"
+                  ? "Captures fold, so one more can supply it."
+                  : "One more capture may record it; only a reply body is supplied by another capture, so once a capture records it the next evaluation asks for the captures without it to be removed."
+              } ${resetHint(
                 target,
                 side,
-              )}, then run the command and evaluate again. Data still missing after another capture will not arrive (a reply over the capture's 64 KiB body limit is never recorded): the prober then ${asSetup} in ${scenarioFile}, and it no longer counts as behaviour.`,
+              )}, then run the command and evaluate again. Data still missing after another capture will not arrive (a body over the capture's 64 KiB body limit is never recorded, nor is the body of a download): the prober then ${asSetup} in ${scenarioFile}, and it no longer counts as behaviour.`,
       };
     if (shown?.category === "not-completed")
       return {
@@ -614,9 +634,16 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
     };
   }
   if (side === "original") {
-    const differs = `${steps} of scenario ${scenario}: ${at} differs between the original's own captures${
-      shown?.expected == null ? "" : ` (${shown.expected})`
-    }, so it cannot be held against the clone.`;
+    // A request line only the clone sent, where the original's own request lines vary: the finding carries the clone's line as its right value.
+    const cloneOnlyRequest =
+      shown?.dimension === "request" &&
+      shown.request !== null &&
+      shown.actual !== null;
+    const differs = cloneOnlyRequest
+      ? `${steps} of scenario ${scenario}: the clone sent ${shown.request ?? ""}, which no capture of the original sent, but the original's own captures do not send the same requests as each other at ${several ? "these steps" : "this step"}, so the difference cannot be held against the clone.`
+      : `${steps} of scenario ${scenario}: ${at} differs between the original's own captures${
+          shown?.expected == null ? "" : ` (${shown.expected})`
+        }, so it cannot be held against the clone.`;
     const declarable =
       shown?.dimension === "body" &&
       shown.pointer !== null &&
@@ -649,7 +676,11 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
         shown?.dimension === "body"
           ? "A text reply cannot be declared volatile: only one field of a JSON reply can."
           : `Only a field of a JSON reply can be declared volatile, not ${shown?.dimension === "text" ? "on-screen text" : `a ${shown?.dimension ?? "step"} difference`}.`
-      } Either the original varies here by nature, the snapshot was taken before the page settled, or ${ONE_AT_A_TIME}. The prober makes the step deterministic in ${scenarioFile} (a wait_for before it, a page without the varying part) or ${asSetup}, which stops it counting as behaviour. Then run the command; both sides are captured again after a scenario change.`,
+      } Either the original varies here by nature${
+        cloneOnlyRequest
+          ? " (a generated id, a nonce or a time in the request line)"
+          : ""
+      }, the snapshot was taken before the page settled, one capture lacks what another recorded, or ${ONE_AT_A_TIME}. If it should be steady, the prober first removes the original's captures of this scenario and captures again, one at a time. If the difference returns, the prober makes the step deterministic in ${scenarioFile} (a wait_for before it, a page without the varying part) or ${asSetup}, which stops it counting as behaviour. Then run the command; both sides are captured again after a scenario change.`,
     };
   }
   const clone = state.sides.clone;
@@ -1255,7 +1286,7 @@ export const evaluateCloneRun = async <
         renamesApplied.set(key, entry);
       }
       honouredVolatile += comparison.volatile_fields.filter(
-        (field) => field.declared && field.side === "left",
+        (field) => field.honoured && field.side === "left",
       ).length;
       const reported = new Set<string>();
       /** Steps that share one finding become one worklist item, in the order first found. */

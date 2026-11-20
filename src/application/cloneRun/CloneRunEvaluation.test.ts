@@ -30,6 +30,7 @@ import {
 } from "../../domain/cloneRun/cloneRunSchemas.js";
 import { err, ok } from "../../domain/result.js";
 import {
+  SCENARIO_OMITTED_REQUESTS,
   scenarioBehaviorVerdict,
   scenarioStepKind,
   type ScenarioBehaviorCaptureFacts,
@@ -200,6 +201,7 @@ const fakeComparer = (
         side: "left" as const,
         pointer,
         declared: true,
+        honoured: true,
       })),
       renames_applied: renames.flatMap((entry, index) => {
         const count = renamed.get(String(index));
@@ -877,6 +879,92 @@ it("addresses each kind of finding to the role that can act on it, with the true
   expect(notShown.message).toContain("is declared volatile");
   expect(notShown.message).toContain("capture the original again now");
   expect(notShown.message).not.toContain("Change the clone");
+});
+
+it("gives the comparer's request findings a remedy that can work", async () => {
+  const { run } = await scaffold();
+  await evaluate(run);
+  const request = { dimension: "request" as const, pointer: null };
+
+  // Requests the capture itself omitted: another capture omits the same, so no capture command is given.
+  const omitted = item(
+    await evaluateScripted(run, {
+      create: {
+        status: "unknown",
+        finding: {
+          ...request,
+          category: "not-recorded",
+          request: SCENARIO_OMITTED_REQUESTS,
+          side: "right",
+          actual:
+            "3 request events omitted by the capture (max-network-transactions)",
+        },
+      },
+    }),
+    "parity_unknown",
+  );
+  expect(omitted).toMatchObject({
+    role: "prober",
+    side: "clone",
+    file: "scenarios/notes.json",
+  });
+  expect(omitted.command).toContain("evaluate-clone-run");
+  expect(omitted.message).toContain(
+    "3 request events omitted by the capture (max-network-transactions)",
+  );
+  expect(omitted.message).toContain("into shorter scenarios");
+
+  // A request body no capture recorded: only a reply body is supplied by another capture.
+  const unsent = item(
+    await evaluateScripted(run, {
+      create: {
+        status: "unknown",
+        finding: { ...request, category: "not-recorded", side: "left" },
+      },
+    }),
+    "parity_unknown",
+  );
+  expect(unsent).toMatchObject({ side: "original" });
+  expect(unsent.command).toContain("/evidence/original/notes/run-3.json'");
+  expect(unsent.message).toContain(
+    "request of POST /api/notes#1 was not recorded on the original",
+  );
+  expect(unsent.message).toContain(
+    "only a reply body is supplied by another capture",
+  );
+  expect(unsent.message).not.toContain("Captures fold");
+
+  // A request line only the clone sent, where the original's own lines vary: named as the clone's, in the run's words.
+  const line = "GET /api/notes/9f3a#1";
+  const cloneOnly = item(
+    await evaluateScripted(run, {
+      create: {
+        status: "unstable",
+        finding: {
+          ...request,
+          category: "repeats-differ",
+          request: line,
+          side: "left",
+          expected: "the left captures do not send the same requests",
+          actual: line,
+        },
+      },
+    }),
+    "parity_unstable",
+  );
+  expect(cloneOnly).toMatchObject({
+    role: "prober",
+    side: "original",
+    file: "scenarios/notes.json",
+  });
+  expect(cloneOnly.message).toContain(
+    `the clone sent ${line}, which no capture of the original sent`,
+  );
+  expect(cloneOnly.message).toContain(
+    "removes the original's captures of this scenario",
+  );
+  expect(cloneOnly.message).not.toContain("left captures");
+  expect(cloneOnly.message).not.toContain("Change the clone");
 });
 
 it("names the recorded cause of a step that did not complete or is unsteady, and collapses equal findings", async () => {

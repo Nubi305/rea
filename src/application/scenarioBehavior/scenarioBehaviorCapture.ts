@@ -11,6 +11,7 @@ import type { WebNetworkCaptureRecord } from "../../domain/webNetworkCapture.js"
 import {
   COMPARED_RESOURCE_TYPES,
   SCENARIO_BEHAVIOR_OPERATION,
+  SCENARIO_OMITTED_REQUESTS,
   replyBodyExpected,
   scenarioStepKind,
   type ScenarioBehaviorCaptureFacts,
@@ -446,7 +447,7 @@ export const readScenarioBehaviorCapture = async (
       : [
           {
             category: "not-recorded",
-            request: "requests the capture omitted",
+            request: SCENARIO_OMITTED_REQUESTS,
             detail: `${String(omitted.reduce((sum, { count }) => sum + count, 0))} request events omitted by the capture (${[...new Set(omitted.flatMap(({ reasons }) => reasons))].join(", ")})`,
           },
         ];

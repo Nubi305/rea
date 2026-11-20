@@ -174,6 +174,14 @@ const GAP_CATEGORIES: ReadonlySet<string> = new Set([
   "other-origin",
 ]);
 /**
+ * The `request` of the `not-recorded` finding that stands for request events
+ * the capture itself reports it omitted (its transaction limit). It names no
+ * request line: no step's requests are then known to be all the step made,
+ * and one more capture of the same scenario omits the same.
+ */
+export const SCENARIO_OMITTED_REQUESTS = "requests the capture omitted";
+
+/**
  * Finding categories that say one side's repeats disagree: the step is
  * `unstable`. `undeclared-volatile` is a reply leaf the left's repeats
  * disagree on that no declaration names; `repeats-differ` is every other
@@ -671,12 +679,8 @@ export const scenarioBehaviorComparisonSchema = z.strictObject({
       pointer: z.string(),
       /** Whether a volatile declaration names this pointer at this step. */
       declared: z.boolean(),
-      /**
-       * Whether that declaration took effect: the values were not compared.
-       * The comparer writes it on every entry; a result written before the
-       * member existed lacks it.
-       */
-      honoured: z.boolean().optional(),
+      /** Whether that declaration took effect: the values were not compared. */
+      honoured: z.boolean(),
     }),
   ),
   /** Each declared rename that changed at least one left value that was compared, with how many. */
