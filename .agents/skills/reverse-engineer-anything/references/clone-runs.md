@@ -194,6 +194,9 @@ scenarios that are then run against both sides.
   names the case (`create-empty-title`). A step that only prepares, a pause
   included, is `setup-`. A pause among the `fp-` steps is `fp-wait-`, because
   nothing else may come before the last of them.
+- A scenario names no address. A `request` step takes a path. A `goto` step
+  writes `{origin}` before its path (`{origin}/notes`), and the referee puts
+  in each side's address when it renders the capture inputs.
 - Finished when every case the map lists for your surface is a step that
   completed on the original in two captures from a clean start, and no item
   for the original remains.
@@ -366,11 +369,30 @@ printed. The helper answers with the paths and ids it wrote.
   an unknown id, order after several writes, read after delete. Error replies
   often state the limit.
 - A UI action's own snapshot can precede the render it causes, and the
-  request it triggers can land in the next step. Follow the action with a
-  step that waits for what the result shows, and cite that step.
+  request it triggers can land in the next step. When the action sends a
+  request, make its step wait for the reply, as the example after this list
+  does, or follow the action with a step that waits for what the result
+  shows, and cite that step. An error the page shows only after a reply is
+  probed with a `request` step, which records the reply itself.
 - A rule known only from reading code is inferred until a step shows it on
   the original. Inferred obligations block.
 - Restart the clone after every edit and before capturing it.
+
+A page step that waits for the reply its action causes:
+
+```json
+{
+  "step_id": "add-note-from-page",
+  "action": "click",
+  "locator": { "kind": "role", "role": "button", "name": "Add note" },
+  "timeout_ms": 15000,
+  "save_response": {
+    "method": "POST",
+    "path": "/api/notes",
+    "save": [{ "name": "added", "json_pointer": "/id" }]
+  }
+}
+```
 
 ## Waivers, declarations and when to stop
 
@@ -391,7 +413,9 @@ need a waiver stops and reports instead.
 Renames and volatile fields are declarations, and only the lead makes them.
 A rename can explain away any text difference, and the referee cannot tell an
 honest one from a convenient one: it lists those that took effect under
-`declared`, and the lead reports them with the verdict.
+`declared`, and the lead reports them with the verdict. Renames apply in file
+order, each to the result of the one before, so a sentence that contains the
+product name is declared before the product name itself.
 
 Stop when the referee exits 2. `stalled` means the run reached its round
 limit, or two rounds in a row changed neither the findings nor the clone. Do

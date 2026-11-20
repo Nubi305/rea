@@ -430,6 +430,16 @@ it("replaces the placeholder only at the start of a goto URL and keeps every got
         : refused.error.map(({ file, pointer }) => [file, pointer]),
     ).toEqual([["scenarios/notes.json", "/actions/1/destination/url"]]);
   }
+  // A bare path fails the capture schema first; the fix still names the placeholder.
+  const bare = render([goto("/notes")]);
+  expect(
+    bare.ok ? [] : bare.error.map(({ pointer, fix }) => [pointer, fix]),
+  ).toEqual([
+    [
+      "/actions/1/destination/url",
+      'Write the URL as "{origin}/<path>"; the placeholder is replaced by each side\'s address',
+    ],
+  ]);
   const kept = render([
     {
       step_id: "send",

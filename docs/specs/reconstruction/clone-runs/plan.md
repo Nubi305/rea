@@ -121,6 +121,20 @@ owns the end-to-end run; D builds in parallel with C.
 changed only by package C when it merges, from the deviations the other packages report. `package.json` belongs to C;
 D regenerates `src/generatedPackageMetadata.ts`, which holds the skill version and nothing of C's.
 
+### As built
+
+Where the build differs from the packages above, and why:
+
+- The referee splits the copied-file and forbidden-name checks into `src/application/cloneRun/CloneRunCleanRoom.ts`.
+- `--original` and `--clone` are plain text options. A CLI option schema is published as JSON Schema, which cannot hold
+  the transform of the origin schema; `initCloneRun` checks both with the target schema.
+- The verifier serves both fixtures from worker threads of its own process and resets a side by restarting its worker,
+  so it starts no server process and `target.json` records no start or reset command. It runs every case in one run
+  folder, in the order a team would meet them, with `--max-rounds 60` because each case is a judged round.
+- The conformance test also covers `docs/reference/clone-runs.md`, holds every reason code to the card of the role
+  that acts on it, and parses the reference's JSON examples with the authored schemas.
+- `scripts/verify-clone-run-live.mjs` is not built: the specification lists the live agent evaluation as a non-goal.
+
 ## Verification
 
 Focused tests per package with `npm run test:local -- <path>`, boundary tests with `npm run test:focused -- <path>`,

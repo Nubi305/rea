@@ -40,6 +40,7 @@ import type { JsonValue } from "../../domain/jsonValue.js";
 import { err, ok, type Result } from "../../domain/result.js";
 import {
   CLONE_TREE_STEP_PREFIX,
+  scenarioFindingStatus,
   scenarioStartState,
   scenarioStepKind,
   type ScenarioBehaviorCaptureFacts,
@@ -152,24 +153,6 @@ interface ScenarioState<Capture> {
 }
 
 const SHA256 = /^[0-9a-f]{64}$/u;
-
-/** Categories the comparer gives a finding that is missing data, or a side disagreeing with itself. */
-const UNKNOWN_CATEGORIES: ReadonlySet<string> = new Set([
-  "not-recorded",
-  "not-completed",
-  "other-origin",
-]);
-const UNSTABLE_CATEGORIES: ReadonlySet<string> = new Set([
-  "repeats-differ",
-  "undeclared-volatile",
-]);
-
-const findingStatus = (finding: ScenarioBehaviorFinding): ScenarioStepStatus =>
-  UNKNOWN_CATEGORIES.has(finding.category)
-    ? "unknown"
-    : UNSTABLE_CATEGORIES.has(finding.category)
-      ? "unstable"
-      : "changed";
 
 const plural = (count: number, noun: string): string =>
   `${count} ${noun}${count === 1 ? "" : "s"}`;
@@ -353,7 +336,7 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
   const { target, run } = context;
   const scenario = state.id;
   const shown =
-    observations.find((finding) => findingStatus(finding) === status) ??
+    observations.find((finding) => scenarioFindingStatus(finding) === status) ??
     observations[0];
   const common = {
     scenario,

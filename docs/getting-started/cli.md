@@ -1398,8 +1398,9 @@ under a new name, with REA deciding whether the rebuild matches.
 `rea init-clone-run <dir> --original <origin> --clone <origin> --clone-root <dir> --clone-name <name>
 --original-name <name> [--original-name <name> ...] --authorization <text>` creates the run folder: `target.json`
 with both addresses, the names that must not appear in the clone and your statement that you may study the original,
-the two files the lead edits, and a valid example of each file an agent writes. It refuses a directory that is not
-empty or lies inside the clone's source, two addresses that are one, and a clone name that contains an original name.
+the two files the lead edits, and a valid example of each file an agent writes. It needs the Chromium executable the
+captures launch, from `--browser <path>` or `REA_BROWSER_EXECUTABLE`. It refuses a directory that is not empty or lies
+inside the clone's source, two addresses that are one, and a clone name that contains an original name.
 
 `rea evaluate-clone-run <dir> [--exit-code]` is the referee. It reads the folder, never starts, stops or resets
 either application, recomputes every check from capture Evidence REA authenticated and from the clone's files as they

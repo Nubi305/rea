@@ -1,6 +1,7 @@
 # Clone runs: a referee and a team playbook for web apps
 
-Status: contract for milestone 1. Nothing here is implemented until [tasks.md](tasks.md) says so.
+Status: implemented as milestone 1. [tasks.md](tasks.md) records what was built and what was verified, and this
+text was reconciled with the commands' real output on 2026-11-20.
 
 ## Outcome
 
@@ -24,7 +25,8 @@ command inventory; both are computed at build time and nothing committed records
 
 ## Verified facts this contract builds on
 
-Read or run on this branch; builders rely on them and need not re-derive them.
+Read or run before the build; builders relied on them. They describe REA as the feature found it, and
+[The comparer](#the-comparer) says what the feature changed.
 
 - `capture-browser-scenario --evidence_output <file>` writes an Evidence **bundle** (`{records: [...], ...}`, mode 0600)
   holding the one capture record. It refuses an existing file with exit 1, `code: "invalid_request"`,
@@ -46,8 +48,8 @@ Read or run on this branch; builders rely on them and need not re-derive them.
 - A failed step cancels every later step. A `request` step answered with a redirect fails, and so does one that runs
   after the page left the start origin. A `goto` may leave the start origin and completes; `after_url.origin` then
   names the other origin. Accessibility text does not include a cross-origin iframe's content.
-- Request events carry `step_index` (the index into `steps`) and `resource_type`; `scenarioCaptureRecords` drops both
-  today and names the event only by `location.pointer` (`/events/items/N`). `parseCaptureEvidence` returns records
+- Request events carry `step_index` (the index into `steps`) and `resource_type`; `scenarioCaptureRecords` dropped
+  both and named the event only by `location.pointer` (`/events/items/N`). `parseCaptureEvidence` returned records
   without steps or parameters, and keeps request bodies only for purpose `"manifest"`.
 - A reply over `max_network_body_bytes` (64 KiB by default; a capture keeps 1 MiB of bodies in all) is recorded as
   `unavailable`, and so is every redirect's body. Back-to-back `request` steps also lose reply bodies at random (in the
@@ -74,7 +76,7 @@ One folder per run, outside the clone's source. Each file has one writer. Agents
 | `scenarios/<scenario>.json`             | `cloneRunScenarioSchema`            | prober                                                                   |
 | `obligations/<area>.json`               | `cloneRunObligationsSchema`         | spec writer                                                              |
 | `unknowns/<role>-<n>.json`              | `cloneRunUnknownSchema`             | the role in the file name                                                |
-| `specs/`, `scout/`                      | free form                           | spec writer, scout                                                       |
+| `specs/`, `scout/`, `surfaces.json`     | free form                           | spec writer, scout, mapper                                               |
 | `evidence/<side>/<scenario>/run-N.json` | REA Evidence bundle                 | `capture-browser-scenario`, run by prober (original) or verifier (clone) |
 | `rendered/<side>/<scenario>.json`       | browser scenario document           | referee                                                                  |
 | `records/<side>/<scenario>.json`        | `cloneRunAdmissionRecordSchema`     | referee                                                                  |
@@ -88,6 +90,10 @@ One folder per run, outside the clone's source. Each file has one writer. Agents
 referee rows are outputs. No verdict reads them back; the one use of an output is `journal.jsonl` for stall detection,
 which can only turn `not_done` into `stalled`. Outputs of a scenario that no longer exists are removed. Evaluations
 are not serialised: two at once would interleave these outputs, so the playbook has one role evaluate at a time.
+
+The referee also creates the empty `evidence/<side>/<scenario>/` directory of every input it renders, because the
+capture command does not create directories and the worklist's capture commands must run as printed. `surfaces.json`
+is the mapper's checklist; the referee does not read it.
 
 Clean-room wall: builders read `specs/`, `obligations/`, `behavior/` and `gate.json`, never `evidence/` or `scout/`.
 In this milestone the wall is a playbook rule; nothing enforces it.
@@ -324,6 +330,12 @@ Rules:
   fingerprint steps.
 - A step's status is the worst of its findings: `changed`, then `unstable`, then `unknown`, then `unchanged`. The
   verdict is `changed` if any step is; else `unknown` if any step is `unknown` or `unstable`; else `unchanged`.
+- **Finding categories.** Each finding carries a `category`, and the category alone decides what the finding makes of
+  its step (`scenarioFindingStatus`, which the referee uses too). `not-recorded`, `not-completed` and `other-origin`
+  are missing data: `unknown`. `repeats-differ` and `undeclared-volatile` are one side disagreeing with itself:
+  `unstable`. Every other category is a difference between the sides, `changed`: the comparer's own `value`, `status`,
+  `shape` (an honoured volatile field whose shape differs) and `missing-step`, and any category `compareAnswers`
+  reports for a reply body. A step's findings are listed most severe first.
 
 ## What done means
 
@@ -395,7 +407,8 @@ clone side.
 ### The worklist
 
 `gate.json` carries `blocking` (every reason with its total) and `next`: at most ten items in check order, then reason
-order, scenario and step. Each item has `role`, `reason`, `file`, `command` and `message`; parity items add `scenario`,
+order, scenario and step. When findings are left out, `summary` says so (`not done: 14 blocking findings; next lists
+the first 10 and leaves out 4`). Each item has `role`, `reason`, `file`, `command` and `message`; parity items add `scenario`,
 `step_id`, `dimension`, `pointer`, `expected` (original) and `actual` (clone), one item per step with its most severe
 finding. `command` is the exact command to run:
 
@@ -446,21 +459,21 @@ Result: `scenarioBehaviorComparisonSchema`. Exit without `--exit-code`: 0. With 
 
 ### `rea init-clone-run <directory>`
 
-| Flag                                                                                     | Meaning                                                                    |
-| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `--original <origin>`, `--clone <origin>`                                                | Required. The two addresses.                                               |
-| `--clone-root <dir>`, `--clone-name <name>`                                              | Required. Where the clone's source lives and what it is called.            |
-| `--original-name <name>`                                                                 | Required, repeatable. Names that must not appear in the clone.             |
-| `--authorization <text>`                                                                 | Required. Why the team may study the original.                             |
-| `--stated-by <person>`                                                                   | Who made the statement.                                                    |
-| `--browser <path>`                                                                       | Chromium executable. Default `REA_BROWSER_EXECUTABLE`; refused if neither. |
-| `--browser-no-sandbox`                                                                   | Default: whether `REA_BROWSER_NO_SANDBOX` is `true`.                       |
-| `--exclude <path>`                                                                       | Repeatable. Replaces the default excludes.                                 |
-| `--material <dir>`                                                                       | Repeatable. Replaces the default original material (`scout`).              |
-| `--original-start`, `--original-reset`, `--original-stop`, `--original-health <command>` | Recorded for the team; REA never runs them.                                |
-| `--clone-start`, `--clone-reset`, `--clone-stop`, `--clone-health <command>`             | The same for the clone.                                                    |
-| `--rea-command <command>`                                                                | How worklist commands spell the CLI. Default `rea`.                        |
-| `--max-rounds <n>`, `--capture-timeout-seconds <n>`                                      | Defaults 8 and 120.                                                        |
+| Flag                                                                                     | Meaning                                                                                    |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `--original <origin>`, `--clone <origin>`                                                | Required. The two addresses, read as text and checked by the target schema.                |
+| `--clone-root <dir>`, `--clone-name <name>`                                              | Required. Where the clone's source lives and what it is called.                            |
+| `--original-name <name>`                                                                 | Required, repeatable. Names of three characters or more that must not appear in the clone. |
+| `--authorization <text>`                                                                 | Required. Why the team may study the original.                                             |
+| `--stated-by <person>`                                                                   | Who made the statement.                                                                    |
+| `--browser <path>`                                                                       | Chromium executable. Default `REA_BROWSER_EXECUTABLE`; refused if neither.                 |
+| `--browser-no-sandbox`                                                                   | Default: whether `REA_BROWSER_NO_SANDBOX` is `true`.                                       |
+| `--exclude <path>`                                                                       | Repeatable. Replaces the default excludes.                                                 |
+| `--material <dir>`                                                                       | Repeatable. Replaces the default original material (`scout`).                              |
+| `--original-start`, `--original-reset`, `--original-stop`, `--original-health <command>` | Recorded for the team; REA never runs them.                                                |
+| `--clone-start`, `--clone-reset`, `--clone-stop`, `--clone-health <command>`             | The same for the clone.                                                                    |
+| `--rea-command <command>`                                                                | How worklist commands spell the CLI. Default `rea`.                                        |
+| `--max-rounds <n>`, `--capture-timeout-seconds <n>`                                      | Defaults 8 and 120.                                                                        |
 
 The directory must be absent or empty and outside the clone root, the two addresses must differ as scope requires, and
 the clone's name must not contain an original name. Nothing is overwritten. It writes `target.json`,
@@ -541,8 +554,9 @@ In this container, with no native provider:
 
 1. `npm run test:local -- src/domain/scenarioBehaviorComparison.test.ts
    src/application/cloneRun/CloneRunEvaluation.test.ts tests/conformance/cloneRunGuidance.test.ts` passes.
-2. `npm run verify:clone-run` starts the fixture original, renamed clone and slug mutant on loopback ports, captures
-   with real Chromium and shows: matching clone exits 0; mutant exits 1 with a `next` item whose pointer ends in
+2. `npm run verify:clone-run` serves the fixture original and a copy of the renamed clone on loopback ports (the slug
+   mutant is that copy with the one replacement of `mutant/switch.json` applied), captures with real Chromium by
+   running the worklist's own commands, and shows: matching clone exits 0; mutant exits 1 with a `next` item whose pointer ends in
    `/slug`; a step whose reply no capture recorded (the fixture answers it with more than 64 KiB) makes
    `compare-scenario-behavior --exit-code` exit 2 with one capture per side and gives `parity_unknown`, not done, with
    two; a line appended to a clone file after a pass gives `evidence_stale`; an edited Evidence file gives

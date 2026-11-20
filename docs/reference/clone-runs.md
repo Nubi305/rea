@@ -92,10 +92,13 @@ and an unknown are named by their files and do not repeat the name inside.
 
 ### Authored files
 
-A scenario is address-free. Step ids decide what a step is for: `fp-` steps
-are the fingerprint that reads the state a clean start shows and come first;
-`setup-` steps prepare and are not cited; every other step is a behavior step
-that an obligation must cite and that must match.
+A scenario is address-free. Its actions are those of
+`rea capture-browser-scenario`. A `request` step takes a path. A `goto` step
+writes `{origin}` at the start of its URL, such as `{origin}/notes`, and the
+referee replaces it with each side's address. Step ids decide what a step is
+for: `fp-` steps are the fingerprint that reads the state a clean start shows
+and come first; `setup-` steps prepare and are not cited; every other step is
+a behavior step that an obligation must cite and that must match.
 
 ```json
 {
@@ -169,7 +172,7 @@ values:
   "reason": "parity_changed",
   "file": "/work/plain-jotter",
   "command": "rea evaluate-clone-run '/work/runs/notes' --exit-code",
-  "message": "Step create-long-title of scenario notes-api differs from the original at body /slug.",
+  "message": "Step create-long-title of scenario notes-api differs from the original at body /slug of POST /api/notes#1: the original gave \"the-quick-brown-fox-jump\", the clone gave \"the-quick-brown-fox\". behavior/notes-api.json shows what the original does. Change the clone, restart it, have it captured again, then run the command.",
   "side": "clone",
   "scenario": "notes-api",
   "step_id": "create-long-title",
@@ -180,9 +183,14 @@ values:
 }
 ```
 
+When more than ten findings block, `summary` says how many `next` leaves out;
+`blocking` always counts them all.
+
 The command of a capture item is complete: it runs `capture-browser-scenario`
 on the rendered input under an outer `timeout` and writes the next free
-`run-N.json`. Reset the application before running it.
+`run-N.json` into a directory the referee has already created. Reset the
+application before running it. The command of a rejected Evidence file, and
+of captures that began from different states, is the `rm` that removes them.
 
 The clone's capture input carries a digest of the clone's files. The order on
 the clone side is therefore: evaluate, restart the clone, capture from
@@ -343,6 +351,13 @@ With `--exit-code` the command exits `0` for `unchanged`, `1` for `changed`
 and `2` for `unknown`, which includes unstable steps. Without it the command
 exits `0`. `--detail complete` also lists the unchanged steps. The command
 reads files only and makes no network call.
+
+Each finding of a step names the `dimension`, a `category`, the request, the
+JSON pointer, the `expected` (left) and `actual` (right) value and the side.
+`limitations` says what the result cannot show. With one capture on a side
+nothing shows which of its values are steady, so a field that differs only
+the way a clock does reads `unknown`; a rename is applied to the left side
+only, so two captures of one application differ once a rename takes effect.
 
 ## What a verdict does not establish
 

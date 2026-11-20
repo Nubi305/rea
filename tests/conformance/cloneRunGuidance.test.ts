@@ -44,12 +44,9 @@ const CLONE_RUN_COMMANDS = [
   INIT_CLONE_RUN_OPERATION,
   EVALUATE_CLONE_RUN_OPERATION,
 ];
-// The three commands are CLI-only: they are registered by name, and the
-// domain's operation constants are the names they are registered under.
-const KNOWN_COMMANDS: ReadonlySet<string> = new Set([
-  ...CLI_COMMAND_NAMES,
-  ...CLONE_RUN_COMMANDS,
-]);
+// The three commands are CLI-only and registered under the domain's operation
+// constants, so the CLI's own name list is the whole of what a guide may name.
+const KNOWN_COMMANDS: ReadonlySet<string> = new Set(CLI_COMMAND_NAMES);
 const REASON_CODES: ReadonlySet<string> = new Set(CLONE_RUN_REASON_CODES);
 
 const AUTHORED_SCHEMAS = [

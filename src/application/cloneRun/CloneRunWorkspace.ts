@@ -1021,6 +1021,9 @@ const originOf = (url: string): string | undefined => {
   }
 };
 
+/** How a `goto` names its page: the one spelling that renders for both sides. */
+const GOTO_URL_FIX = `Write the URL as "${CLONE_RUN_ORIGIN_PLACEHOLDER}/<path>"; the placeholder is replaced by each side's address`;
+
 /** One action with `{origin}` replaced at the start of a `goto` destination, its only place. */
 const renderAction = (
   action: CloneRunScenario["actions"][number],
@@ -1105,10 +1108,16 @@ export const renderCloneRunScenario = (
                 ? "/start_path"
                 : "",
           message: text.message,
-          fix: withExample(
-            `${text.fix}; the actions are capture-browser-scenario actions`,
-            CLONE_RUN_EXAMPLES.scenario.file,
-          ),
+          // A path or a relative URL in a goto fails the capture schema before the address check below.
+          fix:
+            head === "actions" &&
+            issue.path[2] === "destination" &&
+            issue.path[3] === "url"
+              ? GOTO_URL_FIX
+              : withExample(
+                  `${text.fix}; the actions are capture-browser-scenario actions`,
+                  CLONE_RUN_EXAMPLES.scenario.file,
+                ),
         };
       }),
     );
@@ -1128,7 +1137,7 @@ export const renderCloneRunScenario = (
         file,
         pointer: `/actions/${index}/destination/url`,
         message: `A goto must stay on the ${binding.side}'s address ${address}; this one goes to ${action.destination.url}`,
-        fix: `Write the URL as "${CLONE_RUN_ORIGIN_PLACEHOLDER}/<path>"; the placeholder is replaced by each side's address`,
+        fix: GOTO_URL_FIX,
       });
   });
   if (issues.length > 0) return err(issues);

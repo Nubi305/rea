@@ -63,3 +63,33 @@ Each task names the spec section it implements and the check that shows it.
 - [x] Conformance test tying every command, reason code and role named in the reference to real ones.
 - [x] `docs/reference/clone-runs.md` and the CLI guide.
 - [x] Setup under a throwaway `HOME` installs the reference, and `rea guidance --query "clone parity"` matches.
+
+## Integration
+
+- [x] Merge the four packages; the referee reads a finding's status from the comparer's `scenarioFindingStatus`
+      instead of its own copy of the category lists.
+- [x] Reconcile the specification, the reference page, the CLI guide and the playbook with `--help` and with the
+      real output of a run driven by hand on the fixture pair.
+- [x] A `goto` whose URL is a bare path is refused with the `{origin}` fix (`CloneRunWorkspace.test.ts`).
+
+## Verification (2026-11-20)
+
+On the merged branch, in a container with Chromium and no native provider:
+
+- `npm run test:local` over the comparer, referee, workspace, tree digest and schema tests, the changed environment
+  and capture-record tests and `tests/conformance/cloneRunGuidance.test.ts`: all passed.
+- `npm run test:focused` over `tests/boundary/cli/cloneRunCli.test.ts`, `tests/boundary/filesystem/setupSkill.test.ts`
+  and the CLI catalogue, registration, startup and guidance boundary tests: all passed; four `setupSkill` tests skip
+  when run as root.
+- `npm run verify:clone-run` three times in a row: each run printed eleven `pass` lines and no other, in 44 to 47 s,
+  and reported no process left behind. No capture lost a reply body in these runs, so the recapture of a lost body
+  was driven only by the reply over the body limit.
+- A run driven by hand with the documented commands on the fixture pair: `init-clone-run`, the worklist's four
+  capture commands, `done`; then the mutant switch, `evidence_stale`, two more clone captures and `parity_changed`
+  at `/slug`; then one more clone capture with nothing else changed, and `stalled` with exit 2.
+  `compare-scenario-behavior` exited 0 on the four captures and 2 on one original capture per side.
+- `rea setup` under a throwaway `HOME` installed `references/clone-runs.md` byte for byte, and
+  `rea guidance --query "clone parity"` returned matches.
+- `npm run check:fast` and `npm run verify:test-discovery` passed.
+
+Not verified: the playbook has not been followed by an agent, and the full test suite was not run on this branch.
