@@ -42,6 +42,7 @@ import { sha256Hex } from "../../kernel/sha256Hex.js";
 import {
   CLONE_RUN_RESIDUAL_TRUST,
   evaluateCloneRun,
+  renamesThatSettle,
 } from "./CloneRunEvaluation.js";
 import type { CloneRunHostResolver } from "./CloneRunAddressResolution.js";
 import { digestCloneTree } from "./CloneRunTreeDigest.js";
@@ -879,6 +880,30 @@ it("addresses each kind of finding to the role that can act on it, with the true
   expect(notShown.message).toContain("is declared volatile");
   expect(notShown.message).toContain("capture the original again now");
   expect(notShown.message).not.toContain("Change the clone");
+});
+
+it("offers a rename for on-screen text the comparer cut to an excerpt", () => {
+  // The comparer's own values for a page that prints the name in capitals: the cut falls one character apart.
+  const original =
+    '"…h: Tidepool keeps your notes. QUILLMARK IS FAST.\\n    - img \\"Tidepool logo\\"\\n    - textbox \\"Search Tidepool\\"\\n    …';
+  const clone =
+    '"…h: Tidepool keeps your notes. TIDEPOOL IS FAST.\\n    - img \\"Tidepool logo\\"\\n    - textbox \\"Search Tidepool\\"\\n    -…';
+  expect(renamesThatSettle(original, clone, ["Quillmark"])).toEqual([
+    { from: "QUILLMARK", to: "TIDEPOOL" },
+  ]);
+  // Another difference before the cut is a real one: no rename is offered.
+  expect(
+    renamesThatSettle(original, clone.replace("IS FAST", "IS SLOW"), [
+      "Quillmark",
+    ]),
+  ).toBeUndefined();
+  // Whole values still have to be equal to the end.
+  expect(
+    renamesThatSettle('"QUILLMARK rocks"', '"TIDEPOOL rocks!"', ["Quillmark"]),
+  ).toBeUndefined();
+  expect(
+    renamesThatSettle('"QUILLMARK rocks"', '"TIDEPOOL rocks"', ["Quillmark"]),
+  ).toEqual([{ from: "QUILLMARK", to: "TIDEPOOL" }]);
 });
 
 it("gives the comparer's request findings a remedy that can work", async () => {

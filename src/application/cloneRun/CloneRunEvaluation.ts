@@ -407,8 +407,36 @@ const sidesText = (shown: ScenarioBehaviorFinding | undefined): string => {
   );
 };
 
+/** How the comparer ends a value it cut to an excerpt (`ellipsisExcerpt`). */
+const EXCERPT_CUT = "…";
+/** How many characters two cut values must share after a name for its end to be no coincidence. */
+const RENAME_SHARED_CHARS = 12;
+
 const escapePattern = (text: string): string =>
   text.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+
+/** Whether two texts are equal as far as both go. */
+const agreeAsFarAsBothGo = (one: string, other: string): boolean =>
+  one.startsWith(other) || other.startsWith(one);
+
+/**
+ * Where `rest`, the original's text after its last name, continues in the
+ * clone's cut value from `from`: the first place from which the two agree as
+ * far as both go, on at least `RENAME_SHARED_CHARS` characters. -1 when no
+ * such place exists.
+ */
+const cutContinuation = (
+  actual: string,
+  from: number,
+  rest: string,
+): number => {
+  for (let end = from + 1; end <= actual.length; end += 1) {
+    const tail = actual.slice(end);
+    if (Math.min(tail.length, rest.length) < RENAME_SHARED_CHARS) return -1;
+    if (agreeAsFarAsBothGo(tail, rest)) return end;
+  }
+  return -1;
+};
 
 /**
  * The renames that alone turn the original's value into the clone's: every
@@ -416,13 +444,24 @@ const escapePattern = (text: string): string =>
  * case ignored) or the original's address, replaced by one text throughout.
  * Undefined when the values differ in any other way, so a real difference is
  * never offered as a declaration.
+ *
+ * The comparer cuts a long value to an excerpt that ends in "…". A name of
+ * another length moves that cut, so two cut values are compared as far as
+ * both go: what lies beyond the cut is the comparer's to judge once the
+ * rename is declared.
  */
 export const renamesThatSettle = (
-  expected: string,
-  actual: string,
+  expectedValue: string,
+  actualValue: string,
   needles: readonly string[],
 ): readonly { readonly from: string; readonly to: string }[] | undefined => {
-  if (needles.length === 0 || expected === actual) return undefined;
+  if (needles.length === 0 || expectedValue === actualValue) return undefined;
+  const cut =
+    expectedValue.endsWith(EXCERPT_CUT) && actualValue.endsWith(EXCERPT_CUT);
+  const uncut = (value: string): string =>
+    cut ? value.slice(0, -EXCERPT_CUT.length) : value;
+  const expected = uncut(expectedValue);
+  const actual = uncut(actualValue);
   const source = needles.map(escapePattern).join("|");
   const named = new RegExp(source, "iu");
   const matches = [...expected.matchAll(new RegExp(source, "giu"))];
@@ -440,9 +479,11 @@ export const renamesThatSettle = (
     // Two names with nothing between them cannot be told apart in the clone's value.
     if (next !== undefined && following === "") return undefined;
     const end =
-      next === undefined
-        ? actual.length - following.length
-        : actual.indexOf(following, inActual);
+      next !== undefined
+        ? actual.indexOf(following, inActual)
+        : cut
+          ? cutContinuation(actual, inActual, following)
+          : actual.length - following.length;
     if (end < inActual) return undefined;
     const to = actual.slice(inActual, end);
     const from = match[0];
@@ -451,7 +492,13 @@ export const renamesThatSettle = (
     renames.set(from, to);
     inActual = end;
   }
-  return actual.slice(inActual) === expected.slice(inExpected)
+  const expectedRest = expected.slice(inExpected);
+  const actualRest = actual.slice(inActual);
+  return (
+    cut
+      ? agreeAsFarAsBothGo(expectedRest, actualRest)
+      : expectedRest === actualRest
+  )
     ? [...renames].map(([from, to]) => ({ from, to }))
     : undefined;
 };
