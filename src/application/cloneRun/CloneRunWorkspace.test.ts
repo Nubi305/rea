@@ -17,6 +17,7 @@ import {
   type CloneRunTarget,
 } from "../../domain/cloneRun/cloneRunSchemas.js";
 import {
+  CLONE_RUN_CRAWL_EXAMPLE_FILE,
   CLONE_RUN_EXAMPLES,
   cloneRunCaptureCommand,
   initCloneRun,
@@ -81,8 +82,10 @@ it("scaffolds the run folder from flags, with examples that are the specificatio
     "intended-differences.json",
     "waivers.json",
     "examples/scenario.example.json",
+    "examples/scenario-pages.example.json",
     "examples/obligations.example.json",
     "examples/unknown.example.json",
+    "examples/crawl.example.json",
   ]);
   expect((await readdir(run)).toSorted()).toEqual([
     "evidence",
@@ -157,11 +160,9 @@ it("scaffolds the run folder from flags, with examples that are the specificatio
     expect(written).toEqual(specExample(heading));
   }
   expect(
-    result.value.next.map(({ role, reason, command }) => [
-      role,
-      reason,
-      command,
-    ]),
+    result.value.next
+      .slice(0, 2)
+      .map(({ role, reason, command }) => [role, reason, command]),
   ).toEqual([
     [
       "prober",
@@ -173,6 +174,98 @@ it("scaffolds the run folder from flags, with examples that are the specificatio
       "no_obligations",
       `node scripts/rea.mjs evaluate-clone-run '${run}' --exit-code`,
     ],
+  ]);
+});
+
+it("writes a page-step scenario and a crawl input as examples, and prints the referee's own first worklist", async () => {
+  const base = await createTestTempDirectory("clone-run-init-examples-");
+  const result = await initCloneRun(input(base));
+  if (!result.ok) throw result.error;
+  const run = join(base, "run");
+  // The page-step example is a scenario that renders for both sides: goto, fill, select_option, click, wait_for.
+  const target = cloneRunTargetSchema.parse(
+    await readJson(join(run, "target.json")),
+  );
+  const pages = cloneRunScenarioSchema.parse(
+    await readJson(join(run, CLONE_RUN_EXAMPLES.scenarioPages.file)),
+  );
+  expect(pages.actions.map(({ action }) => action)).toEqual([
+    "request",
+    "goto",
+    "fill",
+    "select_option",
+    "click",
+    "wait_for",
+  ]);
+  for (const binding of [
+    { side: "original" },
+    { side: "clone", cloneTreeSha256: "0".repeat(64) },
+  ] as const)
+    expect(
+      renderCloneRunScenario("pages", pages, target, binding),
+    ).toMatchObject({ ok: true });
+  // The crawl example is a complete capture input for the original, as the capture command takes it.
+  const crawl = browserScenarioSchema.parse(
+    await readJson(join(run, CLONE_RUN_CRAWL_EXAMPLE_FILE)),
+  );
+  expect(crawl).toMatchObject({
+    browser: { mode: "launch", executable_path: "/opt/chromium/chrome" },
+    start_url: { url: "http://127.0.0.1:4631/" },
+    capture: {
+      after_each_step: ["url", "accessibility"],
+      network: { request_body: true, response_body: true },
+    },
+  });
+  expect(crawl.actions.map(({ action }) => action)).toEqual(["goto", "goto"]);
+  expect(result.value.authored).toEqual([
+    {
+      file: "scenarios/<scenario>.json",
+      role: "prober",
+      example: "examples/scenario.example.json",
+    },
+    {
+      file: "scenarios/<scenario>.json",
+      role: "prober",
+      example: "examples/scenario-pages.example.json",
+    },
+    {
+      file: "obligations/<area>.json",
+      role: "spec_writer",
+      example: "examples/obligations.example.json",
+    },
+    // Any role writes an unknown, so the entry names none.
+    {
+      file: "unknowns/<role>-<n>.json",
+      example: "examples/unknown.example.json",
+    },
+    {
+      file: "scout/<crawl>.json",
+      role: "scout",
+      example: "examples/crawl.example.json",
+    },
+  ]);
+  // The first worklist is the referee's own: what evaluate-clone-run says of the same folder, in its order.
+  const { evaluateCloneRun } = await import("./CloneRunEvaluation.js");
+  const { digestCloneTree } = await import("./CloneRunTreeDigest.js");
+  const refereed = await evaluateCloneRun(run, {
+    comparer: {
+      readCapture: () => Promise.reject(new Error("no capture exists yet")),
+      compare: () => {
+        throw new Error("nothing to compare yet");
+      },
+      describe: () => {
+        throw new Error("nothing to describe yet");
+      },
+    },
+    digestTree: digestCloneTree,
+    now: () => new Date("2026-01-02T03:04:06.000Z"),
+  });
+  if (!refereed.ok) throw refereed.error;
+  expect(result.value.next).toEqual(refereed.value.next);
+  expect(result.value.next.map(({ reason }) => reason)).toEqual([
+    "no_scenarios",
+    "no_obligations",
+    "clone_root_missing",
   ]);
 });
 
@@ -252,8 +345,14 @@ it("reads authored files by base name and lists Evidence in path order", async (
   expect([...workspace.obligations.keys()]).toEqual(["again", "notes"]);
   expect([...workspace.unknowns.keys()]).toEqual(["prober-1"]);
   expect(workspace.evidence.original.get("notes-api")).toEqual([
-    join(run, "evidence", "original", "notes-api", "run-10.json"),
-    join(run, "evidence", "original", "notes-api", "run-2.json"),
+    {
+      path: join(run, "evidence", "original", "notes-api", "run-10.json"),
+      kind: "file",
+    },
+    {
+      path: join(run, "evidence", "original", "notes-api", "run-2.json"),
+      kind: "file",
+    },
   ]);
   expect(workspace.evidence.clone.size).toBe(0);
   expect(workspace.issues).toEqual([

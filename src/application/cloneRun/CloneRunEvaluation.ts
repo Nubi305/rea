@@ -19,7 +19,6 @@ import {
   CLONE_RUN_SIDES,
   EVALUATE_CLONE_RUN_OPERATION,
   cloneNameConflict,
-  cloneRunAddressIdentity,
   cloneRunReasonCheck,
   cloneRunReasonRole,
   type CloneRunAdmissionRecord,
@@ -30,11 +29,16 @@ import {
   type CloneRunNextItem,
   type CloneRunObligation,
   type CloneRunReasonCode,
+  type CloneRunRole,
   type CloneRunScenario,
   type CloneRunSide,
   type CloneRunTarget,
   type CloneRunVerdict,
 } from "../../domain/cloneRun/cloneRunSchemas.js";
+import {
+  cloneRunStall,
+  type CloneRunStall,
+} from "../../domain/cloneRun/cloneRunStall.js";
 import { shellQuote } from "../../domain/desktop/shellQuote.js";
 import type { JsonValue } from "../../domain/jsonValue.js";
 import { err, ok, type Result } from "../../domain/result.js";
@@ -56,7 +60,16 @@ import {
   identicalCloneFiles,
   type OriginalFileSource,
 } from "./CloneRunCleanRoom.js";
-import type { CloneTreeSnapshot } from "./CloneRunTreeDigest.js";
+import {
+  SYSTEM_HOST_RESOLVER,
+  cloneRunAddressConflict,
+  type CloneRunHostResolver,
+} from "./CloneRunAddressResolution.js";
+import {
+  digestOriginalMaterial,
+  type CloneTreeSnapshot,
+  type CloneTreeUnsafeLink,
+} from "./CloneRunTreeDigest.js";
 import {
   cloneRunCaptureCommand,
   cloneRunEvaluateCommand,
@@ -65,6 +78,7 @@ import {
   readCloneRunJournal,
   renderCloneRunScenario,
   writeCloneRunOutputs,
+  type CloneRunEvidenceEntry,
   type CloneRunWorkspace,
   type RenderedCloneRunScenario,
 } from "./CloneRunWorkspace.js";
@@ -85,16 +99,18 @@ import {
 export const CLONE_RUN_RESIDUAL_TRUST: readonly string[] = [
   "The authorisation statement is recorded as given; REA cannot verify it.",
   "target.json, the scenarios and the declarations are the team's own statements: the verdict is about the addresses, clone root, excludes, names and material that target.json declares now, and anyone who can edit it can retarget the run.",
-  "The verdict covers only the steps the scenarios contain. REA cannot tell whether they exercise every rule of the original, nor whether an obligation's statement describes the steps it cites; deleting a failing step or an unknown file leaves no trace.",
+  "The verdict covers only the steps the scenarios contain. REA cannot tell whether they exercise every rule of the original, nor whether an obligation's statement describes the steps it cites; deleting a failing step, a capture or an unknown file leaves no trace.",
   "Evidence integrity is an unkeyed content digest: it catches an edited or misplaced file, not Evidence forged by recomputing the digest with REA's own code.",
-  "A capture is bound to an address, not to what answered there: REA cannot prove which program or which build of the clone was serving, nor that it did not pass requests on to another server.",
-  "Clone Evidence is bound to the tree digest its capture input was rendered for and that digest equals the tree now; an edit that was reverted between the two is not visible.",
-  "Excluded clone paths are neither digested nor checked for copied files or names.",
+  "A capture is bound to an address, not to what answered there: REA cannot prove which program or which build of the clone was serving, nor that it did not pass requests on to another server. The two addresses are checked to differ by port or by resolved host; a proxy or a port forward between them is not detected.",
+  "Clone Evidence is bound to the tree digest its capture input was rendered for and that digest equals the tree now; an edit that was reverted between the two is not visible. The digest covers the path and bytes of every regular file and the text of every link; file modes, empty directories and special files (a FIFO, a socket, a device) are not part of it.",
+  "Excluded clone paths are not digested, so an edit there never makes a capture stale, and they are not checked for copied files or names. The summary names them whenever an exclude matched.",
   "Renames and volatile fields are declarations: a rename can declare away any difference in on-screen text or a string value, and an honoured volatile field is compared by shape only. The gate lists those that took effect.",
   "A waiver's person and reason are recorded as given.",
-  "The copied-file check knows the original's files only from the declared material and from reply bodies its captures recorded, 64 KiB each at most; the name check knows only the declared names.",
+  "The clean-room check covers names and identical files only: no declared name of the original in the clone, and no clone file byte-identical to a file of the declared material or to a reply body a capture recorded, 64 KiB each at most. It does not detect rewritten, reformatted or paraphrased code.",
   "REA does not reset targets; a clean start is inferred from the fingerprint steps only.",
   "The journal is the referee's own output; removing it can hide a stall and cannot produce a pass.",
+  "A step is compared on its outcome, its requests, their statuses, fetched reply bodies, the page address and the accessibility text only. Appearance, styles, images, fonts, response headers, the document title and timing are not compared.",
+  "Text inside an iframe and the text of alert, confirm and prompt dialogs are not compared.",
 ];
 
 /** What the referee is given instead of reaching for it, so tests supply fakes. */
@@ -110,11 +126,24 @@ export interface CloneRunEvaluationDependencies<
     options?: { readonly signal?: AbortSignal },
   ) => Promise<Result<CloneTreeSnapshot, AnalysisError>>;
   readonly now: () => Date;
+  /** How host names resolve for the address check; production uses the system resolver. */
+  readonly hostResolver?: CloneRunHostResolver;
 }
 
-/** One blocking finding; each becomes one worklist item and counts once in `blocking`. */
+/**
+ * One worklist item. It counts once in `blocking`, or once per step when it
+ * stands for several steps with one and the same finding (`step_ids`).
+ */
 interface Finding {
   readonly reason: CloneRunReasonCode;
+  /** The role that acts, where the finding knows better than its reason's default. */
+  readonly role?: CloneRunRole;
+  /**
+   * The command is a capture or a removal of captures: the referee's own
+   * remedy is other Evidence, which the stall rule lets the team try once.
+   */
+  readonly awaitsCapture?: boolean;
+  readonly step_ids?: readonly string[] | undefined;
   readonly file: string;
   readonly command: string;
   readonly message: string;
@@ -197,7 +226,7 @@ const admitSide = async <Capture extends ScenarioBehaviorCaptureFacts>(
   scenario: CloneRunScenario,
   rendered: RenderedCloneRunScenario,
   treeSha256: string | null,
-  files: readonly string[],
+  files: readonly CloneRunEvidenceEntry[],
 ): Promise<
   Result<
     {
@@ -211,10 +240,29 @@ const admitSide = async <Capture extends ScenarioBehaviorCaptureFacts>(
   const admitted: AdmittedCapture<Capture>[] = [];
   const counted = new Map<string, string>();
   const entries: CloneRunAdmissionRecord["files"][number][] = [];
-  for (const file of files) {
+  for (const { path: file, kind } of files) {
     if (context.signal?.aborted === true)
       return err(cancelledBy(EVALUATE_CLONE_RUN_OPERATION, context.signal));
     const shown = runRelative(context.run, file);
+    if (kind !== "file") {
+      // Never read through: a directory or a link here is not a capture, and its name is taken.
+      entries.push({
+        file: shown,
+        status: "rejected_integrity",
+        evidence_id: null,
+        start_origin: null,
+        scenario_sha256: null,
+        bound_clone_tree_sha256: null,
+        detail: `This is ${
+          kind === "directory"
+            ? "a directory"
+            : kind === "link"
+              ? "a symbolic link"
+              : "not a regular file"
+        }, not a file capture-browser-scenario wrote`,
+      });
+      continue;
+    }
     const read = await context.comparer.readCapture(
       file,
       context.signal === undefined ? {} : { signal: context.signal },
@@ -310,9 +358,11 @@ const admitSide = async <Capture extends ScenarioBehaviorCaptureFacts>(
   });
 };
 
-/** A source of run numbers that skips every existing `run-N.json`, stale ones included. */
-const runNumbers = (files: readonly string[]): (() => number) => {
-  const taken = new Set(files.map((file) => basename(file)));
+/** A source of run numbers that skips every existing `run-N.json`: stale captures, directories and links included. */
+const runNumbers = (
+  files: readonly CloneRunEvidenceEntry[],
+): (() => number) => {
+  const taken = new Set(files.map(({ path }) => basename(path)));
   let next = 0;
   return () => {
     do next += 1;
@@ -321,7 +371,115 @@ const runNumbers = (files: readonly string[]): (() => number) => {
   };
 };
 
-/** The finding of a step that is not `unchanged`, shown by its most severe observation. */
+/** "Step a", or "Steps a, b and c" for steps that share one finding. */
+const stepsLabel = (stepIds: readonly string[]): string => {
+  const [first = "", ...rest] = stepIds;
+  if (rest.length === 0) return `Step ${first}`;
+  const listed = stepIds.slice(0, 5);
+  const more = stepIds.length - listed.length;
+  return more > 0
+    ? `Steps ${listed.join(", ")} and ${more} more (${stepIds.length} steps with this same finding)`
+    : `Steps ${listed.slice(0, -1).join(", ")} and ${listed.at(-1) ?? ""}`;
+};
+
+/** What a difference without recorded values is, by the comparer's category. */
+const CATEGORY_TEXT: Readonly<Record<string, string>> = {
+  order: "the items are the same and come in another order",
+  length: "the number of items differs",
+  "missing-step": "the clone's captures have no such step",
+};
+
+/** Both sides of a difference, never two placeholders: a side without a value is said to have none. */
+const sidesText = (shown: ScenarioBehaviorFinding | undefined): string => {
+  const expected = shown?.expected ?? null;
+  const actual = shown?.actual ?? null;
+  if (expected !== null && actual !== null)
+    return `the original gave ${expected}, the clone gave ${actual}`;
+  if (expected !== null)
+    return `the original gave ${expected} and the clone has nothing there`;
+  if (actual !== null)
+    return `the clone gave ${actual} and the original has nothing there`;
+  if (shown === undefined) return "the comparison recorded no values";
+  return (
+    CATEGORY_TEXT[shown.category] ??
+    `a difference of kind "${shown.category}", for which the comparison recorded no values`
+  );
+};
+
+const escapePattern = (text: string): string =>
+  text.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+
+/**
+ * The renames that alone turn the original's value into the clone's: every
+ * place the two differ is a spelling of one of the original's names (letter
+ * case ignored) or the original's address, replaced by one text throughout.
+ * Undefined when the values differ in any other way, so a real difference is
+ * never offered as a declaration.
+ */
+export const renamesThatSettle = (
+  expected: string,
+  actual: string,
+  needles: readonly string[],
+): readonly { readonly from: string; readonly to: string }[] | undefined => {
+  if (needles.length === 0 || expected === actual) return undefined;
+  const source = needles.map(escapePattern).join("|");
+  const named = new RegExp(source, "iu");
+  const matches = [...expected.matchAll(new RegExp(source, "giu"))];
+  if (matches.length === 0) return undefined;
+  const renames = new Map<string, string>();
+  let inExpected = 0;
+  let inActual = 0;
+  for (const [index, match] of matches.entries()) {
+    const literal = expected.slice(inExpected, match.index);
+    if (!actual.startsWith(literal, inActual)) return undefined;
+    inActual += literal.length;
+    inExpected = match.index + match[0].length;
+    const next = matches[index + 1];
+    const following = expected.slice(inExpected, next?.index);
+    // Two names with nothing between them cannot be told apart in the clone's value.
+    if (next !== undefined && following === "") return undefined;
+    const end =
+      next === undefined
+        ? actual.length - following.length
+        : actual.indexOf(following, inActual);
+    if (end < inActual) return undefined;
+    const to = actual.slice(inActual, end);
+    const from = match[0];
+    if (to === "" || to === from || named.test(to)) return undefined;
+    if ((renames.get(from) ?? to) !== to) return undefined;
+    renames.set(from, to);
+    inActual = end;
+  }
+  return actual.slice(inActual) === expected.slice(inExpected)
+    ? [...renames].map(([from, to]) => ({ from, to }))
+    : undefined;
+};
+
+const ONE_AT_A_TIME =
+  "something else was talking to the instance during a capture (one capture at a time per side)";
+
+/** Where and why a side's step did not complete, from the outcomes its captures recorded. */
+const incompleteStep = <Capture extends ScenarioBehaviorCaptureFacts>(
+  run: string,
+  state: ScenarioState<Capture>,
+  side: CloneRunSide,
+): string => {
+  for (const { file, capture } of state.sides[side]?.admitted ?? []) {
+    const failed = capture.steps.find((step) => step.outcome === "failed");
+    if (failed === undefined) continue;
+    const action = state.scenario.actions.find(
+      (entry) => entry.step_id === failed.step_id,
+    )?.action;
+    return ` Step ${failed.step_id} failed on the ${side} in ${runRelative(run, file)}, and every step after a failed one is cancelled.${
+      action === "request"
+        ? ` ${failed.step_id} is a request step: it fails when the application answers with a redirect (a 3xx reply, which a request step does not follow), with a status outside its expected_status, or after the page has left the ${side}'s address. A redirect is reached through the page (a form or a link), or the step requests the redirect's target instead.`
+        : ` ${failed.step_id} is ${action === undefined ? "the start of the scenario" : `a ${String(action)} step`}: it fails when the page it needs did not load, its locator matched nothing in time, or a reply it waits for did not answer 2xx.`
+    }`;
+  }
+  return "";
+};
+
+/** The worklist item for steps of one scenario that share one finding and are not `unchanged`. */
 const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
   context: {
     readonly run: string;
@@ -329,18 +487,19 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
     readonly evaluate: string;
   },
   state: ScenarioState<Capture>,
-  stepId: string,
+  stepIds: readonly [string, ...string[]],
   status: Exclude<ScenarioStepStatus, "unchanged">,
-  observations: readonly ScenarioBehaviorFinding[],
+  shown: ScenarioBehaviorFinding | undefined,
 ): Finding => {
   const { target, run } = context;
   const scenario = state.id;
-  const shown =
-    observations.find((finding) => scenarioFindingStatus(finding) === status) ??
-    observations[0];
+  const [stepId] = stepIds;
+  const steps = stepsLabel(stepIds);
+  const several = stepIds.length > 1;
   const common = {
     scenario,
     step_id: stepId,
+    ...(several ? { step_ids: stepIds } : {}),
     ...(shown === undefined
       ? {}
       : {
@@ -352,82 +511,166 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
   };
   const at = shown === undefined ? "its result" : where(shown);
   const behavior = `${CLONE_RUN_PATHS.behavior}/${scenario}.json`;
-  if (status === "changed")
+  const scenarioFile = `${CLONE_RUN_PATHS.scenarios}/${scenario}.json`;
+  const asSetup = several
+    ? `renames them with the setup- prefix (setup-${stepId}, …)`
+    : `renames it setup-${stepId}`;
+  if (status === "changed") {
+    const differs = `${steps} of scenario ${scenario} ${several ? "differ" : "differs"} from the original at ${at}: ${sidesText(shown)}.`;
+    const renames =
+      shown?.expected == null || shown.actual == null
+        ? undefined
+        : renamesThatSettle(shown.expected, shown.actual, [
+            ...target.original.names,
+            target.original.address,
+          ]);
+    if (renames !== undefined)
+      return {
+        ...common,
+        reason: "parity_changed",
+        role: "lead",
+        side: "clone",
+        file: CLONE_RUN_PATHS.intendedDifferences,
+        command: context.evaluate,
+        message: `${differs} The two values are equal once ${renames
+          .map(({ from, to }) => `"${from}" reads "${to}"`)
+          .join(
+            " and ",
+          )}: the original's name or address in a spelling no declared rename covers (renames are case-sensitive). If that is the intended difference, the lead adds ${renames
+          .map((rename) =>
+            JSON.stringify({ ...rename, reason: "<why the clone differs>" }),
+          )
+          .join(
+            " and ",
+          )} to renames in ${CLONE_RUN_PATHS.intendedDifferences}, then runs the command. The clone is not changed for this: it may not print the original's name.`,
+      };
     return {
       ...common,
       reason: "parity_changed",
       side: "clone",
       file: target.clone.root,
       command: context.evaluate,
-      message: `Step ${stepId} of scenario ${scenario} differs from the original at ${at}: the original gave ${
-        shown?.expected ?? "(nothing)"
-      }, the clone gave ${
-        shown?.actual ?? "(nothing)"
-      }. ${behavior} shows what the original does. Change the clone, restart it, have it captured again, then run the command.`,
+      message: `${differs} ${behavior} shows what the original does. Change the clone, restart it, have it captured again, then run the command.`,
     };
+  }
   const side: CloneRunSide = shown?.side === "right" ? "clone" : "original";
   if (status === "unknown") {
+    const original = state.sides.original;
+    if (shown?.category === "declared-not-shown" && original !== undefined)
+      return {
+        ...common,
+        reason: "parity_unknown",
+        role: "prober",
+        awaitsCapture: true,
+        side: "original",
+        file: `${CLONE_RUN_PATHS.evidence}/original/${scenario}`,
+        command: original.sharedCaptureCommand(),
+        message: `${steps} of scenario ${scenario}: ${at} is declared volatile in ${CLONE_RUN_PATHS.intendedDifferences}, but the original's captures all gave ${shown.expected ?? "one value"} and the clone gave ${shown.actual ?? "another"}. A declaration is honoured only where the original's own captures differ, so nothing was ignored and nothing is held against the clone yet. A value that changes by the day or the hour looks steady in captures taken together: capture the original again now. ${resetHint(target, "original")}, then run the command and evaluate again. If the original still gives one value, the lead removes the entry from volatile_fields, and the difference is then the builder's to fix.`,
+      };
     const sideState = state.sides[side];
-    if (shown?.category === "not-recorded" && sideState !== undefined)
+    if (
+      (shown?.category === "not-recorded" ||
+        shown?.category === "single-observation") &&
+      sideState !== undefined
+    )
+      return {
+        ...common,
+        reason: "parity_unknown",
+        awaitsCapture: true,
+        side,
+        file: `${CLONE_RUN_PATHS.evidence}/${side}/${scenario}`,
+        command: sideState.sharedCaptureCommand(),
+        message:
+          shown.category === "single-observation"
+            ? `${steps} of scenario ${scenario}: only one capture of the ${side} recorded ${at}, so whether the ${side} holds that value steadily cannot be judged. One more capture settles it. ${resetHint(
+                target,
+                side,
+              )}, then run the command and evaluate again.`
+            : `${steps} of scenario ${scenario}: ${at} was not recorded on the ${side}. Captures fold, so one more can supply it. ${resetHint(
+                target,
+                side,
+              )}, then run the command and evaluate again. Data still missing after another capture will not arrive (a reply over the capture's 64 KiB body limit is never recorded): the prober then ${asSetup} in ${scenarioFile}, and it no longer counts as behaviour.`,
+      };
+    if (shown?.category === "not-completed")
       return {
         ...common,
         reason: "parity_unknown",
         side,
-        file: `${CLONE_RUN_PATHS.evidence}/${side}/${scenario}`,
-        command: sideState.sharedCaptureCommand(),
-        message: `Step ${stepId} of scenario ${scenario}: ${at} was not recorded on the ${side}. Captures fold, so one more can supply it. ${resetHint(
-          target,
-          side,
-        )}, then run the command and evaluate again. Data still missing after another capture will not arrive (a reply over the capture's 64 KiB body limit is never recorded): the prober then renames the step setup-${stepId} in ${CLONE_RUN_PATHS.scenarios}/${scenario}.json, and it no longer counts as behaviour.`,
+        file: scenarioFile,
+        command: context.evaluate,
+        message: `${steps} of scenario ${scenario} cannot be compared: ${several ? "they" : "it"} did not complete on the ${side} (${shown.expected ?? shown.actual ?? "not completed"}).${incompleteStep(run, state, side)} A step that did not complete proves nothing. The prober changes the scenario in ${scenarioFile} so the step completes on the ${side} at its own address; both sides are then captured again.`,
       };
     return {
       ...common,
       reason: "parity_unknown",
       side,
-      file: `${CLONE_RUN_PATHS.scenarios}/${scenario}.json`,
+      file: scenarioFile,
       command: context.evaluate,
-      message: `Step ${stepId} of scenario ${scenario} cannot be compared: ${
+      message: `${steps} of scenario ${scenario} cannot be compared: ${
         shown === undefined
           ? "the comparison reported no result for it"
           : `${shown.category} at ${at} on the ${side}`
-      }. A step that did not complete, or that sends the browser or a request to another origin, proves nothing. Make the step complete on the ${side} at its own address, or have the prober change it in ${CLONE_RUN_PATHS.scenarios}/${scenario}.json; both sides are then captured again.`,
+      }. A step that sends the browser or a request to another origin, or whose data is missing, proves nothing. Make the step stay on the ${side}'s own address, or have the prober change it in ${scenarioFile}; both sides are then captured again.`,
     };
   }
   if (side === "original") {
-    const line =
+    const differs = `${steps} of scenario ${scenario}: ${at} differs between the original's own captures${
+      shown?.expected == null ? "" : ` (${shown.expected})`
+    }, so it cannot be held against the clone.`;
+    const declarable =
       shown?.dimension === "body" &&
       shown.pointer !== null &&
-      shown.pointer !== ""
-        ? ` If the value differs by nature (a time, a generated id), add ${JSON.stringify(
-            {
-              scenario,
-              step_id: stepId,
-              pointer: shown.pointer,
-              reason: "<why it varies>",
-            },
-          )} to volatile_fields in ${CLONE_RUN_PATHS.intendedDifferences}; its shape is still compared.`
-        : "";
+      shown.pointer !== "";
+    if (declarable)
+      return {
+        ...common,
+        reason: "parity_unstable",
+        role: "lead",
+        side,
+        file: CLONE_RUN_PATHS.intendedDifferences,
+        command: context.evaluate,
+        message: `${differs} Either the value differs by nature (a time, a generated id), or ${ONE_AT_A_TIME}. If it differs by nature, the lead adds ${JSON.stringify(
+          {
+            scenario,
+            step_id: stepId,
+            pointer: shown.pointer,
+            reason: "<why it varies>",
+          },
+        )} to volatile_fields in ${CLONE_RUN_PATHS.intendedDifferences} (step_id "*" covers every step of the scenario); its shape is still compared. If it should be steady, the prober removes the original's captures of this scenario and captures again, one at a time. Then run the command.`,
+      };
     return {
       ...common,
       reason: "parity_unstable",
+      role: "prober",
       side,
-      file: CLONE_RUN_PATHS.intendedDifferences,
+      file: scenarioFile,
       command: context.evaluate,
-      message: `Step ${stepId} of scenario ${scenario}: ${at} differs between the original's own captures, so it cannot be held against the clone.${line} Otherwise the prober makes the step deterministic or renames it setup-${stepId}. Then run the command.`,
+      message: `${differs} ${
+        shown?.dimension === "body"
+          ? "A text reply cannot be declared volatile: only one field of a JSON reply can."
+          : `Only a field of a JSON reply can be declared volatile, not ${shown?.dimension === "text" ? "on-screen text" : `a ${shown?.dimension ?? "step"} difference`}.`
+      } Either the original varies here by nature, the snapshot was taken before the page settled, or ${ONE_AT_A_TIME}. The prober makes the step deterministic in ${scenarioFile} (a wait_for before it, a page without the varying part) or ${asSetup}, which stops it counting as behaviour. Then run the command; both sides are captured again after a scenario change.`,
     };
   }
+  const clone = state.sides.clone;
   return {
     ...common,
     reason: "parity_unstable",
+    role: "verifier",
+    awaitsCapture: true,
     side,
-    file: target.clone.root,
-    command: context.evaluate,
-    message: `Step ${stepId} of scenario ${scenario}: ${at} differs between the clone's own captures where the original holds one value. Make the clone deterministic (${run}/${behavior} shows the original), restart it, have it captured again, then run the command.`,
+    file: `${CLONE_RUN_PATHS.evidence}/clone/${scenario}`,
+    command: removeCommand((clone?.admitted ?? []).map(({ file }) => file)),
+    message: `${steps} of scenario ${scenario}: ${at} differs between the clone's own captures${
+      shown?.actual == null ? "" : ` (${shown.actual})`
+    } where the original holds one value${
+      shown?.expected == null ? "" : ` (${shown.expected})`
+    }. Nothing says yet that the clone is wrong: a snapshot may have been taken before the page settled, or ${ONE_AT_A_TIME}. Captures fold, so a new capture cannot outvote an old one: the verifier runs the command to remove the clone's captures of this scenario, evaluates for the capture commands and captures again, one at a time. ${resetHint(target, "clone")}. Only if the same difference returns is it the builder's (make the clone answer the same every time; ${behavior} shows the original) or the prober's (a wait_for before the step in ${scenarioFile}).`,
   };
 };
 
 const toNextItem = (finding: Finding): CloneRunNextItem => ({
-  role: cloneRunReasonRole(finding.reason, finding.side),
+  role: finding.role ?? cloneRunReasonRole(finding.reason, finding.side),
   reason: finding.reason,
   file: finding.file,
   command: finding.command,
@@ -435,6 +678,9 @@ const toNextItem = (finding: Finding): CloneRunNextItem => ({
   ...(finding.side === undefined ? {} : { side: finding.side }),
   ...(finding.scenario === undefined ? {} : { scenario: finding.scenario }),
   ...(finding.step_id === undefined ? {} : { step_id: finding.step_id }),
+  ...(finding.step_ids === undefined
+    ? {}
+    : { step_ids: [...finding.step_ids] }),
   ...(finding.obligation === undefined
     ? {}
     : { obligation: finding.obligation }),
@@ -444,10 +690,25 @@ const toNextItem = (finding: Finding): CloneRunNextItem => ({
   ...(finding.actual === undefined ? {} : { actual: finding.actual }),
 });
 
-/** Check order, then reason order, then scenario; steps keep the order they were found in. */
-const worklistOrder = (findings: readonly Finding[]): readonly Finding[] => {
+/** How many blocking findings one worklist item stands for. */
+const findingCount = (finding: Finding): number =>
+  finding.step_ids?.length ?? 1;
+
+/**
+ * Check order, then reason order, then scenario; steps keep the order they
+ * were found in. While no scenario exists the missing clone root comes after
+ * the input reasons: the first thing a new run needs is a scenario, and a
+ * builder has nothing to build from before one is captured.
+ */
+const worklistOrder = (
+  findings: readonly Finding[],
+  noScenario: boolean,
+): readonly Finding[] => {
+  const inputs = CLONE_RUN_CHECKS.indexOf("inputs");
   const rank = (finding: Finding): readonly [number, number, string] => [
-    CLONE_RUN_CHECKS.indexOf(cloneRunReasonCheck(finding.reason)),
+    noScenario && finding.reason === "clone_root_missing"
+      ? inputs + 0.5
+      : CLONE_RUN_CHECKS.indexOf(cloneRunReasonCheck(finding.reason)),
     CLONE_RUN_REASON_CODES.indexOf(finding.reason),
     finding.scenario ?? "",
   ];
@@ -462,37 +723,90 @@ const worklistOrder = (findings: readonly Finding[]): readonly Finding[] => {
   });
 };
 
-/** Files under the declared material directories, by digest; an absent directory holds none. */
-const materialSources = async <Capture extends ScenarioBehaviorCaptureFacts>(
+/**
+ * Files under the declared material directories, by digest, with a finding
+ * for everything declared that was not read: material the referee did not
+ * read cannot show a copy, so it is never counted as clean.
+ */
+const materialSources = async (
   workspace: CloneRunWorkspace,
   target: CloneRunTarget,
-  dependencies: CloneRunEvaluationDependencies<Capture>,
+  evaluate: string,
   signal: AbortSignal | undefined,
-): Promise<Result<readonly OriginalFileSource[], AnalysisError>> => {
+): Promise<
+  Result<
+    {
+      readonly sources: readonly OriginalFileSource[];
+      readonly findings: readonly Finding[];
+    },
+    AnalysisError
+  >
+> => {
   const sources: OriginalFileSource[] = [];
-  for (const declared of target.original.material) {
+  const findings: Finding[] = [];
+  for (const [index, declared] of target.original.material.entries()) {
     const directory = isAbsolute(declared)
       ? declared
       : join(workspace.run, declared);
+    const pointer = `/original/material/${index}`;
+    const unread = (what: string): void => {
+      findings.push({
+        reason: "target_invalid",
+        file: CLONE_RUN_PATHS.target,
+        command: evaluate,
+        pointer,
+        message: `${CLONE_RUN_PATHS.target} ${pointer}: ${what}, so the copied-file check cannot read it and does not count it as clean. Material is where files taken from the original are kept; correct the path, create the directory (an empty one is fine) or remove the entry, then run the command.`,
+      });
+    };
     const present = await stat(directory).then(
       (entry) => entry.isDirectory(),
       () => false,
     );
-    if (!present) continue;
-    const snapshot = await dependencies.digestTree(
+    if (!present) {
+      unread(`the material directory ${declared} does not exist`);
+      continue;
+    }
+    const snapshot = await digestOriginalMaterial(
       directory,
-      [],
       signal === undefined ? {} : { signal },
     );
     if (!snapshot.ok) return snapshot;
+    for (const { path, detail } of snapshot.value.unreadable)
+      unread(`${declared}/${path} could not be read (${detail})`);
     for (const file of snapshot.value.files)
-      if (file.kind === "file")
-        sources.push({
-          sha256: file.sha256,
-          source: `${declared}/${file.path}`,
-        });
+      sources.push({ sha256: file.sha256, source: `${declared}/${file.path}` });
   }
-  return ok(sources);
+  return ok({ sources, findings });
+};
+
+const UNSAFE_LINK_TEXT: Readonly<Record<CloneTreeUnsafeLink["cause"], string>> =
+  {
+    outside: "that leads outside the clone root",
+    excluded: "that leads under an excluded path",
+    unresolved:
+      "that cannot be resolved now (its target is absent, or the links loop)",
+  };
+
+/** The fp- steps whose observations differ between one side's own captures, by dimension. */
+const fingerprintDifferences = <Capture extends ScenarioBehaviorCaptureFacts>(
+  comparer: ScenarioBehaviorComparer<Capture>,
+  captures: readonly Capture[],
+): readonly (ScenarioBehaviorFinding & { readonly step_id: string })[] => {
+  // The side against itself: every finding is a disagreement between its own repeats.
+  const compared = comparer.compare({
+    left: captures,
+    right: captures,
+    renames: [],
+    volatile_fields: [],
+  });
+  if (!compared.ok) return [];
+  return compared.value.steps
+    .filter((step) => scenarioStepKind(step.step_id) === "fingerprint")
+    .flatMap((step) =>
+      step.findings
+        .filter((finding) => scenarioFindingStatus(finding) === "unstable")
+        .map((finding) => ({ ...finding, step_id: step.step_id })),
+    );
 };
 
 /**
@@ -507,7 +821,11 @@ export const evaluateCloneRun = async <
 >(
   runDirectory: string,
   dependencies: CloneRunEvaluationDependencies<Capture>,
-  options: { readonly signal?: AbortSignal } = {},
+  options: {
+    readonly signal?: AbortSignal;
+    /** False to compute the gate without writing any output: `init-clone-run` asks for the first worklist this way. */
+    readonly writeOutputs?: boolean;
+  } = {},
 ): Promise<Result<CloneRunGate, AnalysisError>> => {
   const { signal } = options;
   const signalOptions = signal === undefined ? {} : { signal };
@@ -516,7 +834,7 @@ export const evaluateCloneRun = async <
   if (!loaded.ok) return loaded;
   const workspace = loaded.value;
   const { run, target } = workspace;
-  const evaluate = cloneRunEvaluateCommand(run, target?.rea_command ?? "rea");
+  const evaluate = cloneRunEvaluateCommand(run, workspace.reaCommand);
   const findings: Finding[] = [];
   /** Whether each check was computed for everything it covers; a finding fails it either way. */
   const computed: Record<CloneRunCheck, boolean> = {
@@ -571,16 +889,22 @@ export const evaluateCloneRun = async <
         pointer: "/clone/name",
         message: `${CLONE_RUN_PATHS.target} /clone/name: the clone's name "${target.clone.name}" contains the original's name "${conflict}", which may not appear in the clone; choose a name that contains none of original.names.`,
       });
-    if (
-      cloneRunAddressIdentity(target.original.address) ===
-      cloneRunAddressIdentity(target.clone.address)
-    )
+    const sameAddress = await cloneRunAddressConflict(
+      target.original.address,
+      target.clone.address,
+      dependencies.hostResolver ?? SYSTEM_HOST_RESOLVER,
+    );
+    if (sameAddress !== undefined)
       findings.push({
         reason: "addresses_not_distinct",
         file: CLONE_RUN_PATHS.target,
         command: evaluate,
         pointer: "/clone/address",
-        message: `${CLONE_RUN_PATHS.target}: the original (${target.original.address}) and the clone (${target.clone.address}) are one address, because every loopback name counts as one host. Serve the clone on another port and record that address in /clone/address.`,
+        message: `${CLONE_RUN_PATHS.target}: ${sameAddress.message} Serve the clone on another port and record that address in /clone/address${
+          sameAddress.relation === "unknown"
+            ? ", or write each address with an IP address or a name this machine resolves"
+            : ""
+        }, then run the command.`,
       });
     let inside: boolean;
     try {
@@ -623,12 +947,19 @@ export const evaluateCloneRun = async <
       );
       if (!digested.ok) return digested;
       tree = digested.value;
-      for (const link of tree.symlinksOutsideRoot)
+      for (const link of tree.unsafeLinks)
         findings.push({
           reason: "clone_symlink_outside_root",
-          file: join(target.clone.root, link),
+          file: join(target.clone.root, link.path),
           command: evaluate,
-          message: `The clone's ${link} is a symlink that leads outside the clone root or under an excluded path, so what it serves can change without the tree digest changing. Remove the link or copy its target into the clone; a link the clone does not serve can be listed in clone.exclude in ${CLONE_RUN_PATHS.target}.`,
+          message: `The clone's ${link.path} is a symlink ${UNSAFE_LINK_TEXT[link.cause]}, so what it serves can change without the tree digest changing. Remove the link or copy its target into the clone; a link the clone does not serve can be listed in clone.exclude in ${CLONE_RUN_PATHS.target}. Then run the command.`,
+        });
+      for (const entry of tree.unreadable)
+        findings.push({
+          reason: "clone_path_unreadable",
+          file: join(target.clone.root, entry.path),
+          command: evaluate,
+          message: `The clone's ${entry.path} could not be read (${entry.detail}), so the tree digest and the clean-room check do not cover it. Make it readable, rename it or remove it; a path the clone does not serve can be listed in clone.exclude in ${CLONE_RUN_PATHS.target}. Then run the command.`,
         });
     }
   }
@@ -742,12 +1073,21 @@ export const evaluateCloneRun = async <
           )
             continue;
           evidenceCounts.rejected += 1;
+          const rejected = join(run, file.file);
+          const isDirectory = (
+            workspace.evidence[side].get(state.id) ?? []
+          ).some(
+            (entry) => entry.path === rejected && entry.kind === "directory",
+          );
           findings.push({
             reason: `evidence_${file.status}`,
             side,
             scenario: state.id,
             file: file.file,
-            command: removeCommand([join(run, file.file)]),
+            awaitsCapture: true,
+            command: isDirectory
+              ? `rm -r ${shellQuote(rejected)}`
+              : removeCommand([rejected]),
             message: `${file.file} is not counted and blocks until it is removed. ${file.detail ?? ""}${
               file.status === "rejected_address"
                 ? `. A capture counts only for the side whose address it was taken at; capture the ${side} from ${CLONE_RUN_PATHS.rendered}/${side}/${state.id}.json.`
@@ -778,6 +1118,7 @@ export const evaluateCloneRun = async <
               side,
               scenario: state.id,
               file: directory,
+              awaitsCapture: true,
               command: sideState.nextCaptureCommand(),
               message,
             });
@@ -792,10 +1133,44 @@ export const evaluateCloneRun = async <
             side,
             scenario: state.id,
             file: directory,
+            awaitsCapture: true,
             command: sideState.sharedCaptureCommand(),
             message: `Scenario ${state.id}: fewer than two captures of the ${side} recorded everything its fp- steps observe, so a clean start is not shown. ${resetHint(target, side)}, then run the command. If an fp- step can never be recorded whole (a reply over the 64 KiB body limit, a step that does not complete), the prober replaces it with one that reads the start state in a smaller reply.`,
           });
-        if (startState === "dirty") {
+        const differences =
+          startState === "dirty"
+            ? fingerprintDifferences(
+                comparer,
+                sideState.admitted.map(({ capture }) => capture),
+              )
+            : [];
+        const [textDifference] = differences;
+        if (
+          startState === "dirty" &&
+          textDifference !== undefined &&
+          differences.every((finding) => finding.dimension === "text")
+        ) {
+          // Nothing the fp- steps request differs: the page shows text that varies by itself.
+          const scenarioFile = `${CLONE_RUN_PATHS.scenarios}/${state.id}.json`;
+          findings.push({
+            reason: "start_state_dirty",
+            role: "prober",
+            side,
+            scenario: state.id,
+            step_id: textDifference.step_id,
+            dimension: "text",
+            ...(textDifference.expected === null
+              ? {}
+              : { expected: textDifference.expected }),
+            file: scenarioFile,
+            command: evaluate,
+            message: `Scenario ${state.id}: the on-screen text at ${textDifference.step_id} differs between the ${side}'s captures${
+              textDifference.expected === null
+                ? ""
+                : ` (${textDifference.expected})`
+            }, and nothing else its fp- steps observe does. That is text that varies by itself (a clock, a counter), not a start state that was not reset, so removing captures or resetting again changes nothing. The prober changes ${scenarioFile}: start_path names a page without the varying text, or the fp- steps become request steps that read the state (a list request). Then run the command; both sides are captured again.`,
+          });
+        } else if (startState === "dirty") {
           const groups = new Map<string, string[]>();
           for (const { file, capture } of sideState.admitted)
             if (capture.fingerprint_sha256 !== null)
@@ -822,8 +1197,9 @@ export const evaluateCloneRun = async <
             side,
             scenario: state.id,
             file: directory,
+            awaitsCapture: true,
             command: removeCommand(remove),
-            message: `Scenario ${state.id}: the fp- steps differ between the ${side}'s captures, so they did not all start from the same state; a capture was taken without a reset. Run the command to remove ${tie ? "them (no start state has a majority)" : "the captures outside the largest agreeing group"}, then evaluate again for the capture commands. ${resetHint(target, side)}.`,
+            message: `Scenario ${state.id}: what the fp- steps observe differs between the ${side}'s captures, so they did not all start from the same state: a capture was taken without a reset, or ${ONE_AT_A_TIME}. Run the command to remove ${tie ? "them (no start state has a majority)" : "the captures outside the largest agreeing group"}, then evaluate again for the capture commands. ${resetHint(target, side)}.`,
           });
         }
       }
@@ -882,6 +1258,30 @@ export const evaluateCloneRun = async <
         (field) => field.declared && field.side === "left",
       ).length;
       const reported = new Set<string>();
+      /** Steps that share one finding become one worklist item, in the order first found. */
+      const groups = new Map<
+        string,
+        {
+          readonly stepIds: [string, ...string[]];
+          readonly status: Exclude<ScenarioStepStatus, "unchanged">;
+          readonly shown: ScenarioBehaviorFinding | undefined;
+        }
+      >();
+      const report = (
+        stepId: string,
+        status: Exclude<ScenarioStepStatus, "unchanged">,
+        observations: readonly ScenarioBehaviorFinding[],
+      ): void => {
+        const shown =
+          observations.find(
+            (finding) => scenarioFindingStatus(finding) === status,
+          ) ?? observations[0];
+        const key = JSON.stringify([status, shown ?? stepId]);
+        const group = groups.get(key);
+        if (group === undefined)
+          groups.set(key, { stepIds: [stepId], status, shown });
+        else group.stepIds.push(stepId);
+      };
       for (const step of comparison.steps) {
         const kind = scenarioStepKind(step.step_id);
         if (kind === "reserved") continue;
@@ -894,15 +1294,7 @@ export const evaluateCloneRun = async <
           ungatedSteps += 1;
           continue;
         }
-        findings.push(
-          parityFinding(
-            { run, target, evaluate },
-            state,
-            step.step_id,
-            step.status,
-            step.findings,
-          ),
-        );
+        report(step.step_id, step.status, step.findings);
       }
       // A behaviour step the comparison does not report is missing data, never a match.
       for (const action of state.scenario.actions)
@@ -912,16 +1304,18 @@ export const evaluateCloneRun = async <
         ) {
           stepCounts.unknown += 1;
           stepStatus.set(stepKey(state.id, action.step_id), "unknown");
-          findings.push(
-            parityFinding(
-              { run, target, evaluate },
-              state,
-              action.step_id,
-              "unknown",
-              [],
-            ),
-          );
+          report(action.step_id, "unknown", []);
         }
+      for (const { stepIds, status, shown } of groups.values())
+        findings.push(
+          parityFinding(
+            { run, target, evaluate },
+            state,
+            stepIds,
+            status,
+            shown,
+          ),
+        );
     }
 
   // coverage: every behaviour step is cited, every citation names a step the original completed.
@@ -1054,13 +1448,9 @@ export const evaluateCloneRun = async <
 
   // clean_room: no copied file, none of the original's names.
   if (target !== null && tree !== null) {
-    const material = await materialSources(
-      workspace,
-      target,
-      dependencies,
-      signal,
-    );
+    const material = await materialSources(workspace, target, evaluate, signal);
     if (!material.ok) return material;
+    findings.push(...material.value.findings);
     const replies: OriginalFileSource[] = states.flatMap((state) =>
       (state.sides.original?.admitted ?? []).flatMap(({ capture }) =>
         capture.reply_bodies
@@ -1072,14 +1462,14 @@ export const evaluateCloneRun = async <
       ),
     );
     for (const { path, source } of identicalCloneFiles(tree.files, [
-      ...material.value,
+      ...material.value.sources,
       ...replies,
     ]))
       findings.push({
         reason: "clean_room_identical_file",
         file: join(target.clone.root, path),
         command: evaluate,
-        message: `The clone's ${path} is byte-identical to ${source}. The clone is new code: write the file anew from ${CLONE_RUN_PATHS.specs}/ and ${CLONE_RUN_PATHS.behavior}/, then run the command. A third-party file both applications ship unchanged is listed in clone.exclude in ${CLONE_RUN_PATHS.target} by the lead.`,
+        message: `The clone's ${path} is byte-identical to ${source} (the clean-room check covers names and identical files only). The clone is new code: write the file anew from ${CLONE_RUN_PATHS.specs}/ and ${CLONE_RUN_PATHS.behavior}/, then run the command. A third-party file both applications ship unchanged is listed in clone.exclude in ${CLONE_RUN_PATHS.target} by the lead.`,
       });
     let named: Awaited<ReturnType<typeof cloneFilesNamingOriginal>>;
     try {
@@ -1104,7 +1494,7 @@ export const evaluateCloneRun = async <
         reason: "clean_room_forbidden_name",
         file: join(target.clone.root, path),
         command: evaluate,
-        message: `The clone's ${path} contains the original's name "${name}" in its ${place === "path" ? "path" : "bytes"} (letter case is ignored). Replace it with the clone's own name "${target.clone.name}", then run the command.`,
+        message: `The clone's ${path} contains the original's name "${name}" in its ${place === "path" ? "path" : place === "link" ? "link text" : "bytes"} (letter case is ignored; the clean-room check covers names and identical files only). Replace it with the clone's own name "${target.clone.name}", then run the command.`,
       });
   }
 
@@ -1148,7 +1538,11 @@ export const evaluateCloneRun = async <
   }
 
   // The verdict: nothing but the findings above decides it.
-  const ordered = worklistOrder(findings);
+  const ordered = worklistOrder(findings, workspace.scenarios.size === 0);
+  const total = findings.reduce(
+    (sum, finding) => sum + findingCount(finding),
+    0,
+  );
   const checks = Object.fromEntries(
     CLONE_RUN_CHECKS.map((check) => [
       check,
@@ -1165,15 +1559,21 @@ export const evaluateCloneRun = async <
   const waivers = waivedUnknowns.size + waivedObligations.size;
   const passed = findings.length === 0 && notEvaluated.length === 0;
 
+  // One line per blocking finding: what blocks and where, so two findings of one reason are two.
   const failuresSha256 = digestCanonicalValue(
     findings
-      .map((finding) =>
-        JSON.stringify([
-          finding.reason,
-          finding.scenario ?? "",
-          finding.step_id ?? "",
-          finding.pointer ?? "",
-        ]),
+      .flatMap((finding) =>
+        (finding.step_ids ?? [finding.step_id ?? ""]).map((stepId) =>
+          JSON.stringify([
+            finding.reason,
+            finding.side ?? "",
+            finding.file,
+            finding.scenario ?? "",
+            stepId,
+            finding.obligation ?? "",
+            finding.pointer ?? "",
+          ]),
+        ),
       )
       .toSorted(),
     "Clone run findings",
@@ -1190,57 +1590,58 @@ export const evaluateCloneRun = async <
       .toSorted(),
     "Clone run Evidence",
   );
-  const journal = await readCloneRunJournal(run, signalOptions);
-  const last = journal.at(-1);
   const treeSha256 = tree?.sha256 ?? null;
-  const unchanged =
-    last !== undefined &&
-    last.judged === judged &&
-    last.failures_sha256 === failuresSha256 &&
-    last.clone_tree_sha256 === treeSha256 &&
-    last.evidence_sha256 === evidenceSha256;
-  const judgedBefore = journal.filter((entry) => entry.judged);
-  const round = judgedBefore.length + (judged && !unchanged ? 1 : 0);
-  // The judged round before this one: the last line when this evaluation adds a line, else the one before it.
-  const previousJudged = judged
-    ? unchanged
-      ? judgedBefore.at(-2)
-      : judgedBefore.at(-1)
-    : undefined;
-  const repeated =
-    previousJudged !== undefined &&
-    previousJudged.failures_sha256 === failuresSha256 &&
-    previousJudged.clone_tree_sha256 === treeSha256;
   const maxRounds =
     target?.limits.max_rounds ?? CLONE_RUN_DEFAULT_LIMITS.max_rounds;
+  const stall: CloneRunStall = cloneRunStall(
+    await readCloneRunJournal(run, signalOptions),
+    {
+      judged,
+      failuresSha256,
+      cloneTreeSha256: treeSha256,
+      evidenceSha256,
+      awaitsCapture: findings.some((finding) => finding.awaitsCapture === true),
+    },
+    maxRounds,
+  );
   const verdict: CloneRunVerdict = passed
     ? waivers > 0
       ? "done_with_waivers"
       : "done"
-    : round >= maxRounds || repeated
-      ? "stalled"
-      : "not_done";
+    : stall.stalled === null
+      ? "not_done"
+      : "stalled";
   const worklist = boundedList(ordered, CLONE_RUN_NEXT_LIMIT);
-  const leftOut = worklist.omitted;
+  const leftOut =
+    total -
+    worklist.items.reduce((sum, finding) => sum + findingCount(finding), 0);
   const blocked =
     findings.length === 0
       ? `checks not evaluated: ${notEvaluated.join(", ")}`
-      : `${plural(findings.length, "blocking finding")}${
+      : `${plural(total, "blocking finding")}${
           leftOut === 0
             ? ""
             : `; next lists the first ${CLONE_RUN_NEXT_LIMIT} and leaves out ${leftOut}`
         }`;
-  const summary = passed
-    ? waivers > 0
-      ? `done with ${plural(waivers, "waiver")}`
-      : "done"
-    : verdict === "stalled"
-      ? `stalled after ${plural(round, "judged round")} (${
-          repeated
-            ? "the last two had the same findings and the same clone tree"
-            : `the limit is ${maxRounds}`
-        }): ${blocked}`
-      : `not done: ${blocked}`;
+  // An exclude in force is said next to the verdict: those paths can change without any capture going stale.
+  const excluded = tree?.exclude ?? [];
+  const excludedNote =
+    excluded.length === 0
+      ? ""
+      : `; ${plural(excluded.length, "clone path")} ${excluded.length === 1 ? "is" : "are"} excluded and ${excluded.length === 1 ? "is" : "are"} covered neither by staleness nor by the clean-room check (${excluded.join(", ")})`;
+  const summary = `${
+    passed
+      ? waivers > 0
+        ? `done with ${plural(waivers, "waiver")}`
+        : "done"
+      : verdict === "stalled"
+        ? `stalled after ${plural(stall.round, "judged round")} (${
+            stall.stalled === "no_progress"
+              ? `the same findings were judged ${stall.attempts} times on the same clone tree`
+              : `the limit is ${maxRounds}`
+          }): ${blocked}`
+        : `not done: ${blocked}`
+  }${excludedNote}`;
   const evaluatedAt = dependencies.now().toISOString();
 
   const gate: CloneRunGate = {
@@ -1264,9 +1665,9 @@ export const evaluateCloneRun = async <
       volatile_fields: honouredVolatile,
     },
     blocking: CLONE_RUN_REASON_CODES.flatMap((reason) => {
-      const count = findings.filter(
-        (finding) => finding.reason === reason,
-      ).length;
+      const count = findings
+        .filter((finding) => finding.reason === reason)
+        .reduce((sum, finding) => sum + findingCount(finding), 0);
       return count === 0 ? [] : [{ reason, count }];
     }),
     next: worklist.items.map(toNextItem),
@@ -1286,21 +1687,29 @@ export const evaluateCloneRun = async <
             files: tree.files.length,
             exclude: [...tree.exclude],
           },
-    stall: { round, max_rounds: maxRounds, repeated },
-    residual_trust: [...CLONE_RUN_RESIDUAL_TRUST],
+    stall: {
+      round: stall.round,
+      max_rounds: maxRounds,
+      judged,
+      attempts: stall.attempts,
+      repeated: stall.repeated,
+      outlook: passed ? null : stall.outlook,
+    },
+    // The limits are read next to a pass; a worklist does not repeat them every round.
+    residual_trust: passed ? [...CLONE_RUN_RESIDUAL_TRUST] : [],
   };
-  const journalEntry: CloneRunJournalEntry | null = unchanged
-    ? null
-    : {
+  const journalEntry: CloneRunJournalEntry | null = stall.record
+    ? {
         schema: "rea.clone-run.journal/1",
         at: evaluatedAt,
-        round,
+        round: stall.round,
         judged,
         verdict,
         failures_sha256: failuresSha256,
         clone_tree_sha256: treeSha256,
         evidence_sha256: evidenceSha256,
-      };
+      }
+    : null;
   const rendered: {
     readonly side: CloneRunSide;
     readonly scenario: string;
@@ -1313,9 +1722,18 @@ export const evaluateCloneRun = async <
         : [{ side, scenario: state.id, document: sideState.rendered.document }];
     }),
   );
+  if (options.writeOutputs === false) return ok(gate);
   const written = await writeCloneRunOutputs(
     run,
-    { gate, journalEntry, rendered, records, behavior, parity },
+    {
+      gate,
+      derived: target !== null,
+      journalEntry,
+      rendered,
+      records,
+      behavior,
+      parity,
+    },
     signalOptions,
   );
   if (!written.ok) return written;
