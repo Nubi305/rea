@@ -50,8 +50,21 @@ The verdict is the exit status of an evaluation you ran. A `gate.json` found
 on disk, a helper's message and your memory of the last run are copies.
 Without `--exit-code` the command exits 0 whatever it found.
 
-The first worklist asks for scenarios, because the referee cannot check
-scouting or mapping. Do them first anyway, in this order:
+Rounds and stalling. An evaluation is judged when every scenario has its
+captures admitted on both sides. Before that it uses up nothing, and neither
+does evaluating an unchanged folder again. A round is a judged set of clone
+files: a judged evaluation after an edit to the clone starts the next one,
+and the run reads `stalled` when `max_rounds` of them (8 unless the lead set
+another) are used. Within a round, the same blocking findings judged again
+from other captures are a second attempt, which reads `stalled`; when a
+finding itself asked for a capture or a removal, the third does. So add or
+remove captures when an item asks for it, never to see whether the findings
+move. Every result that is not a pass says where the run stands under
+`stall`, and its `outlook` says what would make the next one read `stalled`.
+
+`rea init-clone-run` prints the first worklist. It asks for scenarios,
+because the referee cannot check scouting or mapping. Do those first anyway,
+in this order:
 
 1. Lead: settle the scope with the user and create the folder.
 2. Scout, then mapper: list what exists and what must be probed. The verdict
@@ -80,16 +93,29 @@ Give these to a helper together with its card.
   writes (`rendered/`, `records/`, `behavior/`, `parity/`, `journal.jsonl`,
   `gate.json`). The referee rewrites its outputs and never reads them back, so
   an edit there changes nothing.
-- Pass paths and ids, never payloads. A capture is 350 KB to 1 MB; the step
-  id and the path say the same thing in one line.
+- Pass paths and ids, never payloads. A capture file runs to hundreds of
+  kilobytes; a step id and a path say the same in one line.
 - What you could not establish goes into `unknowns/<role>-<n>.json` as one
   statement, with your role spelled as in the worklist (`spec_writer-1.json`).
   Do not guess and do not drop it. Only the lead settles an unknown.
+- An input REA's actions cannot produce is an unknown too, not a surface to
+  leave out: a `request` step sends a JSON body or none, so a body that is
+  not well-formed JSON, for one, cannot be probed. Write the unknown and
+  report it. The user then decides: observe it another way, name a person
+  for a waiver, or accept a run that ends not done on that one finding.
 - `examples/` in the run folder holds a valid example of each file a role
   writes, and the referee's messages name the file, the place and the fix.
   Start from those, not from memory.
+- Read one step of a capture file with the command below instead of loading
+  the file. `"collection":"steps"` lists each step's index and id, and
+  `"collection":"transactions","step_indices":[1],"event_kinds":["request","response","network-content"]`
+  gives one step's requests and replies. Builders never read captures.
 - Keep the scope above. A protection or a sign-in in the way is a reason to
   stop, not a problem to solve.
+
+```sh
+rea inspect-analysis-view '{"source":{"kind":"evidence-file","path":"scout/crawl-1.evidence.json"},"view":{"kind":"browser-scenario","collection":"text","step_index":1,"artifact":"accessibility"}}' --json
+```
 
 ## Role cards
 
@@ -109,10 +135,10 @@ loop. It is the main conversation and the only role that talks to the user.
   stop and health-check each side; whether the original instance is
   disposable. Put the run folder outside the clone's source.
 - Finished when an evaluation you ran exits 0 and you have told the user what
-  the verdict rests on: the `summary`, every waiver, and from the gate the
-  `declared` renames and volatile fields, the `target` addresses and root, and
-  the excludes under `clone_tree`. On exit 2, report as
-  [When to stop](#waivers-declarations-and-when-to-stop) says.
+  the verdict rests on: the `summary` (it names excluded clone paths), every
+  waiver, the `declared` renames and volatile fields, the `target` addresses
+  and root, and the limits the gate lists under `residual_trust`. On exit 2,
+  report as [When to stop](#waivers-declarations-and-when-to-stop) says.
 - Worklist reasons: `target_invalid`, `addresses_not_distinct` and
   `run_folder_inside_clone` are your `target.json`. `unknown_invalid`,
   `intended_differences_invalid` and `waivers_invalid` are files you own or
@@ -121,12 +147,20 @@ loop. It is the main conversation and the only role that talks to the user.
   `parity_unstable` on the original means the original disagrees with itself
   between clean repeats: declare the field volatile only if it is a clock or
   a generated value, otherwise send the step back to the prober.
+  `parity_changed` comes to you only when a rename would settle it: the item
+  gives the exact spelling to declare. Add it if the clone differs there on
+  purpose; if not, the difference is the builder's.
+- One volatile field can cover a whole scenario and every item of a list:
+  `{"scenario": "notes-api", "step_id": "*", "pointer": "/items/*/createdAt", "reason": "creation time"}`.
+  Each step of `behavior/<scenario>.json` lists the candidates under
+  `volatile_pointers`. A declaration counts only where the original's own
+  captures differ, so it cannot hide a steady difference.
 - Typical mistakes: reporting done from a helper's summary; declaring a
   rename or a volatile field to make a difference disappear; excluding a
-  clone path that holds code (excluded paths are neither digested nor
-  checked); choosing an original name that is also a route or a field name,
-  which the clone must keep and the name check will then always find;
-  granting a waiver yourself.
+  clone path that holds code (an excluded path never makes a capture stale
+  and is not checked); choosing an original name that is also a route or a
+  field name, which the clone must keep and the name check will then always
+  find; granting a waiver yourself.
 
 ### Scout
 
@@ -136,11 +170,10 @@ which pages, routes, scripts and files exist.
 - Reads: `target.json`.
 - Writes: `scout/` only. Everything taken from the original goes there: the
   crawl capture, exported scripts, saved pages, your inventory.
-- Commands: `rea capture-browser-scenario` for a crawl (`goto` steps in a
-  launched browser, with accessibility text), its output sent to a file in
-  `scout/` and not into your context; `rea export-web-scripts` on that file;
-  `rea analyze-javascript-application` on the exported scripts;
-  `rea inspect-artifact` for a downloaded file.
+- Commands: copy `examples/crawl.example.json` to `scout/crawl-1.json`, give
+  it one `goto` step per page, then run the three commands below from the
+  run folder. The crawl goes to a file, not into your context; a page the
+  crawl finds gets another step and another crawl.
 - Finished when `scout/` lists every page reachable from the start page, every
   request those pages make and every script they load, and what you could not
   reach is written as unknowns.
@@ -152,6 +185,12 @@ which pages, routes, scripts and files exist.
 - The referee does not check the scout's output. Nothing will tell you a page
   was missed.
 
+```sh
+timeout 120 rea capture-browser-scenario scout/crawl-1.json --detail summary --evidence_output scout/crawl-1.evidence.json --json
+rea export-web-scripts scout/crawl-1.evidence.json scout/scripts-1 --json
+rea analyze-javascript-application scout/scripts-1 --json
+```
+
 ### Mapper
 
 In a clone run the mapper turns the scout's inventory into the checklist the
@@ -160,18 +199,25 @@ probers work through: every page, route and input, each with the cases to try.
 - Reads: `scout/`.
 - Writes: `surfaces.json` in the run folder. It is free form: the referee
   does not read it.
-- Commands: `rea environment-build` with `--dry-run` on the scout's crawl
-  capture drafts the HTTP surface: the routes it lists are the first rows of
-  the map. `rea inspect-analysis-view` reads one step of a saved capture
-  without loading the file.
+- Commands: the command below lists the routes a capture recorded: `tools`
+  holds each API route with its method, path template and statuses, and
+  `excluded` the pages and assets. A crawl of pages that embed their data
+  records no API request, so `tools` is empty: the routes the scout read from
+  the scripts are then the map, each one inferred until probed.
 - Finished when every surface names the scenario that will probe it or says
   why it is out of scope, and every input lists its cases: typical, empty,
-  both sides of each limit, wrong type, duplicate, ordering.
+  both sides of each limit, wrong type, wrong method, duplicate, ordering.
 - Typical mistakes: listing only what the pages show and missing routes that
-  only scripts call; dropping a surface without a reason; mapping something
-  behind a protection as in scope.
+  only scripts call; leaving out an address that no page links to but the
+  operator's own commands call (the health command in `target.json`);
+  dropping a surface without a reason; mapping something behind a protection
+  as in scope.
 - The referee does not measure coverage of this list. The lead and the
   probers do, by reading it.
+
+```sh
+rea inspect-analysis-view '{"source":{"kind":"evidence-file","path":"scout/crawl-1.evidence.json"},"view":{"kind":"environment-manifest"}}' --json
+```
 
 ### Prober
 
@@ -183,20 +229,26 @@ scenarios that are then run against both sides.
 - Writes: `scenarios/<scenario>.json`; `evidence/original/` only through the
   capture command; `unknowns/prober-<n>.json`.
 - Commands: `rea validate-browser-scenario` on a rendered input,
-  `rea capture-browser-scenario` exactly as the worklist prints it, and
-  `rea compare-scenario-behavior` with one capture of the original on each
-  side. That last one shows, before any clone exists, what the original
-  itself answers differently between two clean runs. Each step it does not
-  call unchanged needs a decision now: make the step deterministic, capture
-  again if data is missing, or ask the lead to declare the field volatile.
+  `rea capture-browser-scenario` exactly as the worklist prints it, and the
+  preview below. Before any clone exists it shows what the original itself
+  answers differently in two clean runs. Each finding needs a decision now: a
+  clock or a generated id goes to the lead as a volatile field, data that was
+  not recorded needs another capture, anything else is a step to make
+  deterministic.
 - A scenario starts with `fp-` steps that read the state a clean start shows:
   a list request, not a health check. Then one step per case, with an id that
-  names the case (`create-empty-title`). A step that only prepares, a pause
-  included, is `setup-`. A pause among the `fp-` steps is `fp-wait-`, because
-  nothing else may come before the last of them.
+  names the case (`create-empty-title`: a letter first, then letters, digits,
+  `.`, `_` and `-`). A step that only prepares, a pause included, is
+  `setup-`. A pause among the `fp-` steps is `fp-wait-`, because nothing else
+  may come before the last of them.
 - A scenario names no address. A `request` step takes a path. A `goto` step
   writes `{origin}` before its path (`{origin}/notes`), and the referee puts
   in each side's address when it renders the capture inputs.
+- Locate a control by its role and name, or by an attribute both sides must
+  share. Never by an id or a class of the original's markup: the clone need
+  not keep them, and a correct clone then fails the step.
+- A rounding rule is shown only by a step whose value lands exactly on a tie.
+  Work out the inputs from the formula you believe, and probe the tie.
 - Finished when every case the map lists for your surface is a step that
   completed on the original in two captures from a clean start, and no item
   for the original remains.
@@ -206,16 +258,24 @@ scenarios that are then run against both sides.
   so capture again. `evidence_rejected_integrity` and
   `evidence_rejected_address` ask you to remove a file; an address rejection
   means you captured the wrong side, so check which instance you talk to.
-  `start_state_dirty` means a capture began on a used instance; if it returns
-  after a careful reset, the fingerprint reads something that changes by
-  itself. `start_state_unknown` and `parity_unknown` mean data is missing:
-  capture again, as [capture judgment](#capture-judgment) says.
-  `obligation_inferred` asks for a step that shows the rule on the original.
+  `start_state_dirty` means a capture began on a used instance, or the start
+  page shows text that changes by itself; the item says which.
+  `start_state_unknown` and `parity_unknown` mean data is missing: the item
+  says whether another capture can supply it, as
+  [capture judgment](#capture-judgment) explains. `parity_unstable` reaches
+  you when the original varies where nothing can be declared (on-screen
+  text, a status, a request line, a text reply): capture again one at a time,
+  then make the step deterministic. `obligation_inferred` asks for a step
+  that shows the rule on the original.
 - Typical mistakes: the happy path only; one step that tests several rules;
   editing a scenario after the verifier has started, which sends both sides
   back to capturing; a UI action cited for a result that renders later;
   renaming a step `setup-` to silence it, which also removes the rule it
   showed from what the verdict covers.
+
+```sh
+rea compare-scenario-behavior --left evidence/original/notes-api/run-1.json --right evidence/original/notes-api/run-2.json --json
+```
 
 ### Spec writer
 
@@ -255,16 +315,16 @@ name that implements the obligations.
   after the verifier's next captures. You cannot certify your own work. Before
   handing back, send the failing step's request to an instance of your own
   and compare the answer with the item's `expected`.
-- Worklist reasons: `parity_changed` gives the scenario, step, dimension,
-  pointer, `expected` (the original) and `actual` (the clone): fix the rule
-  the citing obligation states, not the one value. `parity_unstable` on the
-  clone means it disagrees with itself where the original is steady: remove
-  the randomness or the ordering dependence. `clone_root_missing` asks for the
-  directory. `clone_symlink_outside_root` asks you to bring the linked code
-  inside the root. `clean_room_identical_file` asks you to rewrite a file
-  that equals one of the original's; if it is a third-party library both
-  use, tell the lead. `clean_room_forbidden_name` asks you to remove the
-  original's name from a file or a path.
+- Worklist reasons: `parity_changed` gives the scenario, the step or
+  `step_ids`, the dimension, the pointer, `expected` (the original) and
+  `actual` (the clone): fix the rule the citing obligation states, not the
+  one value. `clone_root_missing` asks for the directory.
+  `clone_symlink_outside_root` asks you to bring the linked code inside the
+  root, and `clone_path_unreadable` to make a file readable or remove it.
+  `clean_room_identical_file` asks you to rewrite a file that equals one of
+  the original's; if it is a third-party library both use, tell the lead.
+  `clean_room_forbidden_name` asks you to remove the original's name from a
+  file or a path.
 - Typical mistakes: special-casing the probed input; opening the original or
   its captures to check one thing; editing while the verifier captures, which
   makes those captures stale; letting the running clone write a database or a
@@ -296,6 +356,10 @@ the referee can compare. Where a helper is available it is not the builder.
   of another scenario version, edited files, or captures of the wrong side.
   `start_state_dirty`, `start_state_unknown` and `parity_unknown` are the
   prober's cases on the clone side: reset, confirm, capture again.
+  `parity_unstable` means the clone's captures disagree with each other,
+  which is more often a snapshot taken too early than a fault in the clone:
+  run the item's removal, evaluate, and capture again one at a time. Tell
+  the lead only if the same difference returns.
 - Typical mistakes: capturing a clone process that was started before the
   last edit (a capture is bound to the files, not to the process that
   answered, so it would describe old code); copying a capture to make the
@@ -305,7 +369,10 @@ the referee can compare. Where a helper is available it is not the builder.
 
 Builders read `specs/`, `obligations/`, `behavior/` and `gate.json`. They
 never read `evidence/` or `scout/`, which hold the original's scripts and
-pages. Nothing enforces this wall: it holds because the roles keep it.
+pages. Nothing enforces this wall: it holds because the roles keep it. The
+referee's clean-room check finds the original's names and identical files
+and nothing more: code retyped from the original's scripts passes it and is
+still copying.
 
 - Interface identifiers are kept, because parity compares them: routes, field
   names, error codes, status codes, control labels.
@@ -315,9 +382,10 @@ pages. Nothing enforces this wall: it holds because the roles keep it.
 - `specs/` crosses the wall. The spec writer describes behavior there and
   quotes no source.
 - One agent that has played scout cannot unread the original's scripts. It
-  still writes the clone with only the builder's files open. If the user
-  needs builders who never saw the original, the builder must be a helper
-  with its own context.
+  still writes the clone with only the builder's files open, and does not
+  follow a script from `scout/` statement by statement. If the user needs
+  builders who never saw the original, the builder must be a helper with its
+  own context.
 
 ## One agent or a team
 
@@ -339,9 +407,8 @@ printed. The helper answers with the paths and ids it wrote.
   obligations per area, clone code per area with assigned paths.
 - An instance serves one capture at a time, and nothing else talks to it
   meanwhile. A run has one address per side, so captures queue per side: one
-  prober on the original, one verifier on the clone. Each capture launches
-  its own browser. A builder who wants to try a request starts an instance
-  of its own on another port.
+  prober on the original, one verifier on the clone. A builder who wants to
+  try a request starts an instance of its own on another port.
 - Stop builders before the lead evaluates for the verifier, and keep them
   stopped until the captures are in.
 
@@ -356,43 +423,38 @@ printed. The helper answers with the paths and ids it wrote.
   capture you write yourself. A capture that timed out or was cancelled has
   already changed the instance: reset, retry at most twice, then write an
   unknown.
+- A step is compared on its outcome, its requests, their statuses, the
+  bodies of fetched replies, the page address and the page's accessibility
+  text. Nothing else is: not appearance, styles, images, fonts, response
+  headers, the document title or timing, not the text inside an iframe, and
+  not the text of an alert, confirm or prompt dialog. A rule that shows only
+  there cannot be a step: write it as an unknown.
 - Missing data is unknown, never a match. Do not argue with it and do not
-  edit anything: capture again, because the referee folds repeats and one
-  capture can supply what another lost. Data still missing after two more
-  captures will not arrive: a reply over 64 KiB, or a request to another
-  origin, is never recorded.
+  edit anything. Only a lost reply body is supplied by one more capture; the
+  item says when a capture cannot help. Some data never arrives: a reply
+  over 64 KiB, the content of a downloaded file, a request to another
+  origin.
 - A step whose data can never be recorded can only become `setup-`. That is a
   decision about coverage, not a repair: its rule is no longer compared, so
   the obligation that cited it becomes inferred or goes.
 - Probe the rules, not the happy path: empty and whitespace-only input, both
   sides of every limit, the wrong type, a missing field, the same thing twice,
-  an unknown id, order after several writes, read after delete. Error replies
-  often state the limit.
+  an unknown id, a wrong method, order after several writes, read after
+  delete. Error replies often state the limit.
+- A `request` step records the reply itself, so use one for what a route
+  answers, errors included. It does not follow a redirect and fails on one,
+  which cancels every later step: reach a redirect through the page.
 - A UI action's own snapshot can precede the render it causes, and the
-  request it triggers can land in the next step. When the action sends a
-  request, make its step wait for the reply, as the example after this list
-  does, or follow the action with a step that waits for what the result
-  shows, and cite that step. An error the page shows only after a reply is
-  probed with a `request` step, which records the reply itself.
+  request it triggers can land in the next step. When the action's request
+  succeeds, make its step wait for the reply, as the click in
+  `examples/scenario-pages.example.json` does. That wait fails the step when
+  the reply is not 2xx, so for a notice the page shows after a refusal, name
+  the click `setup-`, follow it with a step that waits for the notice, and
+  cite that step. A role locator does not take the roles of a notice, so
+  wait for it by attribute, such as `[role=alert]`.
 - A rule known only from reading code is inferred until a step shows it on
   the original. Inferred obligations block.
 - Restart the clone after every edit and before capturing it.
-
-A page step that waits for the reply its action causes:
-
-```json
-{
-  "step_id": "add-note-from-page",
-  "action": "click",
-  "locator": { "kind": "role", "role": "button", "name": "Add note" },
-  "timeout_ms": 15000,
-  "save_response": {
-    "method": "POST",
-    "path": "/api/notes",
-    "save": [{ "name": "added", "json_pointer": "/id" }]
-  }
-}
-```
 
 ## Waivers, declarations and when to stop
 
@@ -415,15 +477,17 @@ A rename can explain away any text difference, and the referee cannot tell an
 honest one from a convenient one: it lists those that took effect under
 `declared`, and the lead reports them with the verdict. Renames apply in file
 order, each to the result of the one before, so a sentence that contains the
-product name is declared before the product name itself.
+product name is declared before the product name itself. A rename matches
+one spelling exactly, so the name in capitals is a rename of its own.
 
-Stop when the referee exits 2. `stalled` means the run reached its round
-limit, or two rounds in a row changed neither the findings nor the clone. Do
-not delete the journal to start the count again, and do not waive your way
-out. Report what is unproven: the `blocking` reasons, the items still in
-`next` and the open unknowns. A stall whose only reasons are missing data is
-still a stall: name the steps, and let the user decide whether to capture
-again, give the step up as `setup-`, or stop.
+Stop when the referee exits 2. `stalled` means the team acted and nothing
+improved: the round limit is reached, or the same findings were judged again
+on the same clone files, as [the loop](#the-loop) says. Do not delete the
+journal to start the count again, and do not waive your way out. Report what
+is unproven: the `blocking` reasons, the items still in `next` and the open
+unknowns. A stall whose only reasons are missing data is still a stall: name
+the steps, and let the user decide whether to capture again, give the step up
+as `setup-`, or stop.
 
 Stop as well, at any point, when a protection or a sign-in is in the way,
 when the user's authorization does not cover what the next step needs, or

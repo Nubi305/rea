@@ -77,8 +77,8 @@ owns the end-to-end run; D builds in parallel with C.
 - `src/application/environment/environmentSource.ts`: `ParsedEnvironmentCapture.scenario`, null for a HAR, with the
   capture's steps, start origin, parameters and the map above
 - `src/application/environment/environmentCompareProbe.ts`: `probeRequests(records, options?)`, where
-  `options.stepIds` sets `ProbeStep.step_id` and `options.origin` replaces the majority-origin choice; without options
-  it behaves as today
+  `options.origin` replaces the majority-origin choice; without options it behaves as today. It returns each parsed
+  request line (`lines`) beside its steps, so the comparer does not parse a line again
 - the existing tests of those three modules
 
 ### B: run folder and referee
@@ -134,6 +134,22 @@ Where the build differs from the packages above, and why:
 - The conformance test also covers `docs/reference/clone-runs.md`, holds every reason code to the card of the role
   that acts on it, and parses the reference's JSON examples with the authored schemas.
 - `scripts/verify-clone-run-live.mjs` is not built: the specification lists the live agent evaluation as a non-goal.
+
+Changed by the fix round of 2026-11-20 ([tasks.md](tasks.md#fix-round-2026-11-20)):
+
+- The comparer is three modules: `ScenarioBehaviorComparisonService.ts` keeps its exports, `scenarioBehaviorCapture.ts`
+  reads a capture into observations and `scenarioBehaviorReplies.ts` compares replies.
+- The stall rule is the pure function `cloneRunStall` in `src/domain/cloneRun/cloneRunStall.ts`, with its own tests.
+- Address identity is split: `src/application/cloneRun/CloneRunAddressResolution.ts` resolves a host name through the
+  system resolver, and the pure `cloneRunAddressRelation` in the schemas module judges two resolved addresses.
+- `init-clone-run` loads the production comparer to compute the first worklist it prints, so the list is the
+  referee's own.
+- `src/application/EvidenceBundleCapture.ts` (`savedBundleCapture`) lets `export-web-scripts` and `environment-build`
+  read the bundle `--evidence_output` saves when it holds one capture record.
+- The conformance test also checks every flag a guide names against the option schema of the command it is written
+  with, and the check and role columns of the reference's reason table against `CLONE_RUN_REASONS`. The roles a
+  finding can be addressed to beyond its reason's own are listed in the test, because the referee does not export
+  them.
 
 ## Verification
 

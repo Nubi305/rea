@@ -1,8 +1,8 @@
 ---
 name: reverse-engineer-anything
-description: Reverse engineer native, managed, Electron/JavaScript, packaged, firmware, and browser targets with REA, and build agent environments (AgentEnv bundles) of web applications from a live instance or a capture, and of Linux desktop apps with a task from a request. Use shipped-artifact or requested runtime evidence to explain features, compare versions, decompile code, or guide a reconstruction. Skip REA for ordinary source-repository architecture analysis.
+description: Reverse engineer native, managed, Electron/JavaScript, packaged, firmware, and browser targets with REA; rebuild (clone) a web application under a referee that decides from recorded behavior whether the rebuild matches; and build agent environments (AgentEnv bundles) of web applications from a live instance or a capture, and of Linux desktop apps with a task from a request. Use shipped-artifact or requested runtime evidence to explain features, compare versions, decompile code, or guide a reconstruction. Skip REA for ordinary source-repository architecture analysis.
 metadata:
-  version: "64"
+  version: "65"
 ---
 
 # REA
@@ -83,6 +83,13 @@ Choose the first tool from the target the user supplied. Use `open_binary` for
 active-target native or archive workflows; target-free tools take their own
 explicit path or endpoint and do not need it.
 
+- Asked to rebuild or clone a web application the user can run and reset
+  locally: read [references/clone-runs.md](references/clone-runs.md) before
+  touching the original, and take no other route here. A clone run starts
+  with the user's authorization statement and `rea init-clone-run`, calls REA
+  as CLI one-shots instead of a shared MCP connection, and ends only when
+  `rea evaluate-clone-run` says so. An agent environment (AgentEnv bundle) is
+  a served recording of an application, not a rebuild of it.
 - ASAR or extracted JavaScript/Electron tree:
   `analyze_javascript_application`. To find a few files in a packaged
   `app.asar`, open it with `open_binary`, start with `inspect_artifact`
@@ -667,12 +674,11 @@ as complete while required questions remain open.
 
 ## Finish the task
 
-Explain findings in plain language and tie them to returned evidence. When the
-user asks to rebuild or clone a web application they can run locally, follow
-[clone runs](references/clone-runs.md): `rea evaluate-clone-run` decides
-whether the rebuild matches, and no agent declares it done. For any other
-build, use normal coding tools, separate observed behavior from design
-choices, and say that no REA verdict backs the result. Close an opened native session with
+Explain findings in plain language and tie them to returned evidence. A
+rebuild of a web application is finished only by the referee of its
+[clone run](references/clone-runs.md), never by an agent's own statement. For
+any other build, use normal coding tools, separate observed behavior from
+design choices, and say that no REA verdict backs the result. Close an opened native session with
 `close_binary` when its engine is no longer needed. Evidence references and Unknown
 history remain in memory on the same MCP connection. End the investigation with
 `reset_investigation`; supply `save_path` to checkpoint the complete bundle before
