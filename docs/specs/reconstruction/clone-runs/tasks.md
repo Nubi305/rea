@@ -13,20 +13,20 @@ Each task names the spec section it implements and the check that shows it.
 
 ## A: comparer (spec: "The comparer")
 
-- [ ] Carry step id and resource type from request events onto scenario capture records, the parsed capture and
+- [x] Carry step id and resource type from request events onto scenario capture records, the parsed capture and
       `ProbeStep`; `probeRequests` takes the origin to use; existing environment tests still pass.
-- [ ] `readScenarioBehaviorCapture`: authenticate a record or bundle, refuse a HAR, another operation, an edited file;
+- [x] `readScenarioBehaviorCapture`: authenticate a record or bundle, refuse a HAR, another operation, an edited file;
       fill `fingerprint_sha256` and `reply_bodies`.
-- [ ] Compare at the start origin only: an other-origin `fetch`, `xhr` or `document` request is `unknown`, and a page
+- [x] Compare at the start origin only: an other-origin `fetch`, `xhr` or `document` request is `unknown`, and a page
       address that left the start origin keeps its whole URL. Test with a capture whose page was sent elsewhere.
-- [ ] Align steps by id, match transactions by request line, fold repeats, apply renames in order and report those
+- [x] Align steps by id, match transactions by request line, fold repeats, apply renames in order and report those
       applied.
-- [ ] Statuses: `changed`, `unknown`, `unstable`, `unchanged`; missing data never matches on either side (a body lost
+- [x] Statuses: `changed`, `unknown`, `unstable`, `unchanged`; missing data never matches on either side (a body lost
       on the right is `unknown`, not `changed`); a redirect has no body to miss; exact comparison beside the differ.
-- [ ] Volatile fields: one leaf per declaration, honoured only where the left repeats differ, shape still compared.
-- [ ] Fingerprint `start_state` per side through `scenarioStartState`.
-- [ ] `describeScenarioBehavior`: the behaviour table.
-- [ ] Unit tests for each rule. The pilot's saved captures selected no accessibility text, so under this contract every
+- [x] Volatile fields: one leaf per declaration, honoured only where the left repeats differ, shape still compared.
+- [x] Fingerprint `start_state` per side through `scenarioStartState`.
+- [x] `describeScenarioBehavior`: the behaviour table.
+- [x] Unit tests for each rule. The pilot's saved captures selected no accessibility text, so under this contract every
       step of theirs is `unknown` on `text`; they can show the request, status and body rules only (mutant changed at
       `/slug`). An all-`unchanged` result needs captures made with the rendered capture settings.
 

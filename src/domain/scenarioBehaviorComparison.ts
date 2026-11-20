@@ -2,7 +2,12 @@ import { z } from "zod";
 
 import type { AnalysisError } from "./analysisErrorBase.js";
 import { digestSchema } from "./digests.js";
-import { jsonValueSchema, type JsonValue } from "./jsonValue.js";
+import { escapeJsonPointerToken, jsonPointerTokens } from "./jsonPointer.js";
+import {
+  equalJsonValues,
+  jsonValueSchema,
+  type JsonValue,
+} from "./jsonValue.js";
 import type { Result } from "./result.js";
 
 /**
@@ -138,6 +143,294 @@ export const scenarioBehaviorVerdict = (
 export const scenarioBehaviorExitCode = (
   verdict: ScenarioBehaviorVerdict,
 ): 0 | 1 | 2 => (verdict === "unchanged" ? 0 : verdict === "changed" ? 1 : 2);
+
+/** Finding categories that say data is missing: the step is `unknown`. */
+const GAP_CATEGORIES: ReadonlySet<string> = new Set([
+  "not-recorded",
+  "not-completed",
+  "other-origin",
+]);
+/** Finding categories that say one side's repeats disagree: the step is `unstable`. */
+const REPEAT_CATEGORIES: ReadonlySet<string> = new Set([
+  "repeats-differ",
+  "undeclared-volatile",
+]);
+
+/**
+ * What one finding makes of its step, read from its category alone: a gap is
+ * `unknown`, a disagreement between one side's repeats is `unstable`, and
+ * every other category is a difference between the sides.
+ */
+export const scenarioFindingStatus = (finding: {
+  readonly category: string;
+}): Exclude<ScenarioStepStatus, "unchanged"> =>
+  GAP_CATEGORIES.has(finding.category)
+    ? "unknown"
+    : REPEAT_CATEGORIES.has(finding.category)
+      ? "unstable"
+      : "changed";
+
+const STATUS_RANK: Readonly<Record<ScenarioStepStatus, number>> = {
+  changed: 0,
+  unstable: 1,
+  unknown: 2,
+  unchanged: 3,
+};
+
+/** A step's status is the worst of its findings: `changed`, then `unstable`, then `unknown`. */
+export const scenarioStepStatus = (
+  findings: readonly { readonly category: string }[],
+): ScenarioStepStatus =>
+  findings
+    .map(scenarioFindingStatus)
+    .reduce<ScenarioStepStatus>(
+      (worst, status) =>
+        STATUS_RANK[status] < STATUS_RANK[worst] ? status : worst,
+      "unchanged",
+    );
+
+/** Findings with the most severe first, otherwise in the order found. */
+export const orderScenarioFindings = <
+  Finding extends { readonly category: string },
+>(
+  findings: readonly Finding[],
+): Finding[] =>
+  findings
+    .map((finding, index) => ({ finding, index }))
+    .sort(
+      (left, right) =>
+        STATUS_RANK[scenarioFindingStatus(left.finding)] -
+          STATUS_RANK[scenarioFindingStatus(right.finding)] ||
+        left.index - right.index,
+    )
+    .map(({ finding }) => finding);
+
+/** One scalar or empty container of a JSON value; a number in `path` is an array index. */
+export interface JsonLeaf {
+  readonly pointer: string;
+  readonly path: readonly (string | number)[];
+  readonly value: JsonValue;
+}
+
+/** Every leaf of a JSON value in document order. Two values are equal exactly when their leaves are. */
+export const jsonLeaves = (root: JsonValue): JsonLeaf[] => {
+  const leaves: JsonLeaf[] = [];
+  const visit = (
+    value: JsonValue,
+    pointer: string,
+    path: readonly (string | number)[],
+  ): void => {
+    if (value === null || typeof value !== "object") {
+      leaves.push({ pointer, path, value });
+      return;
+    }
+    const members: readonly (readonly [string | number, JsonValue])[] =
+      Array.isArray(value)
+        ? value.map((item, index) => [index, item] as const)
+        : Object.entries(value);
+    if (members.length === 0) leaves.push({ pointer, path, value });
+    for (const [key, member] of members)
+      visit(member, `${pointer}/${escapeJsonPointerToken(String(key))}`, [
+        ...path,
+        key,
+      ]);
+  };
+  visit(root, "", []);
+  return leaves;
+};
+
+/** A leaf's pointer with every array index replaced by `*`: the declaration that would cover each item. */
+export const volatilePointerPattern = (
+  path: readonly (string | number)[],
+): string =>
+  path
+    .map((segment) =>
+      typeof segment === "number"
+        ? "/*"
+        : `/${escapeJsonPointerToken(segment)}`,
+    )
+    .join("");
+
+/**
+ * Whether a volatile declaration names this leaf: segment for segment, a `*`
+ * standing for one array index. A pointer to a container never matches the
+ * leaves beneath it.
+ */
+export const volatilePointerMatches = (
+  declared: string,
+  path: readonly (string | number)[],
+): boolean => {
+  const tokens = jsonPointerTokens(declared);
+  return (
+    tokens.length === path.length &&
+    tokens.every(
+      (token, index) =>
+        token === String(path[index]) ||
+        (token === "*" && typeof path[index] === "number"),
+    )
+  );
+};
+
+/**
+ * One reply leaf that is not the same everywhere. `varies` names each side
+ * whose own repeats disagree at it (a leaf present in one repeat and absent
+ * in another disagrees).
+ *
+ * - `honoured`: the left varies and a declaration names the leaf; the value
+ *   is not compared.
+ * - `shape`: honoured, the left's values share one shape and a right value
+ *   has another or is absent.
+ * - `unstable`: the left varies and no declaration names the leaf.
+ * - `changed`: the left holds one value in every repeat and a right repeat
+ *   holds another. A declaration on such a leaf is ignored.
+ */
+export interface ReplyLeafJudgement {
+  readonly pointer: string;
+  readonly path: readonly (string | number)[];
+  readonly varies: readonly ("left" | "right")[];
+  readonly outcome: "honoured" | "shape" | "unstable" | "changed";
+  /** A left value and a right value that show the judgement; undefined where the leaf is absent. */
+  readonly expected: JsonValue | undefined;
+  readonly actual: JsonValue | undefined;
+  /** A second left value for a leaf the left varies at. */
+  readonly other: JsonValue | undefined;
+}
+
+const sameLeafValue = (
+  left: JsonLeaf | undefined,
+  right: JsonLeaf | undefined,
+): boolean =>
+  left === undefined || right === undefined
+    ? left === right
+    : equalJsonValues(left.value, right.value);
+
+/**
+ * Compare the replies of one transaction exactly, leaf by leaf, across every
+ * repeat of both sides. Each argument holds one leaf list per observed reply;
+ * with no right reply only the left's own disagreements are judged. Leaves
+ * that are equal everywhere are not returned.
+ * No normalisation applies: only a value the left holds steadily can be
+ * contradicted, and only a leaf the left's own repeats disagree on can be
+ * declared volatile.
+ */
+export const judgeReplyLeaves = (
+  left: readonly (readonly JsonLeaf[])[],
+  right: readonly (readonly JsonLeaf[])[],
+  declared: (leaf: JsonLeaf) => boolean,
+): ReplyLeafJudgement[] => {
+  const index = (replies: readonly (readonly JsonLeaf[])[]) =>
+    replies.map(
+      (leaves) => new Map(leaves.map((leaf) => [leaf.pointer, leaf])),
+    );
+  const lefts = index(left);
+  const rights = index(right);
+  const order = new Map<string, JsonLeaf>();
+  for (const leaves of [...left, ...right])
+    for (const leaf of leaves)
+      if (!order.has(leaf.pointer)) order.set(leaf.pointer, leaf);
+  const judgements: ReplyLeafJudgement[] = [];
+  for (const [pointer, leaf] of order) {
+    const leftValues = lefts.map((reply) => reply.get(pointer));
+    const rightValues = rights.map((reply) => reply.get(pointer));
+    const first = leftValues[0];
+    const leftOther = leftValues.find((value) => !sameLeafValue(value, first));
+    const leftVaries = leftValues.some((value) => !sameLeafValue(value, first));
+    const rightVaries = rightValues.some(
+      (value) => !sameLeafValue(value, rightValues[0]),
+    );
+    const contradiction = rightValues.findIndex(
+      (value) => !sameLeafValue(value, first),
+    );
+    if (!leftVaries && contradiction === -1) continue;
+    const varies = [
+      ...(leftVaries ? (["left"] as const) : []),
+      ...(rightVaries ? (["right"] as const) : []),
+    ];
+    const base = { pointer, path: leaf.path, varies };
+    if (!leftVaries) {
+      judgements.push({
+        ...base,
+        outcome: "changed",
+        expected: first?.value,
+        actual: rightValues[contradiction]?.value,
+        other: undefined,
+      });
+      continue;
+    }
+    const shown = {
+      expected: first?.value ?? leftOther?.value,
+      actual: rightValues[0]?.value,
+      other: first === undefined ? undefined : leftOther?.value,
+    };
+    if (!declared(leaf)) {
+      judgements.push({ ...base, outcome: "unstable", ...shown });
+      continue;
+    }
+    const shapes = new Set(
+      leftValues.map((value) =>
+        value === undefined ? undefined : volatileValueShape(value.value),
+      ),
+    );
+    const [shape] = shapes;
+    const misshapen =
+      shapes.size === 1 && shape !== undefined
+        ? rightValues.findIndex(
+            (value) =>
+              value === undefined || volatileValueShape(value.value) !== shape,
+          )
+        : -1;
+    judgements.push(
+      misshapen === -1
+        ? { ...base, outcome: "honoured", ...shown }
+        : {
+            ...base,
+            outcome: "shape",
+            ...shown,
+            actual: rightValues[misshapen]?.value,
+          },
+    );
+  }
+  return judgements;
+};
+
+/**
+ * Replace every occurrence of each rename's `from`, case-sensitive, in
+ * declaration order, each on the result of the one before. `counts[i]` grows
+ * by one when rename `i` changed this text.
+ */
+export const renameScenarioText = (
+  text: string,
+  renames: readonly ScenarioBehaviorRename[],
+  counts: number[],
+): string => {
+  let renamed = text;
+  for (const [index, rename] of renames.entries()) {
+    const next = renamed.replaceAll(rename.from, () => rename.to);
+    if (next !== renamed) counts[index] = (counts[index] ?? 0) + 1;
+    renamed = next;
+  }
+  return renamed;
+};
+
+/** Apply the renames to every string value of a JSON value, never to a field name. */
+export const renameScenarioJson = (
+  value: JsonValue,
+  renames: readonly ScenarioBehaviorRename[],
+  counts: number[],
+): JsonValue => {
+  if (renames.length === 0) return value;
+  if (typeof value === "string")
+    return renameScenarioText(value, renames, counts);
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value))
+    return value.map((item) => renameScenarioJson(item, renames, counts));
+  return Object.fromEntries(
+    Object.entries(value).map(([key, member]) => [
+      key,
+      renameScenarioJson(member, renames, counts),
+    ]),
+  );
+};
 
 /**
  * Text the clone replaces by declaration. Applied to the left side's

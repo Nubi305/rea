@@ -20,6 +20,7 @@ import { inspectAnalysisView } from "../analysisView/AnalysisViewService.js";
 import type { WebNetworkCaptureRecord } from "../../domain/webNetworkCapture.js";
 import {
   loadEnvironmentSource,
+  parseCaptureEvidence,
   recordedExchange,
   replayedBody,
 } from "./environmentSource.js";
@@ -376,5 +377,31 @@ describe("loadEnvironmentSource recorded request lines", () => {
     if (!loaded.ok) throw loaded.error;
     expect(loaded.value.exchanges.get(0)?.query).toBe("?");
     expect(loaded.value.exchanges.get(1)?.query).toBeNull();
+  });
+});
+
+describe("parseCaptureEvidence scenario facts", () => {
+  it("exposes a browser scenario's steps, start origin, parameters and record steps, and none for a HAR", () => {
+    const evidence = scenarioCaptureEvidence();
+    const scenario = parseCaptureEvidence("environment-compare", evidence);
+    if (!scenario.ok) throw scenario.error;
+    expect(scenario.value.scenario).toMatchObject({
+      startOrigin: "http://127.0.0.1:3101",
+      steps: [{ step_id: "initial" }, { step_id: "browse" }],
+      parameters: evidence.parameters,
+    });
+    expect(scenario.value.scenario?.recordSteps.get(0)).toEqual({
+      step_id: "browse",
+      resource_type: "document",
+    });
+    expect(scenario.value.scenario?.recordSteps.size).toBe(
+      scenario.value.records.length,
+    );
+    const har = parseCaptureEvidence(
+      "environment-compare",
+      analysisViewCaptureEvidence(),
+    );
+    if (!har.ok) throw har.error;
+    expect(har.value.scenario).toBeNull();
   });
 });

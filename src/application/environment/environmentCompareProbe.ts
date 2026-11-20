@@ -41,6 +41,19 @@ export interface ProbeStep {
   readonly ordinal: number;
   readonly request: ProbeRequest;
   readonly live?: Answer;
+  /** The scenario step that made the request, when the caller supplied the capture's step ids. */
+  readonly step_id?: string;
+}
+
+/** What a caller that knows the capture better than its records can state. */
+export interface ProbeRequestOptions {
+  /**
+   * The application's origin. Without it the origin with the most JSON-like
+   * records is taken, which is another server's when a page was sent there.
+   */
+  readonly origin?: string;
+  /** A browser scenario's step per record ordinal; a HAR has none. */
+  readonly stepIds?: ReadonlyMap<number, { readonly step_id: string }>;
 }
 
 /** Statuses whose answers carry no body, so a missing body is known to be empty. */
@@ -104,6 +117,7 @@ const probeOrigin = (
 /** The probe's requests in the order they were made, each with the application's answer, and the records left uncompared. */
 export const probeRequests = (
   records: readonly WebNetworkCaptureRecord[],
+  options: ProbeRequestOptions = {},
 ): { steps: ProbeStep[]; unobserved: UnobservedRecord[] } => {
   const steps: ProbeStep[] = [];
   const unobserved: UnobservedRecord[] = [];
@@ -128,10 +142,12 @@ export const probeRequests = (
     ]),
   );
   // Another origin's request goes to some other server, so it neither calls nor changes the environment.
-  const origin = probeOrigin(lines);
+  const origin = options.origin ?? probeOrigin(lines);
   for (const record of ordered) {
     const line = lines.get(record.ordinal);
     const { ordinal } = record;
+    const stepId = options.stepIds?.get(ordinal)?.step_id;
+    const step = stepId === undefined ? {} : { step_id: stepId };
     if (line?.kind === "line" && line.origin !== origin)
       unobserved.push({ ordinal, reason: "other-origin" });
     else if (line?.kind !== "line")
@@ -150,11 +166,12 @@ export const probeRequests = (
       // A request whose answer was lost may still have changed the application, so it is made but not compared.
       if (exchange.status === null) {
         unobserved.push({ ordinal, reason: "no-response" });
-        steps.push({ ordinal, request });
+        steps.push({ ordinal, request, ...step });
       } else
         steps.push({
           ordinal,
           request,
+          ...step,
           live: liveAnswer(
             line.method,
             exchange.status,

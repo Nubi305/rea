@@ -9,7 +9,10 @@ import {
   analysisViewResultSchema,
   type AnalysisViewResult,
 } from "../../domain/analysisView/analysisViewResult.js";
-import { scenarioCaptureRecords } from "../../domain/analysisView/scenarioCaptureRecords.js";
+import {
+  scenarioCaptureRecords,
+  type ScenarioRecordStep,
+} from "../../domain/analysisView/scenarioCaptureRecords.js";
 import {
   readRecordedResponseBody,
   type RecordedResponseBody,
@@ -19,7 +22,10 @@ import {
   type RecordedRequestLine,
 } from "../../domain/analysisView/webNetworkRouteTemplates.js";
 import { retainedBrowserScenarioCaptureSchema } from "../../domain/browserScenarioCapture.js";
-import type { BrowserScenarioEvent } from "../../domain/browserScenarioCaptureValues.js";
+import type {
+  BrowserScenarioEvent,
+  BrowserScenarioStep,
+} from "../../domain/browserScenarioCaptureValues.js";
 import type { AnalysisError } from "../../domain/analysisErrorBase.js";
 import {
   AnalysisInputError,
@@ -281,6 +287,20 @@ interface CaptureFacts {
   readonly requestBodies: boolean;
   /** A browser scenario's retained events, including those no record represents; null for a HAR. */
   readonly scenarioEvents: readonly BrowserScenarioEvent[] | null;
+  /** What only a browser scenario records about its own run; null for a HAR, which has no steps. */
+  readonly scenario: CapturedScenario | null;
+}
+
+/** A browser scenario capture's steps and identity, as the capture recorded them. */
+export interface CapturedScenario {
+  /** The origin the browser started at. */
+  readonly startOrigin: string;
+  /** Every step in order, including the provider's own initial step. */
+  readonly steps: readonly BrowserScenarioStep[];
+  /** Each record's step and resource type, keyed by record ordinal. */
+  readonly recordSteps: ReadonlyMap<number, ScenarioRecordStep>;
+  /** The Evidence record's parameters: the scenario REA ran, not validated here. */
+  readonly parameters: unknown;
 }
 
 /** Authenticated capture identity and the facts derived from its validated payload. */
@@ -314,13 +334,20 @@ const parseScenarioCapture = (
   const definition = z
     .object({ scenario_sha256: z.string() })
     .safeParse(parameters);
+  const projected = scenarioCaptureRecords(scenario.data, purpose);
   return ok({
-    records: scenarioCaptureRecords(scenario.data, purpose).records,
+    records: projected.records,
     captureKind: "browser-scenario",
     captureSha256: definition.success ? definition.data.scenario_sha256 : null,
     responseBodies: scenario.data.scenario.network_content.response_body,
     requestBodies: scenario.data.scenario.network_content.request_body,
     scenarioEvents: scenario.data.events.items,
+    scenario: {
+      startOrigin: scenario.data.scenario.start_origin,
+      steps: scenario.data.steps,
+      recordSteps: projected.steps,
+      parameters,
+    },
   });
 };
 
@@ -372,6 +399,7 @@ const parseHarCapture = (
     responseBodies: true,
     requestBodies: true,
     scenarioEvents: null,
+    scenario: null,
   });
 };
 

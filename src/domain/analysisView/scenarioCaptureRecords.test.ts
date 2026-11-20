@@ -477,3 +477,24 @@ it("distinguishes a retained empty request from missing or redacted request byte
     scenarioCaptureRecords(missing, "manifest").records[0]?.reported,
   ).toMatchObject({ request: { bodySize: -1 } });
 });
+
+it("carries each record's step id and resource type, keyed by ordinal", () => {
+  const capture = scenarioCaptureFixture();
+  const projected = scenarioCaptureRecords(capture, "replay");
+  expect(projected.steps.size).toBe(projected.records.length);
+  expect(projected.steps.get(0)).toEqual({
+    step_id: "browse",
+    resource_type: "document",
+  });
+  expect(projected.steps.get(1)).toEqual({
+    step_id: "browse",
+    resource_type: "fetch",
+  });
+  // A record whose event names no retained step has no entry rather than a guessed one.
+  const orphaned = scenarioCaptureRecords(
+    { ...capture, steps: capture.steps.slice(0, 1) },
+    "replay",
+  );
+  expect(orphaned.records).toHaveLength(projected.records.length);
+  expect(orphaned.steps.size).toBe(0);
+});

@@ -914,6 +914,45 @@ describe("probe request chronology", () => {
   );
 });
 
+const registerProbeOptionCases = () => {
+  it("probes the origin and names the steps a caller states, and keeps its own choice otherwise", () => {
+    const capture = environmentManifestCaptureFixture([
+      exchange(0, "GET", "http://app.example/", 200),
+      exchange(1, "GET", "http://other.example/api/a", 200),
+      exchange(2, "GET", "http://other.example/api/b", 200),
+    ]);
+    const lines = (probe: ReturnType<typeof probeRequests>) => ({
+      steps: probe.steps.map(({ ordinal, step_id }) => [ordinal, step_id]),
+      unobserved: probe.unobserved,
+    });
+    // By default the origin with the most JSON-like records is the application's.
+    expect(lines(probeRequests(capture.records))).toEqual({
+      steps: [
+        [1, undefined],
+        [2, undefined],
+      ],
+      unobserved: [{ ordinal: 0, reason: "other-origin" }],
+    });
+    expect(
+      lines(
+        probeRequests(capture.records, {
+          origin: "http://app.example",
+          stepIds: new Map([
+            [0, { step_id: "scenario_start" }],
+            [1, { step_id: "load" }],
+          ]),
+        }),
+      ),
+    ).toEqual({
+      steps: [[0, "scenario_start"]],
+      unobserved: [
+        { ordinal: 1, reason: "other-origin" },
+        { ordinal: 2, reason: "other-origin" },
+      ],
+    });
+  });
+};
+
 const registerProbeCoverageCases = () => {
   it("compares an unrecorded body by status only and lists the records it could not compare", () => {
     const report = run(
@@ -1063,4 +1102,5 @@ const registerProbeOrderingAndCaptureCases = () => {
 describe("what a probe did not observe", () => {
   registerProbeCoverageCases();
   registerProbeOrderingAndCaptureCases();
+  registerProbeOptionCases();
 });

@@ -27,11 +27,23 @@ type CapturedBody = Extract<BrowserNetworkBody, { state: "captured" }>;
 /** Response-byte retention, independent of whether the transaction has a usable request line. */
 export type ScenarioResponseBodyRetention = "absent" | "retained" | "redacted";
 
+/** The scenario step during which a record's request was observed, and the browser's resource type for it. */
+export interface ScenarioRecordStep {
+  readonly step_id: string;
+  readonly resource_type: string;
+}
+
 /** A scenario capture's network transactions in the record shape HAR captures project from. */
 export interface ScenarioCaptureRecords {
   readonly records: readonly WebNetworkCaptureRecord[];
   readonly totalRecords: number;
   readonly responseBodies: ReadonlyMap<number, ScenarioResponseBodyRetention>;
+  /**
+   * Each record's step and resource type from its request event, keyed by
+   * record ordinal, so consumers need not read the event behind the record's
+   * location pointer. A record whose event names no retained step is absent.
+   */
+  readonly steps: ReadonlyMap<number, ScenarioRecordStep>;
   readonly limitations: readonly string[];
 }
 
@@ -242,6 +254,7 @@ export const scenarioCaptureRecords = (
   const timings = timingByTransaction(capture.events.items);
   const records: WebNetworkCaptureRecord[] = [];
   const responseBodies = new Map<number, ScenarioResponseBodyRetention>();
+  const steps = new Map<number, ScenarioRecordStep>();
   let timed = false;
   let unknownDurations = 0;
   for (const [item, event] of capture.events.items.entries()) {
@@ -257,6 +270,12 @@ export const scenarioCaptureRecords = (
       timing,
     );
     records.push(projected.record);
+    const step = capture.steps[event.step_index];
+    if (step !== undefined)
+      steps.set(projected.record.ordinal, {
+        step_id: step.step_id,
+        resource_type: event.resource_type,
+      });
     if (purpose === "manifest")
       responseBodies.set(projected.record.ordinal, projected.responseBody);
   }
@@ -264,6 +283,7 @@ export const scenarioCaptureRecords = (
     records,
     totalRecords: records.length,
     responseBodies,
+    steps,
     limitations: [
       "Scenario records are the capture's network transactions in request order; each record ordinal is the transaction's zero-based position.",
       ...(timed
