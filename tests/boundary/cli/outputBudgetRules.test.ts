@@ -13,7 +13,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { TextReader, Uint8ArrayWriter, ZipWriter } from "@zip.js/zip.js";
-import fc from "fast-check";
+import { fc } from "@fast-check/vitest";
 import { expect, it } from "vitest";
 
 import {
@@ -47,6 +47,7 @@ import {
   countedTokens,
   countedTokenWindow,
   countedTokenWindowWithin,
+  countedWindowNotice,
   MINIMUM_TOKEN_LIMIT,
 } from "../../../src/cli/outputBudget/tokenBound.js";
 import type { SavedOutputStoreOptions } from "../../../src/cli/outputBudget/store.js";
@@ -1365,6 +1366,16 @@ it("counts tokens as an upper bound and windows text without gaps, overlaps or s
     offset = window.end;
   }
   expect(joined).toBe(text);
+  const first = countedTokenWindowWithin(text, 0, 50);
+  expect(countedWindowNotice(first)).toBe(
+    `[window: tokens 0-${String(first.end)} of ${String(total)}, counted as 1 per 1.3 ASCII bytes and 1 per other byte; next: --token-offset ${String(first.end)}]`,
+  );
+  // The explicit window keeps its grid: consecutive windows partition the text too.
+  expect(
+    [0, 1, 2, 3]
+      .map((page) => countedTokenWindow(text, page * 100, 100).text)
+      .join("") + countedTokenWindow(text, 400, undefined).text,
+  ).toBe(text);
   expect(countedTokenWindow(text, 0, undefined)).toMatchObject({
     text,
     truncated: false,
