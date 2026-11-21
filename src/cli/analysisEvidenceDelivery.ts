@@ -1,3 +1,4 @@
+import { shellQuote } from "../domain/desktop/shellQuote.js";
 import { explicitValuesOccurIn } from "../domain/explicitSensitiveValues.js";
 import { recordCliEvidencePublication } from "./cliEvidencePublication.js";
 import { recordCliDeliveredEvidence } from "./cliResultControls.js";
@@ -238,12 +239,38 @@ export const publishCliAnalysisEvidence = async (
       ? failure
       : withUndeliveredSourceClosure(failure, closureInput);
   }
-  return detail === "summary"
-    ? {
-        summary: published.value.delivered,
-        evidence_bundle: published.value.receipt,
-      }
-    : published.value.delivered;
+  if (detail !== "summary") return published.value.delivered;
+  const views = namedViewCommands(
+    published.value.delivered,
+    published.value.receipt,
+  );
+  return {
+    summary: published.value.delivered,
+    evidence_bundle: published.value.receipt,
+    ...(views.length === 0 ? {} : { views }),
+  };
+};
+
+/**
+ * The summary's named views as commands that run as printed: each reads the
+ * retained parent from the bundle this invocation saved.
+ */
+const namedViewCommands = (
+  delivered: Evidence,
+  receipt: JsonValue,
+): string[] => {
+  const path = isObject(receipt) ? receipt.path : undefined;
+  const result = delivered.normalized_result;
+  if (typeof path !== "string" || !isObject(result)) return [];
+  const named = result.views;
+  if (!Array.isArray(named)) return [];
+  return named.flatMap((view) =>
+    isObject(view) && isObject(view.arguments)
+      ? [
+          `rea inspect-analysis-view ${shellQuote(JSON.stringify(view.arguments))} --evidence-bundle ${shellQuote(path)}`,
+        ]
+      : [],
+  );
 };
 
 /**

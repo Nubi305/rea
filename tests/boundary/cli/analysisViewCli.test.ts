@@ -491,6 +491,61 @@ cliTest(
   },
 );
 
+/** The single-quoted shell words of a printed command, unquoted. */
+const shellWords = (command: string): string[] => {
+  const words: string[] = [];
+  const pattern = /'(?:[^']|'"'"')*'|[^\s']+/gu;
+  for (const [word] of command.matchAll(pattern))
+    words.push(
+      word.startsWith("'") ? word.slice(1, -1).replaceAll(`'"'"'`, "'") : word,
+    );
+  return words;
+};
+
+cliTest(
+  "prints each named view of a summary as a command that runs as printed",
+  async ({ cli }) => {
+    const root = await createTestTempDirectory("rea-named-views-cli-");
+    const archive = join(root, "fixture.zip");
+    const writer = new ZipWriter(new Uint8ArrayWriter());
+    await writer.add("main.js", new TextReader("console.log('named');\n"));
+    await writer.add("data/notes.txt", new TextReader("notes\n"));
+    await writeFile(archive, await writer.close());
+    const bundlePath = join(root, "it's a bundle.json");
+    const summary = await cli.run({
+      arguments: [
+        "inspect-artifact",
+        archive,
+        "--detail",
+        "summary",
+        "--evidence_output",
+        bundlePath,
+        "--json",
+      ],
+    });
+    expect(summary.exitCode).toBe(0);
+    const commands = (summary.json as { views?: unknown }).views;
+    if (!Array.isArray(commands)) throw new Error("Expected named views");
+    expect(commands.length).toBeGreaterThan(0);
+    expect(commands.length).toBeLessThanOrEqual(6);
+    const [program, command, ...rest] = shellWords(String(commands[0]));
+    expect([program, command]).toEqual(["rea", "inspect-analysis-view"]);
+    const view = await cli.run({ arguments: [command!, ...rest, "--json"] });
+    expect(view.exitCode).toBe(0);
+    expect(view.json).toMatchObject({
+      operation: "inspect_analysis_view",
+      normalized_result: {
+        kind: "inventory",
+        coverage: { examined: expect.any(Number) },
+      },
+    });
+    const examined = (
+      view.json as { normalized_result: { coverage: { examined: number } } }
+    ).normalized_result.coverage.examined;
+    expect(examined).toBeGreaterThan(0);
+  },
+);
+
 cliTest(
   "projects portable artifact inventory after the original ZIP is removed",
   async ({ cli }) => {

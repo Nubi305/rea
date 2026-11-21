@@ -331,6 +331,10 @@ import {
   summaryViewSchema,
 } from "./analysisViewShape.js";
 import { recordedArrayViewSchema } from "./analysisViewRequest.js";
+import {
+  SUMMARY_NAMED_VIEW_LIMIT,
+  summaryNamedViewSchema,
+} from "./summaryNamedViews.js";
 
 const artifactSchema = z.strictObject({
   path: z
@@ -428,6 +432,11 @@ const summaryViewResultBase = {
   kind: z.literal("summary"),
   view: summaryViewSchema,
   ...viewResultBase,
+  /** The views of the same parent that run as written and return rows. */
+  views: z
+    .array(summaryNamedViewSchema)
+    .max(SUMMARY_NAMED_VIEW_LIMIT)
+    .exactOptional(),
 } as const;
 
 export const webSourceLocationSummaryViewResultSchema = z.strictObject({

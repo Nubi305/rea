@@ -106,6 +106,32 @@ it("returns the summary of complete Evidence retained for later views", async ()
   });
   expect(textBytes(summary.content)).toBeLessThan(textBytes(complete.content));
 
+  // The summary names the views of its record as arguments that run as written.
+  const named = (
+    summaryEvidence.normalized_result as {
+      readonly views?: readonly { readonly arguments: unknown }[];
+    }
+  ).views;
+  expect(named?.length).toBeGreaterThan(0);
+  const first = await client.callTool({
+    name: "inspect_analysis_view",
+    arguments: named![0]!.arguments as Record<string, unknown>,
+  });
+  expect(first.isError).not.toBe(true);
+  expect(
+    parseEvidence(first.structuredContent).normalized_result,
+  ).toMatchObject({
+    parent_evidence_id: completeEvidence.evidence_id,
+    coverage: { examined: expect.any(Number) },
+  });
+  expect(
+    (
+      parseEvidence(first.structuredContent).normalized_result as {
+        readonly coverage: { readonly examined: number };
+      }
+    ).coverage.examined,
+  ).toBeGreaterThan(0);
+
   const modules = await client.callTool({
     name: "inspect_analysis_view",
     arguments: {

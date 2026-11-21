@@ -742,6 +742,14 @@ session retention refuses summary detail with `capability_unavailable`;
 For `inspect_artifact`, omission also keeps the original request parameters and
 complete output shape. Delivery selection never reaches the inventory engine;
 the complete inspection and its atomic inventory Evidence remain retained.
+Every summary names the views of its retained record in
+`normalized_result.views`, at most six, most useful first: each holds the
+complete `inspect_analysis_view` arguments (`source` is the retained parent,
+`view` the page) and `rows`, the number of rows that view pages. A view is
+named only after it ran against that record and returned rows, so the first
+one runs as written; a record with no paged collection names none. The CLI
+prints the same views under `views` as `rea inspect-analysis-view` commands
+that read the parent from the bundle `--evidence_output` saved.
 A view is never more certain than its parent: a summary or other view of
 `inferred` Evidence is `inferred`. Other views are `derived`, unless the
 view kind itself infers, as described below.
