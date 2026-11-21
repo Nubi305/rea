@@ -5,8 +5,7 @@ Error: 'no-such-command' is not a command for 'rea'. Did you mean 'cutter-comman
 
 Suggested commands:
   rea cutter-command
-  rea --help          # see all available commands
-  rea --update        # upgrade from <version> to 999.0.0
+  rea --help          # see the command index
 <end>
 --- stderr
 <end>

@@ -4,6 +4,7 @@ import { mkdir, realpath, stat, symlink, writeFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { createTestTempDirectory } from "../../tests/fixtures/temporaryDirectory.js";
 
+import { FORK_IDENTITY } from "../domain/forkIdentity.js";
 import { err, ok, type Result } from "../domain/result.js";
 import {
   runUpdate,
@@ -216,6 +217,42 @@ describe("REA update", () => {
       installedVersion: "3.3.0",
       maintenance: host.maintenance,
     });
+  });
+});
+
+describe("update of a fork build", () => {
+  it("refuses upstream's release over a fork build without asking the package manager", async () => {
+    const host = new FakeUpdateHost();
+    const result = await runUpdate("3.2.1", host, "structured", {
+      fork: FORK_IDENTITY,
+      replaceWithUpstream: false,
+    });
+    expect(result).toMatchObject({
+      status: "failed",
+      currentVersion: "3.2.1",
+      latestVersion: null,
+      reason: "fork-build",
+    });
+    expect(result.status === "failed" && result.remediation).toEqual(
+      expect.stringContaining(FORK_IDENTITY.commands.join(", ")),
+    );
+    expect(result.status === "failed" && result.remediation).toEqual(
+      expect.stringContaining("rea update --upstream"),
+    );
+    expect(isUpdateFailure(result)).toBe(true);
+    expect(host.installationInspected).toBe(false);
+    expect(host.installedVersions).toEqual([]);
+  });
+
+  it("performs upstream's update over a fork build when asked by name", async () => {
+    const host = new FakeUpdateHost();
+    expect(
+      await runUpdate("3.2.1", host, "structured", {
+        fork: FORK_IDENTITY,
+        replaceWithUpstream: true,
+      }),
+    ).toMatchObject({ status: "updated", installedVersion: "3.3.0" });
+    expect(host.installedVersions).toEqual(["3.3.0"]);
   });
 });
 

@@ -5,6 +5,7 @@ import {
   searchGuidance,
 } from "../application/GuidanceAccess.js";
 import {
+  GUIDANCE_CONTENTS_LOCATOR,
   readGuidanceSectionInputSchema,
   searchGuidanceLimitSchema,
   searchGuidanceInputSchema,
@@ -42,29 +43,57 @@ export const registerGuidanceCommands = (
       options: z
         .object({
           action: z
-            .enum(["search", "read"])
+            .enum(["search", "read", "contents"])
             .default("search")
-            .describe("Guidance action to perform: search or read"),
+            .describe(
+              "Guidance action to perform: search, read, or contents (the guides and their headings with locators)",
+            ),
           query: searchGuidanceInputSchema.shape.query
             .optional()
             .describe(
-              "Required with search; all non-generic query words must match",
+              "Required with search; sections covering more of its words rank first",
             ),
           locator: readGuidanceSectionInputSchema.shape.locator
             .optional()
             .describe(
-              "Required with --action read; locator returned by search",
+              "Required with --action read; locator returned by search or contents",
+            ),
+          guide: z
+            .string()
+            .min(1)
+            .optional()
+            .describe(
+              "With --action contents: list every heading of this guide, such as references/clone-runs.md",
             ),
           // Decimal tokens only: numeric coercion would read "0x2" as 2.
           limit: cliDecimalField(searchGuidanceLimitSchema.optional()).describe(
-            "Maximum search matches; search only, defaults to 8",
+            "Maximum search matches; search only, defaults to 3",
           ),
           cursor: searchGuidanceInputSchema.shape.cursor
             .optional()
             .describe("Continue a search page; search only"),
         })
         .superRefine((options, context) => {
-          if (options.action === "search") {
+          if (options.action !== "contents" && options.guide !== undefined)
+            context.addIssue({
+              code: "custom",
+              path: ["guide"],
+              message: "--guide can only be used with --action contents",
+            });
+          if (options.action === "contents") {
+            for (const option of [
+              "query",
+              "locator",
+              "limit",
+              "cursor",
+            ] as const)
+              if (options[option] !== undefined)
+                context.addIssue({
+                  code: "custom",
+                  path: [option],
+                  message: `--${option} can only be used with --action ${option === "locator" ? "read" : "search"}`,
+                });
+          } else if (options.action === "search") {
             if (options.query === undefined)
               context.addIssue({
                 code: "custom",
@@ -114,7 +143,12 @@ export const registerGuidanceCommands = (
                 )
               : await readGuidanceSection(
                   {
-                    locator: options.locator,
+                    locator:
+                      options.action === "contents"
+                        ? options.guide === undefined
+                          ? GUIDANCE_CONTENTS_LOCATOR
+                          : `${GUIDANCE_CONTENTS_LOCATOR}:${options.guide}`
+                        : options.locator,
                   },
                   resources,
                 );

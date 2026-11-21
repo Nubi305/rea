@@ -28,6 +28,12 @@ export interface GlobalOptionsHelp {
   readonly root?:
     | { readonly integrations: readonly HelpCommandRow[] }
     | undefined;
+  /**
+   * Print this one line instead of the option rows: the page where the
+   * rows are. A command's own page uses it so the shared rows are not
+   * repeated on every command.
+   */
+  readonly reference?: string | undefined;
 }
 
 export interface CommandHelp {
@@ -152,7 +158,11 @@ const globalOptionRows = ({ formats, root }: GlobalOptionsHelp): Row[] =>
       label: "--llms, --llms-full",
       description: "Print LLM-readable manifest",
     },
-    { label: "--schema", description: "Show JSON Schema for command" },
+    {
+      label: "--schema",
+      description:
+        "Show JSON Schema for command (compact JSON; --schema-kind <kind,...> keeps those kinds of its unions)",
+    },
     {
       label: "--token-count",
       description: "Print token count of output (instead of output)",
@@ -167,7 +177,7 @@ const globalOptionRows = ({ formats, root }: GlobalOptionsHelp): Row[] =>
       ? []
       : [
           { label: "--mcp", description: "Start as MCP stdio server" },
-          { label: "--update", description: "Update to latest version" },
+          { label: "--update", description: "Same as the update command" },
           { label: "--version", description: "Show version" },
         ]),
   ].sort((left, right) => left.label.localeCompare(right.label));
@@ -175,6 +185,7 @@ const globalOptionRows = ({ formats, root }: GlobalOptionsHelp): Row[] =>
 /** Integrations, custom global options and global options, in that order. */
 const globalOptionsLines = (help: GlobalOptionsHelp | undefined): string[] => {
   if (help === undefined) return [];
+  if (help.reference !== undefined) return ["", help.reference];
   const lines: string[] = [];
   if (help.root !== undefined)
     lines.push("", "Integrations:", ...commandRows(help.root.integrations));
@@ -220,11 +231,44 @@ export const formatCommandListHelp = (
   name: string,
   help: Pick<CommandHelp, "description" | "version" | "globalOptions"> & {
     readonly commands: readonly HelpCommandRow[];
+    /** The usage line's text; `name <command>` when omitted. */
+    readonly usage?: string | undefined;
   },
 ): string => {
-  const lines = [title(name, help), "", `Usage: ${name} <command>`];
+  const lines = [
+    title(name, help),
+    "",
+    `Usage: ${help.usage ?? `${name} <command>`}`,
+  ];
   if (help.commands.length > 0)
     lines.push("", "Commands:", ...commandRows(help.commands));
   lines.push(...globalOptionsLines(help.globalOptions));
+  return lines.join("\n");
+};
+
+/** A titled list of aligned rows, such as the families of the index. */
+export interface HelpSection {
+  readonly heading: string;
+  readonly rows: readonly HelpCommandRow[];
+}
+
+/**
+ * Render an index page: a title, a usage line, titled sections of aligned
+ * rows, then closing lines; without a trailing newline.
+ */
+export const formatHelpIndex = (
+  name: string,
+  help: Pick<CommandHelp, "description" | "version"> & {
+    readonly usage: string;
+    readonly sections: readonly HelpSection[];
+    readonly footer?: readonly string[] | undefined;
+  },
+): string => {
+  const lines = [title(name, help), "", `Usage: ${help.usage}`];
+  for (const section of help.sections)
+    if (section.rows.length > 0)
+      lines.push("", section.heading, ...commandRows(section.rows));
+  if (help.footer !== undefined && help.footer.length > 0)
+    lines.push("", ...help.footer);
   return lines.join("\n");
 };

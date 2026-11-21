@@ -8,7 +8,7 @@ cta:
   commands[2]:
     - command: rea mcp
     - command: rea --help
-      description: see all available commands
+      description: see the command index
 <end>
 --- stderr
 <end>

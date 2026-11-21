@@ -3,42 +3,38 @@ exit: 0
 --- stdout
 rea@<version> — Reverse engineer anything from your terminal or agent.
 
-Usage: rea <command>
+Usage: rea <command> [options]
 
-Commands:
-  address-to-file-offset  Map one analysis address to a file offset; memory bytes may differ and ranges may not be contiguous
-  <registered command rows elided>
-  build-reconstruction-obligation-ledger  Generate a deterministic Evidence-backed reconstruction obligation ledger page
-  <registered command rows elided>
-  decompile  Read one part of an app as code. Supply at least one of the positional address or --procedure. Alternatively, use --file-offset alone. Equal positional and --procedure values are accepted; conflicts fail. With Ghidra, a space-qualified address such as ram:0x... avoids file-offset fallback; inspect-native-load-image reports the observed default space.
-  <registered command rows elided>
-  inspect-byte-entropy  Inspect file-wide and block byte entropy without executing the file
-  <registered command rows elided>
-  setup  Configure agent integrations and optional analysis providers
-  <registered command rows elided>
-  xrefs  List bounded, untyped references to an analyzed address. For typed incoming references, use inspect-native-instruction at the target address where supported. Supply at least one of the positional address or --address. Equal values are accepted; conflicts fail.
+Start with:
+  inspect-artifact <path>                Identify any file; prints the next probes
+  analyze <path>                         Overview of a native app
+  analyze-javascript-application <path>  A JavaScript or Electron app on disk
+  list-browser-targets <endpoint>        Pages of a running browser (CDP)
+  guidance --query <words>               Search REA's guides
+  doctor                                 Check providers and agent setup
 
-Integrations:
-  completions  Generate shell completion script
-  mcp          Register as MCP server (add, doctor)
+Families (rea help <family> lists its commands):
+  start        Set up, check and update REA; guides; providers
+  artifact     Identify, unpack and inspect files and packages of any format
+  native       Decompile, search, cross-reference and trace native code
+  binary       ELF, PE, Mach-O facts: imports, hardening, debug info, crashes
+  debug        gdb, rizin, objdump, Cutter, Frida; observe native calls and UI
+  managed      .NET (PE/CLI) assemblies and their native boundaries
+  android      Android and Flutter apps: APK, DEX, resources, JEB
+  adb          A connected Android device through adb
+  firmware     Firmware images, UEFI volumes and NVRAM
+  web          Live pages and bundles: capture, network, scripts, sources
+  javascript   JavaScript and Electron apps: analysis, recovery, runtime
+  captures     Packet captures and signal recordings
+  desktop      Desktop applications and processes: capture, state, export
+  application  Whole applications: versions, API contracts, feature traces
+  evidence     Saved Evidence: views, bundles, export, import, compare
+  environment  Agent environments: build, serve, compare, export
+  clone-run    Rebuild a web application under a referee (this fork only)
 
-Custom Global Options:
-  --timings  Write measured command timing to stderr.
-
-Global Options:
-  --filter-output <keys>                      Filter output by key paths (e.g. foo,bar.baz,a[0,3])
-  --format <toon|json|yaml|md|jsonl|csv|tsv>  Output format
-  --full-output                               Show full output envelope
-  --help                                      Show help
-  --json                                      Shorthand for --format json
-  --llms, --llms-full                         Print LLM-readable manifest
-  --mcp                                       Start as MCP stdio server
-  --schema                                    Show JSON Schema for command
-  --token-count                               Print token count of output (instead of output)
-  --token-limit <n>                           Limit output to n tokens
-  --token-offset <n>                          Skip first n tokens of output
-  --update                                    Update to latest version
-  --version                                   Show version
+More: rea <command> --help (one command), rea help all (every command, one line each),
+rea help options (--json, --format, --filter-output, --token-limit, ...),
+rea --llms (manifest), rea completions <shell>, rea mcp.
 <end>
 --- stderr
 <end>

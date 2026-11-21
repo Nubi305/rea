@@ -149,6 +149,7 @@ export const createCli = (
     fridaInstrumentation,
     createAnalysis: createDirectAnalysis,
     registrations: CLI_REGISTRATION_ORDER.map((id) => ({
+      id,
       registration: CLI_COMMAND_REGISTRATIONS[id],
       module: CLI_COMMAND_MODULES[id],
     })),

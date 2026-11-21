@@ -4,6 +4,7 @@ import { RegularFileCleanupFailure } from "../filesystem/OwnedRegularFile.js";
 import { MANAGED_SKILL_FILES } from "./SetupSkill.js";
 import { searchGuidanceOutputSchema } from "../contracts/guidanceContracts.js";
 import { RetainedRegularFileCleanupFailure } from "../process/RegularFileRead.js";
+import { sha256Hex } from "../kernel/sha256Hex.js";
 import {
   readGuidanceSectionWithReader,
   searchGuidanceWithReader,
@@ -37,7 +38,7 @@ it("ranks a focused JavaScript module section and retrieves it with its locator"
   expect(result.matches[0]).toMatchObject({
     guide: "references/javascript-applications.md",
     heading: "Read a module without repeating analysis",
-    matched_terms: ["exact", "javascript", "module"],
+    matched: "3 of 3: exact, javascript, module",
     context: expect.stringContaining("javascript-module"),
   });
   const selected = result.matches[0];
@@ -364,134 +365,174 @@ const matchesFor = async (query: string, limit = 20) => {
   return result.matches;
 };
 
-it("reports a focused subsection without repeating every enclosing parent", async () => {
-  const matches = await matchesFor("function annotations");
-  expect(matches).toEqual([
-    expect.objectContaining({
-      heading: "Function annotations in Ghidra",
-      match_scope: "section",
-      matched_terms: ["function", "annotations"],
-    }),
-  ]);
-  expect(matches[0]).not.toHaveProperty("subsections");
-  expect(matches[0]).not.toHaveProperty("own_text_terms");
-});
+const readSection = async (locator: string | undefined) => {
+  const result = await readGuidanceSectionWithReader(
+    { locator },
+    nestedReader,
+    new ArtifactResourceScope(),
+  );
+  if (!result.ok) throw result.error;
+  return result.value;
+};
 
-it("keeps a parent whose own text holds every term alongside its matching subsection", async () => {
-  const matches = await matchesFor("annotations close");
-  expect(
-    matches.map(({ heading, match_scope }) => [heading, match_scope]),
-  ).toEqual([
-    ["Function annotations in Ghidra", "section"],
-    ["Native targets", "section"],
-  ]);
-  expect(matches[1]?.context).not.toContain("Rename functions");
-});
-
-it("labels terms scattered across sibling subsections and points to where each occurs", async () => {
+it("ranks by covered query words, shows the count and needs more than half of them", async () => {
   const matches = await matchesFor("switch provider annotations");
-  expect(matches).toHaveLength(1);
-  const [root] = matches;
-  expect(root).toMatchObject({
-    heading: "Native guide",
-    match_scope: "subsections",
-    matched_terms: ["switch", "provider", "annotations"],
-    content_length: nestedGuide.trim().length,
-    own_text_terms: [],
-    relevance: expect.stringContaining("no single subsection"),
+  expect(matches[0]).toMatchObject({
+    heading: "Apple app resources",
+    matched: "2 of 3: switch, provider",
+    locator: expect.stringMatching(
+      /^references\/native-and-artifacts\.md#1\.[a-f0-9]{8}$/u,
+    ),
   });
-  expect(
-    root?.subsections?.map(({ heading, matched_terms }) => [
-      heading,
-      matched_terms,
-    ]),
-  ).toEqual([
-    ["Apple app resources", ["switch", "provider"]],
-    ["Native targets", ["annotations"]],
-  ]);
-  const pointer = root?.subsections?.[0];
-  if (pointer === undefined) throw new Error("Expected a subsection pointer");
-  const read = await readGuidanceSectionWithReader(
-    { locator: pointer.locator },
-    nestedReader,
-    new ArtifactResourceScope(),
-  );
-  expect(read).toMatchObject({
-    ok: true,
-    value: { status: "section", heading: "Apple app resources" },
-  });
-  const complete = await readGuidanceSectionWithReader(
-    { locator: root?.locator },
-    nestedReader,
-    new ArtifactResourceScope(),
-  );
-  if (!complete.ok || complete.value.status !== "section")
-    throw new Error("Expected the complete parent section");
-  expect(complete.value.content).toHaveLength(root?.content_length ?? -1);
-  expect(complete.value.content).toContain("### Step beta");
-});
-
-it("separates a parent's own terms from those found in one subsection", async () => {
-  const [combined, ...rest] = await matchesFor("recovery alphaword");
-  expect(rest).toEqual([]);
-  expect(combined).toMatchObject({
-    heading: "Combined recovery",
-    match_scope: "subsections",
-    own_text_terms: ["recovery"],
-  });
-  expect(combined?.subsections?.map(({ heading }) => heading)).toEqual([
-    "Step alpha",
-  ]);
-});
-
-it("ranks co-located terms before broader matches and treats heading words as own text", async () => {
-  const matches = await matchesFor("alphaword betaword");
-  expect(matches.map(({ heading }) => heading)).toEqual(["Combined recovery"]);
-  expect(await matchesFor("apple resources")).toEqual([
-    expect.objectContaining({
-      heading: "Apple app resources",
-      match_scope: "section",
-    }),
-  ]);
-  // The scattered parent has a heading term and the higher score.
-  const focusedFirst = await valueOf(
+  // Two words of four is not more than half: no section qualifies.
+  const none = await valueOf(
     searchGuidanceWithReader(
-      { query: "recovery alphaword" },
-      async (path) =>
-        path === "SKILL.md"
-          ? "# REA\n\n## Focused\n\nThe alphaword recovery recipe.\n"
-          : nestedReader(path),
+      { query: "alphaword betaword deltaword epsilonword" },
+      nestedReader,
       new ArtifactResourceScope(),
     ),
   );
-  if (focusedFirst.status !== "matches") throw new Error("Expected matches");
-  expect(
-    focusedFirst.matches.map(({ heading, match_scope }) => [
-      heading,
-      match_scope,
-    ]),
-  ).toEqual([
-    ["Focused", "section"],
-    ["Combined recovery", "subsections"],
-  ]);
+  expect(none.status).toBe("no_matches");
 });
 
-it("bounds subsection pointers and counts the remainder", async () => {
-  const terms = Array.from({ length: 10 }, (_, index) => `scatterterm${index}`);
-  const guide = [
-    "# Scattered",
-    "",
-    ...terms.flatMap((term, index) => [`## Part ${index}`, "", term, ""]),
-  ].join("\n");
+it("weighs heading words above words in the text", async () => {
+  const matches = await matchesFor("annotations close");
+  expect(matches.map(({ heading }) => heading).slice(0, 2)).toEqual([
+    "Function annotations in Ghidra",
+    "Native targets",
+  ]);
+  expect(matches[0]?.context).toBe(
+    "Rename functions; annotations last until close.",
+  );
+});
+
+it("returns three matches by default", async () => {
   const result = await valueOf(
     searchGuidanceWithReader(
-      { query: terms.join(" ") },
-      async (path) => (path === "SKILL.md" ? guide : `# ${path}\n`),
+      { query: "native ghidra recovery annotations" },
+      nestedReader,
       new ArtifactResourceScope(),
     ),
   );
   if (result.status !== "matches") throw new Error("Expected matches");
-  expect(result.matches).toHaveLength(1);
-  expect(result.matches[0]?.subsections).toHaveLength(8);
-  expect(result.matches[0]?.omitted_subsections).toBe(2);
+  expect(result.limit).toBe(3);
+  expect(result.matches.length).toBeLessThanOrEqual(3);
+});
+
+it("reads a whole guide's short locator as its introduction and sections", async () => {
+  const [guide] = await matchesFor("overview");
+  expect(guide).toMatchObject({ heading: "Native guide" });
+  const read = await readSection(guide?.locator);
+  if (read.status !== "section") throw new Error("Expected a section");
+  expect(read.content).toContain("Overview of native work.");
+  expect(read.content).toContain("- Combined recovery: references/");
+  expect(read.content).not.toContain("Use betaword here.");
+  expect(guide?.content_length).toBe(
+    read.content.split("\n\nSections")[0]?.length,
+  );
+});
+
+it("finds a section by its keyword line and an identifier spelled exactly", async () => {
+  const reader = async (path: string): Promise<string> =>
+    path === "SKILL.md"
+      ? [
+          "# REA",
+          "",
+          "## Mentions",
+          "",
+          "A zebra, and a stale evidence note.",
+          "",
+          "## Keyworded",
+          "",
+          "<!-- keywords: zebra -->",
+          "",
+          "Body text.",
+          "",
+          "## Code",
+          "",
+          "Reason `evidence_stale` means the clone changed.",
+          "",
+        ].join("\n")
+      : `# ${path}\n\nUnrelated guidance.\n`;
+  const search = async (query: string) => {
+    const result = await valueOf(
+      searchGuidanceWithReader({ query }, reader, new ArtifactResourceScope()),
+    );
+    if (result.status !== "matches") throw new Error(`No matches: ${query}`);
+    return result.matches.map(({ heading }) => heading);
+  };
+  expect((await search("zebra"))[0]).toBe("Keyworded");
+  expect((await search("evidence_stale"))[0]).toBe("Code");
+});
+
+it("lists the guides and their headings with locators that read", async () => {
+  const all = await readSection("contents");
+  if (all.status !== "contents") throw new Error("Expected contents");
+  const native = all.guides.find(
+    ({ guide }) => guide === "references/native-and-artifacts.md",
+  );
+  expect(
+    native?.sections.map(({ heading, depth }) => [heading, depth]),
+  ).toEqual([
+    ["Native guide", 0],
+    ["Apple app resources", 1],
+    ["Native targets", 1],
+    ["Combined recovery", 1],
+  ]);
+  const one = await readSection("contents:references/native-and-artifacts.md");
+  if (one.status !== "contents") throw new Error("Expected contents");
+  expect(one.guides).toHaveLength(1);
+  expect(one.guides[0]?.sections.map(({ heading }) => heading)).toContain(
+    "Step beta",
+  );
+  const step = one.guides[0]?.sections.find(
+    ({ heading }) => heading === "Step beta",
+  );
+  expect(await readSection(step?.locator)).toMatchObject({
+    status: "section",
+    content: "### Step beta\n\nUse betaword here.",
+  });
+  expect(
+    await readGuidanceSectionWithReader(
+      { locator: "contents:../outside.md" },
+      nestedReader,
+      new ArtifactResourceScope(),
+    ),
+  ).toMatchObject({ ok: false });
+});
+
+it("still reads a locator in the earlier long form", async () => {
+  const result = await valueOf(
+    searchGuidanceWithReader(
+      { query: "betaword" },
+      nestedReader,
+      new ArtifactResourceScope(),
+    ),
+  );
+  if (result.status !== "matches") throw new Error("Expected matches");
+  const content = "### Step beta\n\nUse betaword here.";
+  const long = `rea-guide-v1.${Buffer.from(
+    JSON.stringify({
+      v: 1,
+      bundle: result.bundle_sha256,
+      guide: "references/native-and-artifacts.md",
+      ordinal: 6,
+      section: sha256Hex(content),
+    }),
+  ).toString("base64url")}`;
+  expect(await readSection(long)).toMatchObject({ status: "section", content });
+  // The long form of a whole guide still reads the whole guide.
+  const root = `rea-guide-v1.${Buffer.from(
+    JSON.stringify({
+      v: 1,
+      bundle: result.bundle_sha256,
+      guide: "references/native-and-artifacts.md",
+      ordinal: 0,
+      section: sha256Hex(nestedGuide.trim()),
+    }),
+  ).toString("base64url")}`;
+  expect(await readSection(root)).toMatchObject({
+    status: "section",
+    content: nestedGuide.trim(),
+  });
 });

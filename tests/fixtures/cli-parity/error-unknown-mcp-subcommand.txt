@@ -6,7 +6,7 @@ message: 'bogus' is not a command for 'rea mcp'.
 cta:
   description: "Suggested command:"
   commands[1]{command,description}:
-    rea mcp --help,see all available commands
+    rea mcp --help,see the command index
 <end>
 --- stderr
 <end>

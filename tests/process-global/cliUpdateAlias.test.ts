@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createTestTempDirectory } from "../fixtures/temporaryDirectory.js";
 
 import { createCli } from "../../src/cli.js";
+import { FORK_IDENTITY } from "../../src/domain/forkIdentity.js";
 import { PRODUCT_IDENTITY } from "../../src/identity.js";
 import { HOST_PLATFORM } from "../../src/platform/HostPlatform.js";
 
@@ -102,6 +103,7 @@ it("uses the selected environment snapshot when serving the update alias directl
     PRODUCT_IDENTITY.packageVersion,
     { owner: "selected-update-host" },
     "structured",
+    { fork: FORK_IDENTITY, replaceWithUpstream: false },
   );
   expect(mocks.host).toHaveBeenCalledExactlyOnceWith(
     undefined,

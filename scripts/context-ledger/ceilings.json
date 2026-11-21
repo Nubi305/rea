@@ -75,7 +75,7 @@
     },
     "guidance.search.mean": {
       "metric": "o200k",
-      "ceiling": 1876,
+      "ceiling": 302,
       "target": "at most 600",
       "target_value": 600,
       "tolerance": 0.01,
@@ -91,7 +91,7 @@
     },
     "guidance.search.no-match": {
       "metric": "count",
-      "ceiling": 2
+      "ceiling": 0
     },
     "cli.census.largest": {
       "metric": "bytes",
@@ -147,7 +147,7 @@
     },
     "cli.help": {
       "metric": "bytes",
-      "ceiling": 29652,
+      "ceiling": 1990,
       "target": "an index of at most 3,000 B",
       "target_value": 3000,
       "raised": [
@@ -161,11 +161,11 @@
     },
     "cli.help.command": {
       "metric": "bytes",
-      "ceiling": 2096
+      "ceiling": 1351
     },
     "cli.setup.one-client": {
       "metric": "o200k",
-      "ceiling": 6673,
+      "ceiling": 983,
       "target": "at most 1,500",
       "target_value": 1500,
       "tolerance": 0.01,
