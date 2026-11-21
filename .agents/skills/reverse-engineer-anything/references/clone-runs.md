@@ -10,8 +10,10 @@ recorded and authenticated and from the clone's files as they are now.
 
 One agent can play the seven roles in turn, or a lead can hand them to
 helpers. To understand an application without rebuilding it, use the other
-guides. The referee covers web applications served from one origin that need
-no sign-in. For a native, Electron or command-line target there is no referee:
+guides. The referee covers web applications served from one origin. A
+scenario cannot carry stored state or secrets, so a sign-in is covered only
+when its own steps perform it, and the captures then record what they sent.
+For a native, Electron or command-line target there is no referee:
 build with ordinary coding tools, keep observed behavior apart from design
 choices, and say that no REA verdict backs the result.
 
@@ -94,8 +96,9 @@ Give these to a helper together with its card.
   writes (`rendered/`, `records/`, `behavior/`, `parity/`, `journal.jsonl`,
   `gate.json`). The referee rewrites its outputs and never reads them back, so
   an edit there changes nothing.
-- Pass paths and ids, never payloads. A capture file runs to hundreds of
-  kilobytes; a step id and a path say the same in one line.
+- Pass paths and ids, never payloads. A capture file runs from hundreds of
+  kilobytes to several megabytes; a step id and a path say the same in one
+  line.
 - What you could not establish goes into `unknowns/<role>-<n>.json` as one
   statement, with your role spelled as in the worklist (`spec_writer-1.json`).
   Do not guess and do not drop it. Only the lead settles an unknown.
@@ -301,7 +304,8 @@ into numbered rules a builder can implement without seeing the original.
 
 - Reads: `behavior/<scenario>.json`, the original's requests, statuses,
   decoded replies and on-screen text per step; `surfaces.json`. Evidence only
-  when the table is unclear.
+  when the table is unclear, or for a reply over 8 KiB, which the table
+  lists as `omitted`.
 - Writes: `specs/` in prose for the builder, `obligations/<area>.json`,
   `unknowns/spec_writer-<n>.json`.
 - Commands: none required.
@@ -388,7 +392,9 @@ the referee can compare. Where a helper is available it is not the builder.
 
 Builders read `specs/`, `obligations/`, `behavior/` and `gate.json`. They
 never read `evidence/` or `scout/`, which hold the original's scripts and
-pages. Nothing enforces this wall: it holds because the roles keep it. The
+pages. Nothing enforces this wall: it holds only while the roles keep it,
+and in one recorded run the clone's client script followed the scripts in
+`scout/` statement by statement. The
 referee's clean-room check finds the original's names and identical files
 and nothing more: code retyped from the original's scripts passes it and is
 still copying.
@@ -435,9 +441,9 @@ printed. The helper answers with the paths and ids it wrote.
 
 - Reset, then confirm, before every capture. Run the side's reset command,
   then its health command, and read the state the fingerprint reads. Do not
-  trust a process id you wrote down: in the study behind this guide, three of
-  four agents captured a used instance after recording the wrong one. Check
-  that the old process is gone and the new one owns the address.
+  trust a process id you wrote down: an agent has captured a used instance
+  after recording the wrong one. Check that the old process is gone and the
+  new one owns the address.
 - Keep the outer `timeout` the worklist command carries, and put one on every
   capture you write yourself. A capture that timed out or was cancelled has
   already changed the instance: reset, retry at most twice, then write an

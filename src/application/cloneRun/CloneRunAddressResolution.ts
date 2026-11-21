@@ -15,7 +15,7 @@ import { errorMessage } from "../../kernel/errorMessage.js";
  * classified by its spelling, so every name that is not an IP literal goes to
  * the system resolver, and every loopback, unspecified and own-interface
  * address is folded to "this machine".
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, check 1 (scope).
+ * Contract: docs/reference/clone-runs.md, "Address identity".
  */
 
 /** The system facts address identity needs; tests supply fakes. */

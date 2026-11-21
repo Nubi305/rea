@@ -26,19 +26,17 @@ import {
   type CloneRunInitInput,
 } from "./CloneRunWorkspace.js";
 
-const spec = readFileSync(
-  new URL(
-    "../../../docs/specs/reconstruction/clone-runs/spec.md",
-    import.meta.url,
-  ),
+const contract = readFileSync(
+  new URL("../../../docs/reference/clone-runs.md", import.meta.url),
   "utf8",
 );
 
-/** The JSON example the specification gives right after naming a file. */
-const specExample = (heading: string): unknown => {
+/** The JSON example the clone-run reference gives right after naming a file. */
+const contractExample = (heading: string): unknown => {
   const open =
-    spec.indexOf("```json\n", spec.indexOf(heading)) + "```json\n".length;
-  return JSON.parse(spec.slice(open, spec.indexOf("\n```", open)));
+    contract.indexOf("```json\n", contract.indexOf(heading)) +
+    "```json\n".length;
+  return JSON.parse(contract.slice(open, contract.indexOf("\n```", open)));
 };
 
 const input = (
@@ -60,7 +58,7 @@ const input = (
 const readJson = async (path: string): Promise<unknown> =>
   JSON.parse(await readFile(path, "utf8"));
 
-it("scaffolds the run folder from flags, with examples that are the specification's", async () => {
+it("scaffolds the run folder from flags, with examples that are the reference's", async () => {
   const base = await createTestTempDirectory("clone-run-init-");
   const result = await initCloneRun(
     input(base, {
@@ -157,7 +155,7 @@ it("scaffolds the run folder from flags, with examples that are the specificatio
   for (const [example, schema, heading] of examples) {
     const written = await readJson(join(run, example.file));
     expect(schema.safeParse(written).error).toBeUndefined();
-    expect(written).toEqual(specExample(heading));
+    expect(written).toEqual(contractExample(heading));
   }
   expect(
     result.value.next

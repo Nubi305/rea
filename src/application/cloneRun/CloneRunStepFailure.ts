@@ -5,7 +5,7 @@ import { parseCaptureEvidence } from "../environment/environmentSource.js";
 /**
  * The failure text a capture recorded for one of its steps, for the worklist
  * item of a step that did not complete.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, "The worklist".
+ * Contract: docs/reference/clone-runs.md, "Who a comparison finding goes to".
  *
  * The file is authenticated and parsed by the capture owners again, so the
  * text is the capture's own and never an edited copy. It decides nothing: a

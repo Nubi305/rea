@@ -21,7 +21,7 @@ import { IDENTIFIER_PATTERN } from "../stringPatterns.js";
 
 /**
  * Every file of a clone run folder and the referee's output.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md.
+ * Contract: docs/reference/clone-runs.md.
  *
  * Files an agent writes carry no schema tag and never repeat their own file
  * name, so there is less to hand-write and nothing to keep in step; files the

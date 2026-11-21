@@ -52,4 +52,3 @@ for new work, roadmap granularity and producer-owned contracts.
 - [Windows ReFS filesystem authority](native/windows-refs/spec.md) ([plan](native/windows-refs/plan.md), [tasks](native/windows-refs/tasks.md))
 - [Historical capture admission budgets](web/historical-capture-budgets/spec.md) ([plan](web/historical-capture-budgets/plan.md), [tasks](web/historical-capture-budgets/tasks.md))
 - [Per-call source-map budget recovery](web/source-map-budget-recovery/spec.md) ([plan](web/source-map-budget-recovery/plan.md), [tasks](web/source-map-budget-recovery/tasks.md))
-- [Clone runs: a referee and a team playbook for web apps](reconstruction/clone-runs/spec.md) ([plan](reconstruction/clone-runs/plan.md), [tasks](reconstruction/clone-runs/tasks.md))

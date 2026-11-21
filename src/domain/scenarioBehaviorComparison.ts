@@ -12,7 +12,7 @@ import type { Result } from "./result.js";
 
 /**
  * Behaviour parity of one browser scenario captured against two addresses.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md. The exported names
+ * Contract: docs/reference/clone-runs.md, "Compare captures directly". The exported names
  * are shared by the comparer, the clone-run referee and the CLI.
  */
 

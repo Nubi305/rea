@@ -3,7 +3,7 @@ import type { CloneRunJournalEntry } from "./cloneRunSchemas.js";
 /**
  * The stall rule of a clone run, as a pure function over the journal and the
  * state of the evaluation in hand.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, "Stall".
+ * Contract: docs/reference/clone-runs.md, "Stall".
  *
  * `stalled` means the team acted and nothing improved. It can only replace
  * `not_done`: the journal is the referee's own output and never yields a pass.

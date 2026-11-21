@@ -30,7 +30,8 @@ import {
 
 /**
  * One browser scenario capture as the behaviour comparer reads it.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, "The comparer".
+ * Contract: docs/reference/clone-runs.md, "Compare captures directly" and
+ * "Limits of what a capture records".
  *
  * Reuses the capture owners instead of reading Evidence JSON itself:
  * `readEvidenceFileSource` authenticates the file, `parseCaptureEvidence`
