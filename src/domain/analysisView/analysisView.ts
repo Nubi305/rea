@@ -101,6 +101,8 @@ import { projectAndroidSymbolSummary } from "./androidSymbolView.js";
 import { projectAndroidJniView } from "./androidJniView.js";
 import { projectDartAotView } from "./dartAotView.js";
 import { projectIl2cppMetadataView } from "./il2cppMetadataView.js";
+import { nameSummaryViews } from "./summaryNamedViews.js";
+import { findingsWithViewIndices } from "./summaryFindings.js";
 
 import type { AnalysisViewParent } from "./analysisViewParent.js";
 import type { GroupingViewKind } from "./analysisViewShape.js";
@@ -299,11 +301,37 @@ const projectGroupingView = (
   return projectEnvironmentStateView(parent, view, accumulators.state);
 };
 
-/** Project one selected view from authenticated parent analysis Evidence. */
+/**
+ * Project one selected view from authenticated parent analysis Evidence. A
+ * summary also names the views that run against the same parent and return
+ * rows, so the next call needs no schema.
+ */
 export const projectAnalysisView = (
   parent: AnalysisViewParent,
   view: AnalysisViewRequest,
   accumulators: AnalysisViewAccumulators = {},
+): Result<AnalysisViewResult, AnalysisError> => {
+  const projected = projectSelectedView(parent, view, accumulators);
+  if (!projected.ok || projected.value.kind !== "summary") return projected;
+  const { view_digest: _digest, ...unsigned } = projected.value;
+  const views = nameSummaryViews(parent, (candidate) =>
+    projectSelectedView(parent, candidate, {}),
+  );
+  return ok(
+    sealAnalysisView({
+      ...unsigned,
+      ...(unsigned.findings === undefined
+        ? {}
+        : { findings: findingsWithViewIndices(unsigned.findings, views) }),
+      views,
+    }),
+  );
+};
+
+const projectSelectedView = (
+  parent: AnalysisViewParent,
+  view: AnalysisViewRequest,
+  accumulators: AnalysisViewAccumulators,
 ): Result<AnalysisViewResult, AnalysisError> => {
   if (!parentEvidenceIdSchema.safeParse(parent.evidenceId).success)
     return err(

@@ -1483,27 +1483,19 @@ it.each([63, 64, 65, 10_000])(
         result.value.parent_operation === "analyze_javascript_application"
       )
         expect(result.value.summary.limitation_count).toBe(count);
+      // Limitation sentences are stated once, under limitations.
+      expect(result.value.unknowns).toEqual([
+        "semantic_graph.coverage.status is unknown",
+      ]);
       if (count <= 65) {
         expect(result.value.limitations).toEqual(messages);
-        expect(result.value.unknowns).toEqual(
-          [...messages, "semantic_graph.coverage.status is unknown"].sort(),
-        );
       } else {
         const limitations = result.value.limitations;
-        const unknowns = result.value.unknowns;
         expect(limitations.length).toBeGreaterThan(65);
         expect(limitations.at(-1)).toBe(
           notice(
             count - limitations.length + 1,
             "limitations",
-            parent.evidenceId,
-          ),
-        );
-        expect(unknowns.length).toBeGreaterThan(65);
-        expect(unknowns.at(-1)).toBe(
-          notice(
-            count + 1 - unknowns.length + 1,
-            "unknowns",
             parent.evidenceId,
           ),
         );
@@ -1619,12 +1611,11 @@ it.each(["partial", "unknown"] as const)(
           semantic: { status: "unknown" },
           application_unknown_count: 1,
         });
+      // The parent's limitation sentences are stated under limitations only.
       expect(result.value.unknowns).toEqual([
         "1 application graph unknowns remain in the parent Evidence.",
-        ...messages.slice(0, 65),
         `graph.coverage.status is ${status}`,
         "semantic_graph.coverage.status is unknown",
-        `1 additional unknowns omitted from this view; consult source parent Evidence ${parent.evidenceId} for the complete list (the caller-supplied record, or its retaining session).`,
       ]);
     }
   },

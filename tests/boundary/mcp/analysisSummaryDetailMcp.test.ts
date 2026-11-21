@@ -106,6 +106,32 @@ it("returns the summary of complete Evidence retained for later views", async ()
   });
   expect(textBytes(summary.content)).toBeLessThan(textBytes(complete.content));
 
+  // The summary names the views of its record as arguments that run as written.
+  const named = (
+    summaryEvidence.normalized_result as {
+      readonly views?: readonly { readonly arguments: unknown }[];
+    }
+  ).views;
+  expect(named?.length).toBeGreaterThan(0);
+  const first = await client.callTool({
+    name: "inspect_analysis_view",
+    arguments: named![0]!.arguments as Record<string, unknown>,
+  });
+  expect(first.isError).not.toBe(true);
+  expect(
+    parseEvidence(first.structuredContent).normalized_result,
+  ).toMatchObject({
+    parent_evidence_id: completeEvidence.evidence_id,
+    coverage: { examined: expect.any(Number) },
+  });
+  expect(
+    (
+      parseEvidence(first.structuredContent).normalized_result as {
+        readonly coverage: { readonly examined: number };
+      }
+    ).coverage.examined,
+  ).toBeGreaterThan(0);
+
   const modules = await client.callTool({
     name: "inspect_analysis_view",
     arguments: {
@@ -127,6 +153,102 @@ it("returns the summary of complete Evidence retained for later views", async ()
       ]),
     },
   });
+});
+
+/** Every string of every `limitations` array in a value, with repeats. */
+const limitationSentences = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.flatMap(limitationSentences);
+  if (value === null || typeof value !== "object") return [];
+  return Object.entries(value).flatMap(([key, member]) =>
+    key === "limitations" && Array.isArray(member)
+      ? [
+          ...member.filter((entry) => typeof entry === "string"),
+          ...member.flatMap(limitationSentences),
+        ]
+      : limitationSentences(member),
+  );
+};
+
+it("states each limitation sentence once per reply and keeps every sentence reachable", async () => {
+  const client = await connect(true);
+  const input = await application();
+  const complete = await client.callTool({
+    name: contract.name,
+    arguments: input,
+  });
+  const parent = parseEvidence(complete.structuredContent);
+  // The record's sentences: what a summary of it has always stated.
+  const recorded = new Set(
+    (
+      parent.normalized_result as unknown as {
+        readonly limitations: readonly string[];
+        readonly graph: { readonly limitations: readonly string[] };
+        readonly semantic_graph: { readonly limitations: readonly string[] };
+      }
+    ).limitations,
+  );
+  const result = parent.normalized_result as unknown as {
+    readonly graph: { readonly limitations: readonly string[] };
+    readonly semantic_graph: { readonly limitations: readonly string[] };
+  };
+  for (const sentence of [
+    ...parent.limitations,
+    ...result.graph.limitations,
+    ...result.semantic_graph.limitations,
+  ])
+    recorded.add(sentence);
+
+  const summary = await client.callTool({
+    name: contract.name,
+    arguments: { ...input, detail: "summary" },
+  });
+  const summaryEvidence = parseEvidence(summary.structuredContent);
+  const summaryResult = summaryEvidence.normalized_result as unknown as {
+    readonly views: readonly { readonly arguments: Record<string, unknown> }[];
+    readonly unknowns: readonly string[];
+    readonly summary: Record<string, unknown>;
+  };
+  // A block whose counts are all zero is left out: this is no Electron app.
+  expect(summaryResult.summary).not.toHaveProperty("electron");
+  const view = await client.callTool({
+    name: "inspect_analysis_view",
+    arguments: summaryResult.views[0]!.arguments,
+  });
+  expect(view.isError).not.toBe(true);
+  const viewEvidence = parseEvidence(view.structuredContent);
+
+  const reachable = new Set<string>();
+  for (const reply of [summaryEvidence, viewEvidence]) {
+    const stated = [
+      ...limitationSentences(reply),
+      ...(reply.normalized_result as { unknowns: string[] }).unknowns,
+    ];
+    // Each sentence of the record appears once in a reply, at most.
+    for (const sentence of recorded)
+      expect(
+        stated.filter((entry) => entry === sentence).length,
+        sentence,
+      ).toBeLessThanOrEqual(1);
+    for (const sentence of stated) reachable.add(sentence);
+  }
+  // Nothing the record states became unreachable over the session.
+  for (const sentence of recorded) expect(reachable).toContain(sentence);
+  // The later view gives the count and where the sentences are.
+  expect(viewEvidence.normalized_result).toMatchObject({
+    limitations: expect.arrayContaining([
+      expect.stringMatching(
+        new RegExp(
+          `^${String(recorded.size)} limitations were stated with this parent's summary on this connection`,
+          "u",
+        ),
+      ),
+    ]),
+  });
+  expect(viewEvidence.limitations).toEqual([
+    expect.stringMatching(
+      /^\d+ limitations?: normalized_result\.limitations\.$/u,
+    ),
+  ]);
 });
 
 it("refuses summary detail when the server cannot retain the complete Evidence", async () => {

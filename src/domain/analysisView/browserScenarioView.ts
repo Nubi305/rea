@@ -1,3 +1,6 @@
+import { presentFindings } from "./summaryFindings.js";
+import { withTextualBody } from "./textualBody.js";
+import { browserScenarioSummaryFindings } from "./browserScenarioSummaryFindings.js";
 import type { z } from "zod";
 import type { AnalysisError } from "../analysisErrorBase.js";
 import {
@@ -277,7 +280,7 @@ const pageRecords = (
       (group) => {
         const events: {
           item_index: number;
-          event: BrowserScenarioCapture["events"]["items"][number];
+          event: ReturnType<typeof withTextualBody>;
         }[] = [];
         const omitted: {
           item_index: number;
@@ -285,7 +288,8 @@ const pageRecords = (
         }[] = [];
         for (const item_index of group.source_item_indices) {
           const event = capture.events.items[item_index]!;
-          if (kindSelected(event.kind)) events.push({ item_index, event });
+          if (kindSelected(event.kind))
+            events.push({ item_index, event: withTextualBody(event) });
           else omitted.push({ item_index, kind: event.kind });
         }
         return {
@@ -310,7 +314,7 @@ const pageRecords = (
       (view.transaction_ids === undefined ||
         ("transaction_id" in event &&
           transactionSelected(event.transaction_id))),
-    (event, item_index) => ({ item_index, event }),
+    (event, item_index) => ({ item_index, event: withTextualBody(event) }),
   );
   return {
     items: { collection: "events", rows: page.rows },
@@ -353,6 +357,7 @@ export const projectBrowserScenarioView = (
     return ok({
       kind: "summary" as const,
       view,
+      ...presentFindings(browserScenarioSummaryFindings(capture)),
       ...shared,
       summary: {
         browser: capture.browser,

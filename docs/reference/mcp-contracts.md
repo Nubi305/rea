@@ -742,6 +742,46 @@ session retention refuses summary detail with `capability_unavailable`;
 For `inspect_artifact`, omission also keeps the original request parameters and
 complete output shape. Delivery selection never reaches the inventory engine;
 the complete inspection and its atomic inventory Evidence remain retained.
+Every summary names the views of its retained record in
+`normalized_result.views`, at most six, most useful first: each holds the
+complete `inspect_analysis_view` arguments (`source` is the retained parent,
+`view` the page) and `rows`, the number of rows that view pages. A view is
+named only after it ran against that record and returned rows, so the first
+one runs as written; a record with no paged collection names none. The CLI
+prints the same views under `views` as `rea inspect-analysis-view` commands
+that read the parent from the bundle `--evidence_output` saved.
+Summaries of the commands agents call first lead with
+`normalized_result.findings`: for each kind of finding, its `name`, at most
+20 `rows` of one line each, the `total`, the number `omitted`, and `view`:
+the index in `views` of the view that pages all of them (or that view's input
+when it is not among the named views). When every address in a finding shares one origin, the
+finding states it once as `origin` and its rows give the rest of each address.
+`analyze_javascript_application` states its `endpoints` (mechanism and
+address, observed before inferred), `ipc_channels` and `entry_points`;
+`inspect_web_network_capture` one line per HTTP record (ordinal, method,
+address, status, time), failed records first and then the slowest;
+`inspect_artifact` and `inventory_artifact` the archive's entries with their
+unpacked size and SHA-256, largest first, marking repeated content; and
+`capture_browser_scenario` each step's outcome with the method, address and
+status of every request it issued. A kind with no rows is left out.
+
+A view states each limitation sentence once: in `normalized_result.limitations`,
+while the view Evidence's own `limitations` gives their count and that place;
+a page of previewed capture records states a record limitation that every
+record on the page carries once, at page level; and a summary block whose
+counts are all zero (such as the Electron block of a web bundle) is left out.
+On an MCP connection that already received a parent's summary, a later view
+of that parent states only the sentences the summary did not, with one
+sentence giving the count and the summary that stated them; a
+`{"kind":"summary"}` view states them again. The stored parent Evidence is
+never changed.
+
+`browser-scenario` `events` and `transactions` pages state a captured request
+or response body whose media type is textual (`text/*`, JSON or `+json`, XML,
+JavaScript, form data) and whose bytes are valid UTF-8 as text:
+`encoding: "utf-8"` and `text`, with the recorded `bytes`, `sha256` and media
+type. Other bodies keep `encoding: "base64"` and `content`; the retained
+capture keeps every body as recorded.
 A view is never more certain than its parent: a summary or other view of
 `inferred` Evidence is `inferred`. Other views are `derived`, unless the
 view kind itself infers, as described below.

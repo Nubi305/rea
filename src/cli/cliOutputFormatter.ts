@@ -226,7 +226,7 @@ export const prepareDelimitedOutput = (
   for (const record of rows) {
     const preparedRow: DelimitedScalar[] = [];
     for (const field of fields) {
-      const value = Object.hasOwn(record, field) ? record[field] : undefined;
+      const value = delimitedCell(record, field);
       if (
         value !== null &&
         value !== undefined &&
@@ -237,7 +237,7 @@ export const prepareDelimitedOutput = (
         return err(
           delimitedOutputInputError(
             ["--columns", field],
-            "CSV/TSV cells must be scalar values; nested objects and arrays are not flattened.",
+            `CSV/TSV cells must be scalar values; nested objects and arrays are not flattened. ${selectableColumns(record)}`,
             operation,
           ),
         );
@@ -270,6 +270,51 @@ export const prepareDelimitedOutput = (
     lineEnding: format === "csv" ? "\r\n" : "\n",
     format,
   });
+};
+
+/**
+ * A column names a member of the row, or, when the row has no member of that
+ * exact name, a dotted path into nested objects (`reported.request.method`).
+ */
+const delimitedCell = (
+  record: Readonly<Record<string, unknown>>,
+  field: string,
+): unknown => {
+  if (Object.hasOwn(record, field)) return record[field];
+  if (!field.includes(".")) return undefined;
+  let value: unknown = record;
+  for (const key of field.split(".")) {
+    if (!isRecord(value) || !Object.hasOwn(value, key)) return undefined;
+    value = (value as Readonly<Record<string, unknown>>)[key];
+  }
+  return value;
+};
+
+/** Listed scalar columns stay bounded so a wide row cannot grow the error. */
+const SELECTABLE_COLUMNS_SHOWN = 24;
+
+/** The dotted paths of a row's scalar members, for a refusal to name. */
+const selectableColumns = (
+  record: Readonly<Record<string, unknown>>,
+): string => {
+  const paths: string[] = [];
+  let total = 0;
+  const visit = (value: unknown, prefix: string, depth: number): void => {
+    if (!isRecord(value)) {
+      if (Array.isArray(value)) return;
+      total += 1;
+      if (paths.length < SELECTABLE_COLUMNS_SHOWN) paths.push(prefix);
+      return;
+    }
+    if (depth > 6) return;
+    for (const [key, member] of Object.entries(value))
+      visit(member, prefix === "" ? key : `${prefix}.${key}`, depth + 1);
+  };
+  visit(record, "", 0);
+  if (total === 0)
+    return "That row has no scalar members to select as columns.";
+  const more = total - paths.length;
+  return `Selectable scalar columns of that row: ${paths.join(", ")}${more > 0 ? ` and ${String(more)} more` : ""}.`;
 };
 
 export const delimitedOutputInputError = (

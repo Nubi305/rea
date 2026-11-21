@@ -463,11 +463,11 @@ describe("browser scenario retained boundaries", () => {
                   kind: "network-content",
                   transaction_id: "request-2",
                   phase: "response",
+                  // A JSON body is stated as text.
                   body: expect.objectContaining({
                     state: "captured",
-                    content: Buffer.from('{"id":2,"login":"probe"}').toString(
-                      "base64",
-                    ),
+                    encoding: "utf-8",
+                    text: '{"id":2,"login":"probe"}',
                   }),
                 }),
               }),

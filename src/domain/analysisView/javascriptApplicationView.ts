@@ -38,6 +38,50 @@ import {
   type SummaryAnalysisView,
 } from "./analysisViewShape.js";
 
+import { presentFindings } from "./summaryFindings.js";
+import { withoutZeroCountBlocks } from "./zeroCountBlocks.js";
+import { javascriptSummaryFindings } from "./javascriptSummaryFindings.js";
+
+/** A block whose counts are all zero is left out of a summary. */
+const nonZeroBlock = <Name extends string>(
+  name: Name,
+  block: z.output<typeof jsonObjectSchema>,
+): { readonly [Key in Name]?: z.output<typeof jsonObjectSchema> } => {
+  const kept = withoutZeroCountBlocks(block);
+  return (kept === undefined ? {} : { [name]: kept }) as {
+    readonly [Key in Name]?: z.output<typeof jsonObjectSchema>;
+  };
+};
+
+/**
+ * Semantic families with their counts; a family whose counts are all zero is
+ * named with its status only, as a block of zero counts says no more.
+ */
+const semanticFamilyCounts = (
+  families: JavaScriptApplicationAnalysisResult["semantic_graph"]["coverage"]["families"],
+) => {
+  const counted = families.map(({ unknown_ids, ...family }) => ({
+    ...family,
+    unknown_count: unknown_ids.length,
+  }));
+  const zero = counted.filter(
+    (family) =>
+      family.retained_relations === 0 &&
+      family.omitted_relations === 0 &&
+      family.unknown_count === 0,
+  );
+  return {
+    families: counted.filter((family) => !zero.includes(family)),
+    ...(zero.length === 0
+      ? {}
+      : {
+          families_with_zero_counts: zero.map(
+            (family) => `${family.family} (${family.status})`,
+          ),
+        }),
+  };
+};
+
 const OPERATION = "inspect_analysis_view";
 
 const inputError = (
@@ -258,8 +302,9 @@ const parentFields = (
         parent.evidenceId,
         "limitations",
       ),
+      // The analysis limitations are stated once, under limitations.
       unknowns: boundedViewMessages(
-        limitations,
+        [],
         parent.evidenceId,
         "unknowns",
         javascriptCoverageUnknowns(sourceCoverage),
@@ -391,32 +436,36 @@ export const projectJavaScriptApplicationView = (
     return ok({
       kind: "summary" as const,
       view,
+      ...presentFindings(javascriptSummaryFindings(analysis.graph.nodes)),
+      // The analysed path and root digest are the view's artifact.
       summary: {
-        input_path: analysis.input_path,
         format: analysis.format,
-        root_artifact_sha256: analysis.root_artifact_sha256,
         ...(analysis.source_selection === undefined
           ? {}
           : {
               source_selection: analysis.source_selection,
             }),
-        statistics: jsonObjectSchema.parse(analysis.statistics),
-        electron: jsonObjectSchema.parse(analysis.summary),
-        coverage: jsonObjectSchema.parse({
-          static_sources: javascriptStaticSourceCoverageSummary(analysis),
-          application: analysis.graph.coverage,
-          semantic: {
-            ...analysis.semantic_graph.coverage,
-            families: analysis.semantic_graph.coverage.families.map(
-              ({ unknown_ids, ...family }) => ({
-                ...family,
-                unknown_count: unknown_ids.length,
-              }),
-            ),
-          },
-          application_unknowns: sourceCoverage.application_unknown_count,
-          semantic_unknowns: sourceCoverage.semantic_unknown_count,
-        }),
+        ...nonZeroBlock(
+          "statistics",
+          jsonObjectSchema.parse(analysis.statistics),
+        ),
+        ...nonZeroBlock("electron", jsonObjectSchema.parse(analysis.summary)),
+        coverage: jsonObjectSchema.parse(
+          withoutZeroCountBlocks(
+            jsonObjectSchema.parse({
+              static_sources: javascriptStaticSourceCoverageSummary(analysis),
+              application: analysis.graph.coverage,
+              semantic: {
+                ...analysis.semantic_graph.coverage,
+                ...semanticFamilyCounts(
+                  analysis.semantic_graph.coverage.families,
+                ),
+              },
+              application_unknowns: sourceCoverage.application_unknown_count,
+              semantic_unknowns: sourceCoverage.semantic_unknown_count,
+            }),
+          ) ?? {},
+        ),
         limitation_count: limitationCount,
       },
       coverage: completeCoverage(moduleCount),

@@ -39,7 +39,10 @@ import {
   type AnalysisViewRequest,
   type InspectAnalysisViewInput,
 } from "../../domain/analysisView/analysisViewRequest.js";
-import { prepareAnalysisViewProjection } from "../../domain/analysisView/analysisView.js";
+import {
+  prepareAnalysisViewProjection,
+  sealAnalysisView,
+} from "../../domain/analysisView/analysisView.js";
 import type { AnalysisViewResult } from "../../domain/analysisView/analysisViewResult.js";
 import {
   immutableJsonSnapshotMember,
@@ -47,6 +50,7 @@ import {
 } from "../../domain/immutableJson.js";
 import { err, ok, type Result } from "../../domain/result.js";
 import {
+  evidenceBundleParentIds,
   readEvidenceFileSource,
   type EvidenceFileReadOptions,
 } from "./evidenceFileSource.js";
@@ -132,7 +136,7 @@ const inspectBundleView = async (
   bundlePath: string,
   { resources, signal }: EvidenceFileReadOptions,
 ): Promise<Result<Evidence, AnalysisError>> => {
-  if (input.source.kind !== "retained-evidence")
+  if (input.source.kind === "inline")
     return err(
       new AnalysisInputError("inspect_analysis_view", undefined, [
         {
@@ -153,6 +157,10 @@ const inspectBundleView = async (
   await dispatchQueuedInterrupts();
   // Preserve an already-produced bundle failure before considering a later abort.
   if (!loaded.ok) return loaded;
+  if (input.source.kind !== "retained-evidence")
+    return err(
+      bundleSourceError(input.source, input.view, loaded.value.records),
+    );
   const parentId = input.source.evidence_id;
   const admitted = cancelledFileViewResult(
     loaded,
@@ -169,6 +177,54 @@ const inspectBundleView = async (
   await dispatchQueuedInterrupts();
   if (!projected.ok) return projected;
   return cancelledFileViewResult(projected, signal, projected.value);
+};
+
+/**
+ * A bundle is read with a retained-evidence source: show that input, with the
+ * caller's view and the parent ID taken from the bundle, so it runs as shown.
+ */
+const bundleSourceError = (
+  source: Extract<
+    InspectAnalysisViewInput["source"],
+    { kind: "evidence-file" }
+  >,
+  view: AnalysisViewRequest,
+  records: readonly Evidence[],
+): AnalysisInputError => {
+  const named =
+    source.evidence_id !== undefined &&
+    records.some((record) => record.evidence_id === source.evidence_id)
+      ? [source.evidence_id]
+      : evidenceBundleParentIds(records);
+  const [first, ...others] = named;
+  const working =
+    first === undefined
+      ? undefined
+      : JSON.stringify({
+          source: { kind: "retained-evidence", evidence_id: first },
+          view,
+        });
+  return new AnalysisInputError("inspect_analysis_view", undefined, [
+    {
+      path: ["source", "kind"],
+      reason: "invalid_value",
+      message:
+        working === undefined
+          ? "An Evidence bundle needs a retained-evidence source with the exact parent evidence_id; this bundle holds no record to name."
+          : `An Evidence bundle needs a retained-evidence source with the exact parent evidence_id. With this bundle, use ${working}${
+              others.length === 0
+                ? ""
+                : `; other parents it holds: ${others.slice(0, 4).join(", ")}${others.length > 4 ? ` and ${String(others.length - 4)} more` : ""}`
+            }.`,
+      ...(first === undefined
+        ? {}
+        : {
+            expected: {
+              source: { kind: "retained-evidence", evidence_id: first },
+            },
+          }),
+    },
+  ]);
 };
 
 /** Retain completed work and pending cleanup when this stage accepts cancellation.
@@ -215,7 +271,15 @@ export const inspectAnalysisViewValidated = (
   }
   const resolved = resolveAnalysisViewSource(input.source, lookup);
   if (!resolved.ok) return resolved;
-  return projectResolvedAnalysisView(input, projection, resolved.value);
+  const connection =
+    input.source.kind === "retained-evidence" ? lookup : undefined;
+  return projectResolvedAnalysisView(
+    input,
+    projection,
+    resolved.value,
+    undefined,
+    connection,
+  );
 };
 
 /** Keep payload ownership separate from this delivery's display-only subject. */
@@ -224,6 +288,8 @@ const projectResolvedAnalysisView = (
   projection: ReturnType<typeof prepareAnalysisViewProjection>,
   parent: Evidence,
   selectedTarget?: EvidenceSubjectTarget,
+  /** The retaining connection, which remembers what it already stated. */
+  connection?: EvidenceLookup,
 ): Result<Evidence, AnalysisError> => {
   const presentation =
     selectedTarget === undefined
@@ -254,7 +320,59 @@ const projectResolvedAnalysisView = (
     projected.value.artifact?.sha256,
   );
   if (!identity.ok) return identity;
-  return ok(createAnalysisViewEvidence(input, presentation, projected.value));
+  const result = statedOnce(projected.value, connection);
+  if (connection !== undefined && result.kind === "summary")
+    rememberStated(connection, result);
+  return ok(createAnalysisViewEvidence(input, presentation, result));
+};
+
+/**
+ * Per retaining connection (its Evidence lookup), the parents whose summary
+ * it delivered. Stored parent Evidence is never changed; only later views
+ * delivered on the same connection state those sentences by count.
+ */
+const statedOnConnection = new WeakMap<
+  EvidenceLookup,
+  Map<string, ReadonlySet<string>>
+>();
+
+const rememberStated = (
+  connection: EvidenceLookup,
+  summary: AnalysisViewResult,
+): void => {
+  let parents = statedOnConnection.get(connection);
+  if (parents === undefined) {
+    parents = new Map();
+    statedOnConnection.set(connection, parents);
+  }
+  parents.set(summary.parent_evidence_id, new Set(summary.limitations));
+};
+
+/**
+ * A view of a parent whose summary this connection already delivered gives
+ * the count of those limitation sentences and where they are, and states
+ * only the sentences the summary did not.
+ */
+const statedOnce = (
+  result: AnalysisViewResult,
+  connection: EvidenceLookup | undefined,
+): AnalysisViewResult => {
+  if (connection === undefined || result.kind === "summary") return result;
+  const stated = statedOnConnection
+    .get(connection)
+    ?.get(result.parent_evidence_id);
+  if (stated === undefined) return result;
+  const kept = result.limitations.filter((sentence) => !stated.has(sentence));
+  const omitted = result.limitations.length - kept.length;
+  if (omitted === 0) return result;
+  const { view_digest: _digest, ...unsigned } = result;
+  return sealAnalysisView({
+    ...unsigned,
+    limitations: [
+      ...kept,
+      `${String(omitted)} limitation${omitted === 1 ? " was" : "s were"} stated with this parent's summary on this connection; view {"kind":"summary"} repeats them.`,
+    ],
+  });
 };
 
 /** Session Evidence ownership required to deliver a view instead of a complete record. */
@@ -329,6 +447,7 @@ export const projectRetainedAnalysis = (
     prepareAnalysisViewProjection(view),
     retained.value,
     evidenceSubjectTarget(evidence.subject),
+    ready.value.evidenceById,
   );
   if (!projected.ok) projected.error.retainPartialObservation(source);
   return projected;
@@ -418,7 +537,7 @@ const createAnalysisViewEvidence = (
           : "derived",
       authority: parent.authority,
       environment: parent.environment,
-      limitations: result.limitations,
+      limitations: viewEvidenceLimitations(result.limitations),
       ...((nativeFunctionView !== undefined || nativeObservationView) &&
       parent.relationship_coverage !== null
         ? { relationshipCoverage: parent.relationship_coverage }
@@ -452,6 +571,17 @@ const createAnalysisViewEvidence = (
     { immutable: true },
   );
 };
+
+/**
+ * A view states its limitation sentences once, in normalized_result; the
+ * Evidence envelope gives their count and where they are.
+ */
+const viewEvidenceLimitations = (stated: readonly string[]): string[] =>
+  stated.length === 0
+    ? []
+    : [
+        `${String(stated.length)} limitation${stated.length === 1 ? "" : "s"}: normalized_result.limitations.`,
+      ];
 
 /** The artifact a view names: the presented file target and its display path. */
 const viewArtifact = (

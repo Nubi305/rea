@@ -331,6 +331,11 @@ import {
   summaryViewSchema,
 } from "./analysisViewShape.js";
 import { recordedArrayViewSchema } from "./analysisViewRequest.js";
+import { summaryFindingSchema } from "./summaryFindings.js";
+import {
+  SUMMARY_NAMED_VIEW_LIMIT,
+  summaryNamedViewSchema,
+} from "./summaryNamedViews.js";
 
 const artifactSchema = z.strictObject({
   path: z
@@ -361,12 +366,14 @@ const layoutSummarySchema = z.strictObject({
 });
 
 const javascriptSummarySchema = z.strictObject({
-  input_path: z.string().min(1),
+  /** Earlier summaries repeated artifact.path and artifact.sha256 here. */
+  input_path: z.string().min(1).exactOptional(),
   format: z.enum(["asar", "directory"]),
-  root_artifact_sha256: digestSchema,
+  root_artifact_sha256: digestSchema.exactOptional(),
   source_selection: javaScriptSourceSelectionSchema.exactOptional(),
-  statistics: jsonObjectSchema,
-  electron: jsonObjectSchema,
+  statistics: jsonObjectSchema.exactOptional(),
+  /** Omitted when every Electron count is zero. */
+  electron: jsonObjectSchema.exactOptional(),
   coverage: jsonObjectSchema,
   limitation_count: z.int().nonnegative(),
 });
@@ -427,6 +434,14 @@ const viewResultBase = {
 const summaryViewResultBase = {
   kind: z.literal("summary"),
   view: summaryViewSchema,
+  // Findings and the views that page them lead the summary, ahead of counts.
+  /** The first findings themselves, one line per row, capped with a count. */
+  findings: z.array(summaryFindingSchema).exactOptional(),
+  /** The views of the same parent that run as written and return rows. */
+  views: z
+    .array(summaryNamedViewSchema)
+    .max(SUMMARY_NAMED_VIEW_LIMIT)
+    .exactOptional(),
   ...viewResultBase,
 } as const;
 

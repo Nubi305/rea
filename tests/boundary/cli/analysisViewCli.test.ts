@@ -491,6 +491,218 @@ cliTest(
   },
 );
 
+/** The single-quoted shell words of a printed command, unquoted. */
+const shellWords = (command: string): string[] => {
+  const words: string[] = [];
+  const pattern = /'(?:[^']|'"'"')*'|[^\s']+/gu;
+  for (const [word] of command.matchAll(pattern))
+    words.push(
+      word.startsWith("'") ? word.slice(1, -1).replaceAll(`'"'"'`, "'") : word,
+    );
+  return words;
+};
+
+cliTest(
+  "refuses a bundle read through the wrong source with the input that works",
+  async ({ cli }) => {
+    const root = await createTestTempDirectory("rea-bundle-source-cli-");
+    const archive = join(root, "fixture.zip");
+    const writer = new ZipWriter(new Uint8ArrayWriter());
+    await writer.add("main.js", new TextReader("console.log('bundle');\n"));
+    await writeFile(archive, await writer.close());
+    const bundlePath = join(root, "bundle.json");
+    const summary = await cli.run({
+      arguments: [
+        "inspect-artifact",
+        archive,
+        "--detail",
+        "summary",
+        "--evidence_output",
+        bundlePath,
+        "--json",
+      ],
+    });
+    expect(summary.exitCode).toBe(0);
+    const parentId = (
+      summary.json as {
+        summary: { normalized_result: { parent_evidence_id: string } };
+      }
+    ).summary.normalized_result.parent_evidence_id;
+    const view = { kind: "inventory", collection: "occurrences", limit: 5 };
+    const message = (json: unknown): string =>
+      (json as { details: { issues: { message: string }[] } }).details
+        .issues[0]!.message;
+
+    // An evidence-file source with --evidence-bundle names the retained form.
+    const wrong = await cli.run({
+      arguments: [
+        "inspect-analysis-view",
+        JSON.stringify({
+          source: { kind: "evidence-file", path: bundlePath },
+          view,
+        }),
+        "--evidence-bundle",
+        bundlePath,
+        "--json",
+      ],
+    });
+    expect(wrong.exitCode).toBe(1);
+    const shown = /use (\{.*\})\.$/u.exec(message(wrong.json))?.[1];
+    if (shown === undefined) throw new Error(message(wrong.json));
+    expect(JSON.parse(shown)).toMatchObject({
+      source: { kind: "retained-evidence", evidence_id: parentId },
+    });
+    const works = await cli.run({
+      arguments: [
+        "inspect-analysis-view",
+        shown,
+        "--evidence-bundle",
+        bundlePath,
+        "--json",
+      ],
+    });
+    expect(works.exitCode).toBe(0);
+
+    // An evidence-file source without a record names the one to select.
+    const unselected = await cli.run({
+      arguments: [
+        "inspect-analysis-view",
+        JSON.stringify({
+          source: { kind: "evidence-file", path: bundlePath },
+          view,
+        }),
+        "--json",
+      ],
+    });
+    expect(unselected.exitCode).toBe(1);
+    const suggested = /such as (\{.*?\}) for the record/u.exec(
+      message(unselected.json),
+    )?.[1];
+    if (suggested === undefined) throw new Error(message(unselected.json));
+    expect(JSON.parse(suggested)).toEqual({
+      kind: "evidence-file",
+      path: bundlePath,
+      evidence_id: parentId,
+    });
+    const selected = await cli.run({
+      arguments: [
+        "inspect-analysis-view",
+        JSON.stringify({ source: JSON.parse(suggested), view }),
+        "--json",
+      ],
+    });
+    expect(selected.exitCode).toBe(0);
+  },
+);
+
+cliTest(
+  "states a JavaScript application's endpoints in its summary",
+  async ({ cli }) => {
+    const root = await createTestTempDirectory("rea-summary-endpoints-cli-");
+    const application = join(root, "webapp");
+    await mkdir(application);
+    await writeFile(
+      join(application, "app.js"),
+      'fetch("/api/v1/items").then((r) => r.json());\nconst socket = new WebSocket("wss://live.example.test/feed");\n',
+    );
+    const summary = await cli.run({
+      arguments: [
+        "analyze-javascript-application",
+        application,
+        "--detail",
+        "summary",
+        "--evidence_output",
+        join(root, "analysis.json"),
+        "--json",
+      ],
+    });
+    expect(summary.exitCode).toBe(0);
+    expect(summary.json).toMatchObject({
+      summary: {
+        normalized_result: {
+          findings: expect.arrayContaining([
+            expect.objectContaining({
+              name: "endpoints",
+              rows: expect.arrayContaining([
+                "fetch /api/v1/items",
+                "WebSocket wss://live.example.test/feed",
+              ]),
+            }),
+          ]),
+        },
+      },
+    });
+  },
+);
+
+cliTest(
+  "prints each named view of a summary as a command that runs as printed",
+  async ({ cli }) => {
+    const root = await createTestTempDirectory("rea-named-views-cli-");
+    const archive = join(root, "fixture.zip");
+    const writer = new ZipWriter(new Uint8ArrayWriter());
+    await writer.add("main.js", new TextReader("console.log('named');\n"));
+    await writer.add("data/notes.txt", new TextReader("notes\n"));
+    await writer.add("data/copy.txt", new TextReader("notes\n"));
+    await writeFile(archive, await writer.close());
+    const bundlePath = join(root, "it's a bundle.json");
+    const summary = await cli.run({
+      arguments: [
+        "inspect-artifact",
+        archive,
+        "--detail",
+        "summary",
+        "--evidence_output",
+        bundlePath,
+        "--json",
+      ],
+    });
+    expect(summary.exitCode).toBe(0);
+    // The summary states the entries themselves, largest first.
+    expect(summary.json).toMatchObject({
+      summary: {
+        normalized_result: {
+          findings: [
+            {
+              name: "entries_largest_first",
+              rows: [
+                expect.stringMatching(/^main\.js 22 B sha256 [0-9a-f]{64}$/u),
+                expect.stringMatching(
+                  /^data\/copy\.txt 6 B sha256 [0-9a-f]{64}$/u,
+                ),
+                expect.stringMatching(
+                  /^data\/notes\.txt 6 B sha256 [0-9a-f]{64} same content as data\/copy\.txt$/u,
+                ),
+              ],
+              total: 3,
+              omitted: 0,
+            },
+          ],
+        },
+      },
+    });
+    const commands = (summary.json as { views?: unknown }).views;
+    if (!Array.isArray(commands)) throw new Error("Expected named views");
+    expect(commands.length).toBeGreaterThan(0);
+    expect(commands.length).toBeLessThanOrEqual(6);
+    const [program, command, ...rest] = shellWords(String(commands[0]));
+    expect([program, command]).toEqual(["rea", "inspect-analysis-view"]);
+    const view = await cli.run({ arguments: [command!, ...rest, "--json"] });
+    expect(view.exitCode).toBe(0);
+    expect(view.json).toMatchObject({
+      operation: "inspect_analysis_view",
+      normalized_result: {
+        kind: "inventory",
+        coverage: { examined: expect.any(Number) },
+      },
+    });
+    const examined = (
+      view.json as { normalized_result: { coverage: { examined: number } } }
+    ).normalized_result.coverage.examined;
+    expect(examined).toBeGreaterThan(0);
+  },
+);
+
 cliTest(
   "projects portable artifact inventory after the original ZIP is removed",
   async ({ cli }) => {
@@ -798,9 +1010,12 @@ cliTest(
     });
     expect(response.exitCode, response.stdout).toBe(0);
     const result = parseEvidence(response.json);
-    expect(result.limitations.filter((value) => value === caveat)).toEqual([
-      caveat,
-    ]);
+    // The reply states the caveat once, in normalized_result.limitations.
+    const stated = [
+      ...result.limitations,
+      ...(result.normalized_result as { limitations: string[] }).limitations,
+    ];
+    expect(stated.filter((value) => value === caveat)).toEqual([caveat]);
     expect(result.normalized_result).toMatchObject({
       groups: [{ content_types: [], flags: ["single-sample"] }],
       limitations: expect.arrayContaining([caveat]),
