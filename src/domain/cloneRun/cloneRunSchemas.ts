@@ -171,6 +171,8 @@ export const CLONE_RUN_DEFAULT_EXCLUDES = [".git", "node_modules"] as const;
 export const CLEAN_ROOM_MIN_IDENTICAL_BYTES = 64;
 /** At most this many worklist items are returned; `blocking` still counts every finding. */
 export const CLONE_RUN_NEXT_LIMIT = 10;
+/** Step ids the gate names per declared volatile pointer that had an effect; its counts cover every step. */
+export const CLONE_RUN_DECLARATION_STEP_LIMIT = 3;
 /**
  * The placeholder a scenario writes at the start of a `goto` step's
  * `destination.url`, the one place it is replaced by the side's address.
@@ -641,6 +643,29 @@ export const cloneRunGateSchema = z.strictObject({
     ),
     /** Reply fields whose value was not compared because a declaration was honoured. */
     volatile_fields: z.int().min(0),
+    /**
+     * The volatile declarations of `intended-differences.json` that had an
+     * effect on a step, one entry per scenario and declared pointer.
+     * Honoured, a declaration kept a value from being compared; not
+     * honoured, it held a difference back as `unknown` (`declared-not-shown`,
+     * `single-observation`), which blocks on every step. A declaration with
+     * neither effect is not counted. `parity/<scenario>.json` lists each
+     * step's fields.
+     */
+    volatile_declarations: z.array(
+      z.strictObject({
+        scenario: z.string().min(1),
+        pointer: z.string(),
+        /** Entries of the file with this scenario and pointer that had an effect: one per step named, or one with step `*`. */
+        declarations: z.int().min(1),
+        /** Steps at which one of them was honoured: the value was not compared there, only its shape. */
+        honoured_steps: z.int().min(0),
+        /** Steps at which one was not honoured where the original gave one value and the clone another. */
+        not_shown_steps: z.int().min(0),
+        /** The first steps at which they had an effect: those not honoured first, then in scenario order. */
+        steps: z.array(z.string().min(1)).max(CLONE_RUN_DECLARATION_STEP_LIMIT),
+      }),
+    ),
   }),
   /** Every blocking reason with its total; `next` holds at most ten of them. */
   blocking: z.array(

@@ -12,10 +12,12 @@ import {
   CLONE_RUN_PATHS,
   cloneRunExitCode,
 } from "../domain/cloneRun/cloneRunSchemas.js";
+import { shellQuote } from "../domain/desktop/shellQuote.js";
 import type { JsonValue } from "../domain/jsonValue.js";
 import { localPathStringSchema } from "../domain/localPath.js";
 import { scenarioBehaviorExitCode } from "../domain/scenarioBehaviorComparison.js";
 import { absoluteCallerPath } from "../filesystem/callerPath.js";
+import { CURRENT_ENTRYPOINT_PATH } from "../process/CurrentEntrypointPath.js";
 import { withCommandCancellation } from "./commandCancellation.js";
 import { registerCliCommand } from "./commandRegistry.js";
 import { cliDecimalField } from "./options.js";
@@ -42,7 +44,7 @@ const exitCodeOption = (meaning: string, caution = "") =>
     .boolean()
     .default(false)
     .describe(
-      `Exit by verdict: ${meaning}. Without it a completed command exits 0 whatever the verdict. A refusal, an unknown flag included, exits 1 either way and its JSON has no verdict member${caution}`,
+      `Exit by verdict: ${meaning}. Without it a completed command exits 0 whatever the verdict. Only the bare flag or =true turns it on: every other value after = (false, 0, 1, no, an empty value) leaves it off, as --no-exit-code does, so never write =1 to mean on. A refusal, an unknown flag included, exits 1 either way and its JSON has no verdict member${caution}`,
     );
 
 interface CompareArguments {
@@ -321,6 +323,21 @@ const registerInitCommand = (
   });
 };
 
+/**
+ * How this process was started, as a shell prefix that starts this CLI again:
+ * the runtime and the absolute script it was given (`CURRENT_ENTRYPOINT_PATH`).
+ * The referee prints its worklist commands with it only when `target.json`
+ * cannot be read for the run's own spelling, so the command still runs as
+ * printed.
+ */
+export const cliInvocation = (
+  runtime: string,
+  script: string | undefined,
+): string | undefined =>
+  script === undefined || script === ""
+    ? undefined
+    : `${shellQuote(runtime)} ${shellQuote(script)}`;
+
 /** Run the referee and, when asked, exit by its verdict; a refusal is the command's output. */
 const evaluateCloneRunCommand = async (
   directory: string,
@@ -330,18 +347,23 @@ const evaluateCloneRunCommand = async (
   const [
     { evaluateCloneRun },
     { digestCloneTree },
+    { readCloneRunStepFailure },
     { SCENARIO_BEHAVIOR_COMPARER },
   ] = await Promise.all([
     import("../application/cloneRun/CloneRunEvaluation.js"),
     import("../application/cloneRun/CloneRunTreeDigest.js"),
+    import("../application/cloneRun/CloneRunStepFailure.js"),
     import("../application/scenarioBehavior/ScenarioBehaviorComparisonService.js"),
   ]);
+  const invokedAs = cliInvocation(process.execPath, CURRENT_ENTRYPOINT_PATH);
   const gate = await evaluateCloneRun(
     absoluteCallerPath(directory),
     {
       comparer: SCENARIO_BEHAVIOR_COMPARER,
       digestTree: digestCloneTree,
       now: () => new Date(),
+      stepFailure: readCloneRunStepFailure,
+      ...(invokedAs === undefined ? {} : { invokedAs }),
     },
     { signal },
   );

@@ -8,7 +8,7 @@ import {
   realpath,
   stat,
 } from "node:fs/promises";
-import { join, relative, resolve, sep } from "node:path";
+import { isAbsolute, join, relative, sep } from "node:path";
 
 import type { AnalysisError } from "../../domain/analysisErrorBase.js";
 import {
@@ -40,7 +40,8 @@ export interface CloneTreeFile {
 
 /**
  * A link whose target the digest does not cover. `outside`: its text leaves
- * the clone root, or its resolved target lies outside it. `excluded`: the
+ * the clone root on its way (`cloneTreeLinkTextLeavesRoot`), or its resolved
+ * target lies outside it. `excluded`: the
  * target lies under an exclude. `unresolved`: the link cannot be resolved now
  * (its target is absent, or the chain loops), so nothing shows where it will
  * lead when the clone runs.
@@ -124,6 +125,32 @@ export const isCloneTreePathExcluded = (
     );
   });
 
+/**
+ * Whether a link's text leaves the clone root when it is walked segment by
+ * segment from the link's own directory. An absolute text starts outside; a
+ * relative one leaves as soon as a `..` rises above the root, whatever it
+ * does afterwards. A text that comes back in by the root's own name
+ * (`../clone/app.mjs` in a root named `clone`) has still left: it names the
+ * root from outside, so it leads elsewhere once the root is moved, renamed or
+ * reached through another path. `linkPath` is the link's `/`-separated path
+ * relative to the root.
+ */
+export const cloneTreeLinkTextLeavesRoot = (
+  linkPath: string,
+  text: string,
+): boolean => {
+  if (isAbsolute(text)) return true;
+  // Directories between the root and the link.
+  let depth = linkPath.split("/").length - 1;
+  for (const segment of text.split(sep === "/" ? "/" : /[\\/]/u)) {
+    if (segment === "" || segment === ".") continue;
+    if (segment !== "..") depth += 1;
+    else if (depth === 0) return true;
+    else depth -= 1;
+  }
+  return false;
+};
+
 const errnoCode = (cause: unknown): unknown =>
   typeof cause === "object" && cause !== null && "code" in cause
     ? cause.code
@@ -173,10 +200,11 @@ export const readCloneTreeFile = async (
 /** Hash one regular file as a stream. */
 const hashFile = async (
   path: string,
+  read: typeof readCloneTreeFile = readCloneTreeFile,
 ): Promise<{ readonly sha256: string; readonly bytes: number }> => {
   const hash = createHash("sha256");
   let bytes = 0;
-  await readCloneTreeFile(path, (chunk) => {
+  await read(path, (chunk) => {
     hash.update(chunk);
     bytes += chunk.length;
     return undefined;
@@ -217,7 +245,11 @@ const NAME_NOT_TEXT =
 export const digestCloneTree = async (
   root: string,
   exclude: readonly string[],
-  options: { readonly signal?: AbortSignal } = {},
+  options: {
+    readonly signal?: AbortSignal;
+    /** How a file's bytes are read: `readCloneTreeFile`, unless a test stands in front of it to change the tree between the listing and the read. */
+    readonly readFile?: typeof readCloneTreeFile;
+  } = {},
 ): Promise<Result<CloneTreeSnapshot, AnalysisError>> => {
   let resolvedRoot: string;
   try {
@@ -243,11 +275,11 @@ export const digestCloneTree = async (
   };
   /** Why the digest does not cover what a link leads to, judged by its text before its target. */
   const linkCause = async (
+    path: string,
     absolute: string,
     text: string,
   ): Promise<CloneTreeUnsafeLink["cause"] | undefined> => {
-    if (!isPathWithinRoot(resolvedRoot, resolve(absolute, "..", text)))
-      return "outside";
+    if (cloneTreeLinkTextLeavesRoot(path, text)) return "outside";
     const target = await realpath(absolute).catch(() => undefined);
     if (target === undefined) return "unresolved";
     if (!isPathWithinRoot(resolvedRoot, target)) return "outside";
@@ -296,10 +328,14 @@ export const digestCloneTree = async (
             sha256: sha256Hex(text),
             bytes: Buffer.byteLength(text),
           });
-          const cause = await linkCause(absolute, text);
+          const cause = await linkCause(path, absolute, text);
           if (cause !== undefined) unsafeLinks.push({ path, cause });
         } else if (entry.isFile())
-          files.push({ path, kind: "file", ...(await hashFile(absolute)) });
+          files.push({
+            path,
+            kind: "file",
+            ...(await hashFile(absolute, options.readFile)),
+          });
       } catch (cause: unknown) {
         failed(path, cause);
       }

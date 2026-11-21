@@ -1,7 +1,9 @@
+import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
 import {
   appendFile,
   copyFile,
+  lstat,
   mkdir,
   readFile,
   readdir,
@@ -10,9 +12,11 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { promisify } from "node:util";
 
 import { expect, it } from "vitest";
 
+import { readWithoutFifoWriter } from "../../../tests/fixtures/fifoInput.js";
 import { createTestTempDirectory } from "../../../tests/fixtures/temporaryDirectory.js";
 import { AnalysisInputError } from "../../domain/analysisErrorCore.js";
 import { browserScenarioSchema } from "../../domain/browserScenario.js";
@@ -62,9 +66,13 @@ interface FakeCapture extends ScenarioBehaviorCaptureFacts {
       {
         readonly status: ScenarioStepStatus;
         readonly finding: Partial<ScenarioBehaviorFinding>;
+        /** Further findings of the step, listed after `finding`. */
+        readonly more?: readonly Partial<ScenarioBehaviorFinding>[];
       }
     >
   >;
+  /** What the capture recorded as the failure of a step, by step id. */
+  readonly failures?: Readonly<Record<string, string>>;
 }
 
 const MISSING = "missing";
@@ -140,24 +148,24 @@ const fakeComparer = (
         )?.scripted?.[id];
         if (scripted !== undefined) {
           status = scripted.status;
-          findings = [
-            { ...finding("value", null, null, null), ...scripted.finding },
-          ];
+          findings = [scripted.finding, ...(scripted.more ?? [])].map(
+            (entry) => ({ ...finding("value", null, null, null), ...entry }),
+          );
         } else if (originals.length === 0 || clones.length === 0) {
           status = "unknown";
           findings = [
-            finding(
-              "not-recorded",
-              originals.length === 0 ? "left" : "right",
-              null,
-              null,
-            ),
+            ...(originals.length === 0
+              ? [finding("not-recorded", "left", null, null)]
+              : []),
+            ...(clones.length === 0
+              ? [finding("not-recorded", "right", null, null)]
+              : []),
           ];
         } else if (new Set(originals).size > 1) {
           if (declared === undefined) {
             status = "unstable";
             findings = [finding("repeats-differ", "left", null, null)];
-          } else honoured.push(declared);
+          } else honoured.push({ step_id: id, pointer: declared.pointer });
         } else if (new Set(clones).size > 1) {
           status = "unstable";
           findings = [
@@ -238,12 +246,21 @@ const hostResolver: CloneRunHostResolver = {
 const evaluate = async (
   run: string,
   comparer = fakeComparer(),
+  invokedAs?: string,
 ): Promise<CloneRunGate> => {
   const result = await evaluateCloneRun(run, {
     comparer,
     digestTree: digestCloneTree,
     now: () => new Date((clock += 1000)),
     hostResolver,
+    // What the production reader returns: the failure text the capture recorded for the step.
+    stepFailure: (file, stepId) =>
+      Promise.resolve(
+        (JSON.parse(readFileSync(file, "utf8")) as FakeCapture).failures?.[
+          stepId
+        ],
+      ),
+    ...(invokedAs === undefined ? {} : { invokedAs }),
   });
   if (!result.ok) throw result.error;
   for (const { reason } of result.value.blocking) seenReasons.add(reason);
@@ -676,6 +693,18 @@ it("blocks on a changed, unknown or unstable step and says who does what", async
     { create: MISSING, open: "b", "setup-seed": "y" },
   ]);
   await observedBy("clone", [{ "fp-list": MISSING }, { "fp-list": MISSING }]);
+  // Data the original's captures recorded and no capture of the clone did is one side's gap: a prefix does not silence it.
+  const oneSided = await evaluate(run);
+  expect(oneSided.blocking).toEqual([
+    { reason: "parity_unknown", count: 2 },
+    { reason: "parity_unstable", count: 1 },
+  ]);
+  expect(oneSided.counts.ungated_steps).toBe(1);
+  // Data no capture of either side recorded is only counted on a setup or fingerprint step.
+  await observedBy("original", [
+    { create: MISSING, open: "a", "setup-seed": "x", "fp-list": MISSING },
+    { create: MISSING, open: "b", "setup-seed": "y", "fp-list": MISSING },
+  ]);
   const unknown = await evaluate(run);
   expect(unknown.blocking).toEqual([
     { reason: "parity_unknown", count: 1 },
@@ -726,6 +755,16 @@ it("blocks on a changed, unknown or unstable step and says who does what", async
   expect(declared.declared).toEqual({
     renames: [{ from: "Notelet", to: "Jotter", values: 1 }],
     volatile_fields: 1,
+    volatile_declarations: [
+      {
+        scenario: "notes",
+        pointer: "/slug",
+        declarations: 1,
+        honoured_steps: 1,
+        not_shown_steps: 0,
+        steps: ["open"],
+      },
+    ],
   });
   await observedBy("clone", [
     { create: "Jotter" },
@@ -769,6 +808,270 @@ const evaluateScripted = async (
 };
 
 const TEXT = { dimension: "text" as const, request: null, pointer: null };
+
+/** A reply field the original held in one value where the clone gave another. */
+const HELD_LEAF = {
+  expected: '"free"',
+  actual: '"enterprise"',
+  side: "left" as const,
+};
+
+/** One scripted evaluation that stands alone: the journal would otherwise count equal findings as one stalled round. */
+const scriptAlone = async (
+  run: string,
+  scripted: FakeCapture["scripted"],
+): Promise<CloneRunGate> => {
+  await rm(join(run, "journal.jsonl"), { force: true });
+  return evaluateScripted(run, scripted);
+};
+
+it("does not let a setup- prefix with a volatile declaration silence a steady difference", async () => {
+  const folder = await scaffold();
+  const { run } = folder;
+  await evaluate(run);
+  // The failing step renamed setup-, with its steady wrong reply field declared volatile.
+  await editJson(join(run, "intended-differences.json"), (file) => {
+    (file.volatile_fields as object[]).push({
+      scenario: "notes",
+      step_id: "setup-seed",
+      pointer: "/slug",
+      reason: "said to vary",
+    });
+  });
+  const held = await scriptAlone(run, {
+    "setup-seed": {
+      status: "unknown",
+      finding: { category: "declared-not-shown", ...HELD_LEAF },
+    },
+  });
+  expect(held.verdict).toBe("not_done");
+  expect(cloneRunExitCode(held.verdict)).toBe(1);
+  expect(held.blocking).toEqual([{ reason: "parity_unknown", count: 1 }]);
+  expect(held.counts.ungated_steps).toBe(0);
+  const heldItem = item(held, "parity_unknown");
+  expect(heldItem).toMatchObject({
+    role: "prober",
+    side: "original",
+    step_id: "setup-seed",
+    expected: '"free"',
+    actual: '"enterprise"',
+  });
+  expect(heldItem.message).toContain(
+    "the difference blocks on every step, a setup- step included",
+  );
+  // The gate names the declaration that held the difference back, not only those it honoured.
+  expect(held.declared).toMatchObject({
+    volatile_fields: 0,
+    volatile_declarations: [
+      {
+        scenario: "notes",
+        pointer: "/slug",
+        declarations: 1,
+        honoured_steps: 0,
+        not_shown_steps: 1,
+        steps: ["setup-seed"],
+      },
+    ],
+  });
+  // One entry per pointer however many steps declare it: the step that blocks is named first.
+  await editJson(join(run, "intended-differences.json"), (file) => {
+    (file.volatile_fields as object[]).push(
+      { scenario: "notes", step_id: "*", pointer: "/slug", reason: "any" },
+      { scenario: "notes", step_id: "open", pointer: "/other", reason: "no" },
+    );
+  });
+  await evaluateScripted(run, {});
+  for (const name of ["run-1", "run-2"])
+    await editJson(
+      join(run, "evidence", "original", "notes", `${name}.json`),
+      (file) => {
+        (file as { observed: object }).observed = { create: name };
+      },
+    );
+  await editJson(
+    join(run, "evidence", "clone", "notes", "run-1.json"),
+    (file) => {
+      (file as { scripted: object }).scripted = {
+        "setup-seed": {
+          status: "unknown",
+          finding: { category: "declared-not-shown", ...HELD_LEAF },
+        },
+      };
+    },
+  );
+  expect((await evaluate(run)).declared.volatile_declarations).toEqual([
+    {
+      scenario: "notes",
+      pointer: "/slug",
+      declarations: 2,
+      honoured_steps: 1,
+      not_shown_steps: 1,
+      steps: ["setup-seed", "create"],
+    },
+  ]);
+  // A declaration that names the step and had no effect there is not listed.
+  const idle = await scriptAlone(run, {});
+  expect(idle.verdict).toBe("done");
+  expect(idle.declared.volatile_declarations).toEqual([]);
+});
+
+const STEP_OUTCOME = {
+  dimension: "step" as const,
+  request: null,
+  pointer: null,
+};
+const ELSEWHERE = {
+  dimension: "request" as const,
+  category: "other-origin",
+  request: "GET http://127.0.0.1:9/api/notes#1",
+  pointer: null,
+};
+const LOST = { category: "not-recorded", pointer: null };
+
+/** What each kind of finding does on a setup or fingerprint step: the table of `cloneRunStepGate.ts`, through the referee. */
+const PREPARED_STEP_ROWS: readonly {
+  readonly status: ScenarioStepStatus;
+  readonly finding: Partial<ScenarioBehaviorFinding>;
+  readonly more?: readonly Partial<ScenarioBehaviorFinding>[];
+  readonly blocks: CloneRunReasonCode | null;
+}[] = [
+  // The original gave one value and the clone another: no category makes that a gap a prefix forgives.
+  {
+    status: "unknown",
+    finding: { category: "single-observation", ...HELD_LEAF },
+    blocks: "parity_unknown",
+  },
+  {
+    status: "changed",
+    finding: { category: "a-category-of-tomorrow" },
+    blocks: "parity_changed",
+  },
+  // A step that did not complete compares nothing.
+  {
+    status: "unknown",
+    finding: {
+      ...STEP_OUTCOME,
+      category: "not-completed",
+      side: "left",
+      expected: "failed",
+    },
+    blocks: "parity_unknown",
+  },
+  {
+    status: "unknown",
+    finding: {
+      ...STEP_OUTCOME,
+      category: "not-completed",
+      side: "right",
+      actual: "cancelled",
+    },
+    blocks: "parity_unknown",
+  },
+  // A gap only one side shows; the same gap on both sides is data no capture holds.
+  {
+    status: "unknown",
+    finding: { ...ELSEWHERE, side: "right" },
+    blocks: "parity_unknown",
+  },
+  {
+    status: "unknown",
+    finding: { ...ELSEWHERE, side: "left" },
+    more: [{ ...ELSEWHERE, side: "right" }],
+    blocks: null,
+  },
+  {
+    status: "unknown",
+    finding: { ...LOST, side: "right" },
+    blocks: "parity_unknown",
+  },
+  {
+    status: "unknown",
+    finding: { ...LOST, side: "left" },
+    more: [{ ...LOST, side: "right" }],
+    blocks: null,
+  },
+  // One side disagreeing with itself shows no steady difference.
+  {
+    status: "unstable",
+    finding: { category: "repeats-differ", side: "left" },
+    blocks: null,
+  },
+  {
+    status: "unstable",
+    finding: { category: "repeats-differ", side: "right" },
+    blocks: null,
+  },
+  {
+    status: "unstable",
+    finding: { category: "undeclared-volatile", side: "left" },
+    blocks: null,
+  },
+  // An unsteady finding listed first does not stand in front of one that blocks.
+  {
+    status: "unstable",
+    finding: { category: "repeats-differ", side: "left", pointer: "/at" },
+    more: [{ category: "declared-not-shown", ...HELD_LEAF }],
+    blocks: "parity_unknown",
+  },
+];
+
+it("blocks a setup or fingerprint step wherever the clone differs from a steady original or one side alone lacks data", async () => {
+  const { run } = await scaffold();
+  await evaluate(run);
+  for (const stepId of ["setup-seed", "fp-list"])
+    for (const row of PREPARED_STEP_ROWS) {
+      const gate = await scriptAlone(run, {
+        [stepId]: {
+          status: row.status,
+          finding: row.finding,
+          ...(row.more === undefined ? {} : { more: row.more }),
+        },
+      });
+      const told = `${stepId} ${JSON.stringify(row.finding)}`;
+      if (row.blocks === null) {
+        expect(gate.verdict, told).toBe("done");
+        expect(gate.counts.ungated_steps, told).toBe(1);
+        continue;
+      }
+      expect(gate.verdict, told).toBe("not_done");
+      expect(gate.blocking, told).toEqual([{ reason: row.blocks, count: 1 }]);
+      expect(gate.counts.ungated_steps, told).toBe(0);
+      expect(gate.next[0]?.step_id, told).toBe(stepId);
+    }
+});
+
+it("blocks a setup step whose finding list the comparer cut, because a finding it left out may block", async () => {
+  const { run } = await scaffold();
+  await evaluate(run);
+  const unsteady = (index: number) => ({
+    category: "undeclared-volatile",
+    side: "left" as const,
+    pointer: `/field${index}`,
+  });
+  const many = Array.from({ length: 19 }, (_, index) => unsteady(index + 1));
+  const cut = await scriptAlone(run, {
+    "setup-seed": { status: "unstable", finding: unsteady(0), more: many },
+  });
+  expect(cut.blocking).toEqual([{ reason: "parity_unknown", count: 1 }]);
+  expect(item(cut, "parity_unknown")).toMatchObject({
+    role: "prober",
+    file: "scenarios/notes.json",
+    step_id: "setup-seed",
+  });
+  expect(item(cut, "parity_unknown").message).toContain(
+    "the comparison found more at this step than it lists",
+  );
+  // One fewer is a whole list of unsteady findings: counted, not blocking.
+  const whole = await scriptAlone(run, {
+    "setup-seed": {
+      status: "unstable",
+      finding: unsteady(0),
+      more: many.slice(1),
+    },
+  });
+  expect(whole.verdict).toBe("done");
+  expect(whole.counts.ungated_steps).toBe(1);
+});
 
 it("addresses each kind of finding to the role that can act on it, with the true cause", async () => {
   const folder = await scaffold();
@@ -980,13 +1283,14 @@ it("gives the comparer's request findings a remedy that can work", async () => {
   expect(cloneOnly).toMatchObject({
     role: "prober",
     side: "original",
-    file: "scenarios/notes.json",
+    file: "evidence/original/notes",
+    command: `rm '${join(run, "evidence", "original", "notes", "run-1.json")}' '${join(run, "evidence", "original", "notes", "run-2.json")}'`,
   });
   expect(cloneOnly.message).toContain(
     `the clone sent ${line}, which no capture of the original sent`,
   );
   expect(cloneOnly.message).toContain(
-    "removes the original's captures of this scenario",
+    "runs the command to remove the original's captures of this scenario",
   );
   expect(cloneOnly.message).not.toContain("left captures");
   expect(cloneOnly.message).not.toContain("Change the clone");
@@ -1027,15 +1331,75 @@ it("names the recorded cause of a step that did not complete or is unsteady, and
         },
       },
     },
-    { steps: steps("create") },
+    {
+      steps: steps("create"),
+      failures: {
+        create:
+          "Request step create was answered with a redirect, which request steps do not follow; a write may already have been applied.\nCall log:\n  - a second line",
+      },
+    },
   );
   const incomplete = item(redirected, "parity_unknown");
   expect(incomplete).toMatchObject({ role: "prober", side: "original" });
   expect(incomplete.message).toContain(
     "Step create failed on the original in evidence/original/notes/run-1.json",
   );
-  expect(incomplete.message).toContain("a redirect (a 3xx reply");
+  // The failure the capture recorded comes first: its first line, then advice that fits it.
+  expect(incomplete.message).toContain(
+    'The capture recorded: "Request step create was answered with a redirect, which request steps do not follow; a write may already have been applied." A request step does not follow a redirect',
+  );
+  expect(incomplete.message).not.toContain("a second line");
+  expect(incomplete.message).not.toContain("it fails when");
   expect(reasons(redirected)).toContain("obligation_step_unknown");
+  const notCompleted = {
+    create: {
+      status: "unknown" as const,
+      finding: {
+        dimension: "step" as const,
+        category: "not-completed",
+        side: "left" as const,
+        request: null,
+        pointer: null,
+        expected: "failed",
+      },
+    },
+  };
+  // A status outside expected_status names the status received, and nothing about a redirect.
+  const strict = item(
+    await script(notCompleted, {
+      steps: steps("create"),
+      failures: { create: "Request step create answered 201; expected 200." },
+    }),
+    "parity_unknown",
+  ).message;
+  expect(strict).toContain(
+    'The capture recorded: "Request step create answered 201; expected 200."',
+  );
+  expect(strict).not.toMatch(/redirect/iu);
+  // A locator that matched two elements: the recorded cause, not a list of causes that are not it.
+  const twoMatches = item(
+    await script(notCompleted, {
+      steps: steps("create"),
+      failures: {
+        create: `locator.waitFor: Error: strict mode violation: locator('#list li') resolved to 2 elements${"x".repeat(400)}`,
+      },
+    }),
+    "parity_unknown",
+  ).message;
+  expect(twoMatches).toContain(
+    "strict mode violation: locator('#list li') resolved to 2 elements",
+  );
+  expect(twoMatches).not.toMatch(/redirect|it fails when/iu);
+  // The recorded text is bounded.
+  expect(twoMatches.length).toBeLessThan(900);
+  // Without a recorded text the item says so and names where the Evidence holds it.
+  const unread = item(
+    await script(notCompleted, { steps: steps("create") }),
+    "parity_unknown",
+  ).message;
+  expect(unread).toContain(
+    "The capture's failure text for it could not be read",
+  );
 
   // The original's own instability that no declaration can cover goes to the prober, in whole sentences.
   for (const finding of [
@@ -1054,8 +1418,12 @@ it("names the recorded cause of a step that did not complete or is unsteady, and
     expect(unsteady).toMatchObject({
       role: "prober",
       side: "original",
-      file: "scenarios/notes.json",
+      file: "evidence/original/notes",
     });
+    // The removal the message asks for is the item's command, as on the clone's side.
+    expect(unsteady.command).toBe(
+      `rm '${join(run, "evidence", "original", "notes", "run-1.json")}' '${join(run, "evidence", "original", "notes", "run-2.json")}'`,
+    );
     expect(unsteady.message).not.toContain("Otherwise");
     expect(unsteady.message).toContain(
       finding.dimension === "body"
@@ -1085,6 +1453,242 @@ it("names the recorded cause of a step that did not complete or is unsteady, and
   });
   expect(collapsed.next[0]?.message).toContain(
     "Steps fp-list, setup-seed, create and open of scenario notes differ",
+  );
+});
+
+it("collapses the unsteady findings of one field into one item with the every-step declaration", async () => {
+  const { run } = await scaffold();
+  await evaluate(run);
+  const stamp = (request: string, expected: string) => ({
+    status: "unstable" as const,
+    finding: {
+      category: "undeclared-volatile",
+      side: "left" as const,
+      pointer: "/items/*/createdAt",
+      request,
+      expected,
+    },
+  });
+  const gate = await evaluateScripted(run, {
+    "setup-seed": stamp("POST /api/seed#1", '"t0" | "t9"'),
+    create: stamp("POST /api/notes#1", '"t1" | "t2"'),
+    open: stamp("GET /api/notes#1", '"t3" | "t4"'),
+  });
+  // Each behaviour step still counts; the setup step is unsteady and not gated.
+  expect(gate.blocking).toEqual([{ reason: "parity_unstable", count: 2 }]);
+  expect(gate.counts.ungated_steps).toBe(1);
+  expect(gate.next).toHaveLength(1);
+  const [unsteady] = gate.next;
+  expect(unsteady).toMatchObject({
+    role: "lead",
+    side: "original",
+    file: "intended-differences.json",
+    step_id: "create",
+    step_ids: ["create", "open"],
+    pointer: "/items/*/createdAt",
+  });
+  expect(unsteady?.message).toContain(
+    '{"scenario":"notes","step_id":"*","pointer":"/items/*/createdAt","reason":"<why it varies>"}',
+  );
+  expect(unsteady?.message).toContain(
+    "honoured only at the steps where the original's captures differ",
+  );
+  // The steps name different requests, so the first one's is not printed as if it were every step's.
+  expect(unsteady?.message).toContain(
+    'Steps create and open of scenario notes: body /items/*/createdAt differs between the original\'s own captures (at create: "t1" | "t2")',
+  );
+  // The other usual cause comes with its command, as the verifier's item for the clone has it.
+  expect(unsteady?.message).toContain(
+    `rm '${join(run, "evidence", "original", "notes", "run-1.json")}' '${join(run, "evidence", "original", "notes", "run-2.json")}'`,
+  );
+  // Another field is another line of work, and a single step keeps its own step id in the entry.
+  const two = await evaluateScripted(run, {
+    create: stamp("POST /api/notes#1", '"t1" | "t2"'),
+    open: {
+      status: "unstable",
+      finding: {
+        category: "undeclared-volatile",
+        side: "left",
+        pointer: "/items/*/id",
+      },
+    },
+  });
+  expect(two.next).toHaveLength(2);
+  expect(two.next[0]?.message).toContain(
+    '{"scenario":"notes","step_id":"create","pointer":"/items/*/createdAt","reason":"<why it varies>"}',
+  );
+});
+
+it("tells a download and a page fetched by a request step from a difference to build", async () => {
+  const { run } = await scaffold();
+  await evaluate(run);
+  const lost = (side: "left" | "right", request: string) => ({
+    category: "not-recorded",
+    side,
+    request,
+    pointer: null,
+  });
+  const both = (request: string) => ({
+    status: "unknown" as const,
+    finding: lost("left", request),
+    more: [lost("right", request)],
+  });
+  // A click that saves a file: no capture of either side records the body, so no capture command is given.
+  const download = item(
+    await evaluateScripted(run, { open: both("GET /export.csv#1") }),
+    "parity_unknown",
+  );
+  expect(download).toMatchObject({
+    role: "prober",
+    file: "scenarios/notes.json",
+    step_id: "open",
+    command: `rea evaluate-clone-run '${run}' --exit-code`,
+  });
+  for (const text of [
+    "body of GET /export.csv#1 was recorded by no capture of either side",
+    "no capture command is given",
+    "the prober adds a request step for the same path to scenarios/notes.json",
+    "renames it setup-open",
+  ])
+    expect(download.message).toContain(text);
+  expect(download.message).not.toContain("one more can supply it");
+  // A request step whose reply is over the limit on both sides: a smaller reply, or setup-.
+  const large = item(
+    await evaluateScripted(run, { create: both("POST /api/notes#1") }),
+    "parity_unknown",
+  );
+  expect(large.message).toContain("this reply is larger on both sides");
+  expect(large.message).toContain("request a smaller reply");
+  // Missing on one side only: captures fold, so that side is captured again, and a prefix is not the way out.
+  const oneSided = item(
+    await evaluateScripted(run, {
+      create: {
+        status: "unknown",
+        finding: lost("right", "POST /api/notes#1"),
+      },
+    }),
+    "parity_unknown",
+  );
+  expect(oneSided).toMatchObject({ role: "verifier", side: "clone" });
+  expect(oneSided.command).toContain("/evidence/clone/notes/run-3.json'");
+  for (const text of [
+    "was not recorded on the clone, and the original's captures recorded it",
+    "Captures fold, so one more can supply it",
+    "it blocks on a setup- step too",
+  ])
+    expect(oneSided.message).toContain(text);
+  expect(oneSided.message).not.toContain("renames it setup-");
+
+  // A request step that fetches a page compares markup byte for byte: the scenario is the remedy, not the clone.
+  const markup = (first: string) =>
+    JSON.stringify(`${first}\n<html lang="en"><head><title>Topics</title>`);
+  const page = item(
+    await evaluateScripted(run, {
+      create: {
+        status: "changed",
+        finding: {
+          pointer: "",
+          request: "GET /about#1",
+          expected: markup("<!doctype html>"),
+          actual: markup("<!DOCTYPE html>"),
+        },
+      },
+    }),
+    "parity_changed",
+  );
+  expect(page).toMatchObject({
+    role: "prober",
+    file: "scenarios/notes.json",
+    step_id: "create",
+  });
+  for (const text of [
+    "Both replies are HTML pages, and a request step compares a reply byte for byte",
+    "A page is compared by its on-screen text, through a goto step",
+    "a setup- name does not help, because a difference blocks on every step",
+    "that one is the builder's",
+  ])
+    expect(page.message).toContain(text);
+  expect(page.message).not.toContain("renames it setup-");
+  expect(page.message).not.toContain("Change the clone");
+  // The same difference in a reply that is not a page stays the builder's.
+  const data = item(
+    await evaluateScripted(run, {
+      create: {
+        status: "changed",
+        finding: { pointer: "", expected: '"a,b\\n1,2"', actual: '"a;b"' },
+      },
+    }),
+    "parity_changed",
+  );
+  expect(data.role).toBe("builder");
+  expect(data.message).toContain("Change the clone");
+});
+
+it("prints a command that runs when target.json cannot say how the run spells the CLI", async () => {
+  const folder = await scaffold();
+  const { run } = folder;
+  await editJson(join(run, "target.json"), (file) => {
+    file.rea_command = "node /opt/rea/scripts/rea.mjs";
+  });
+  await captureBoth(folder);
+  await writeJson(join(run, "unknowns", "prober-1.json"), {
+    statement: "Open question.",
+  });
+  const target = await readFile(join(run, "target.json"), "utf8");
+  // A refused file that still states its spelling keeps it.
+  await writeFile(
+    join(run, "target.json"),
+    JSON.stringify({ rea_command: "node /opt/rea/scripts/rea.mjs" }),
+  );
+  const stated = await evaluate(
+    run,
+    fakeComparer(),
+    "'/usr/bin/node' '/x/rea.mjs'",
+  );
+  expect(new Set(stated.next.map(({ command }) => command))).toEqual(
+    new Set([
+      `node /opt/rea/scripts/rea.mjs evaluate-clone-run '${run}' --exit-code`,
+    ]),
+  );
+  // A file cut in the middle states nothing: the command is the one this evaluation was started with, never one read back from gate.json.
+  await writeFile(join(run, "target.json"), target.slice(0, 300));
+  const cut = await evaluate(
+    run,
+    fakeComparer(),
+    "'/usr/bin/node' '/x/rea.mjs'",
+  );
+  expect(cut.blocking.map(({ reason }) => reason)).toEqual([
+    "target_invalid",
+    "unknown_open",
+  ]);
+  expect(new Set(cut.next.map(({ command }) => command))).toEqual(
+    new Set([
+      `'/usr/bin/node' '/x/rea.mjs' evaluate-clone-run '${run}' --exit-code`,
+    ]),
+  );
+  expect(item(cut, "target_invalid").message).toContain(
+    "target.json could not be read for how this run spells the CLI (rea_command), so the command is spelled the way this evaluation was started",
+  );
+  // The outlook names the check that kept this evaluation from being judged, not captures that are all in place.
+  expect(cut.stall.judged).toBe(false);
+  expect(cut.stall.outlook).toContain(
+    "Not judged: target.json is refused (check scope, reason target_invalid)",
+  );
+  expect(cut.stall.outlook).not.toContain("lacks admitted captures");
+  // Without a known invocation the item says which command applies.
+  const unknown = await evaluate(run);
+  expect(item(unknown, "target_invalid").message).toContain(
+    "run the same command that was just run",
+  );
+  // Each other cause of an unjudged evaluation is named as itself.
+  await writeFile(join(run, "target.json"), target);
+  await rm(join(run, "evidence", "clone", "notes", "run-2.json"));
+  expect((await evaluate(run)).stall.outlook).toContain(
+    "Not judged: a scenario lacks admitted captures on a side (check evidence)",
+  );
+  await rm(folder.cloneRoot, { recursive: true });
+  expect((await evaluate(run)).stall.outlook).toContain(
+    "Not judged: the clone root is missing (check scope, reason clone_root_missing)",
   );
 });
 
@@ -1260,9 +1864,33 @@ it("settles unknowns and inferred obligations only by a waiver with a named pers
     role: "lead",
     file: "unknowns/prober-1.json",
   });
-  expect(item(open, "unknown_open").message).toContain(
-    '{"kind":"unknown","id":"prober-1","person":"<name>","reason":"<why this gap is accepted>"}',
-  );
+  // The item says who may settle it, in order: close it, else the user's waiver, else report and end not done.
+  const inOrder = (message: string, parts: readonly string[]): void => {
+    const places = parts.map((part) => message.indexOf(part));
+    expect(places.every((place) => place >= 0)).toBe(true);
+    expect(places).toEqual(places.toSorted((left, right) => left - right));
+  };
+  const openMessage = item(open, "unknown_open").message;
+  inOrder(openMessage, [
+    '{"unknown":"prober-1","obligation":"<obligation id>"} to closed in waivers.json',
+    "only the user, or a person the user names, can accept the gap",
+    "An agent never writes that name",
+    'a waiver of kind "unknown" for id "prober-1"',
+    "When nobody can be asked, the lead reports this open unknown and the run ends not done",
+  ]);
+  const inferredMessage = item(open, "obligation_inferred").message;
+  inOrder(inferredMessage, [
+    "the prober adds a step that exercises it",
+    "only the user, or a person the user names, can accept the gap",
+    "An agent never writes that name",
+    'a waiver of kind "obligation" for id "notes-limit"',
+    "the run ends not done",
+  ]);
+  // Nothing is printed ready to paste with a place for a name.
+  for (const message of [openMessage, inferredMessage]) {
+    expect(message).not.toContain('"person"');
+    expect(message).not.toContain("<name>");
+  }
 
   const waive = (person: string, reason: string): Promise<void> =>
     writeJson(join(run, "waivers.json"), {
@@ -1837,6 +2465,57 @@ it("repairs a journal that ends in a partial line instead of joining the next en
       .success,
   ).toBe(true);
 });
+
+it.skipIf(process.platform === "win32")(
+  "never opens a journal that is not a regular file, and writes its own in its place",
+  async () => {
+    const folder = await scaffold();
+    const { run } = folder;
+    await captureBoth(folder, { observed: { create: "other" } });
+    const journal = join(run, "journal.jsonl");
+    const judgedOnce = await evaluate(run);
+    expect(judgedOnce.stall).toMatchObject({ round: 1, attempts: 1 });
+    // A named pipe an agent left there: reading it would wait for a writer forever.
+    await rm(journal);
+    await promisify(execFile)("mkfifo", [journal]);
+    const piped = await readWithoutFifoWriter(journal, () =>
+      evaluateCloneRun(run, {
+        comparer: fakeComparer(),
+        digestTree: digestCloneTree,
+        now: () => new Date((clock += 1000)),
+        hostResolver,
+      }),
+    );
+    if (piped.state !== "completed")
+      throw new Error("The referee waited for a writer on journal.jsonl");
+    // The same verdict as with no journal: the pipe decides nothing and is replaced by the referee's own file.
+    expect(piped.result.ok && piped.result.value).toMatchObject({
+      verdict: "not_done",
+      stall: { round: 1, attempts: 1 },
+    });
+    expect((await lstat(journal)).isFile()).toBe(true);
+    expect(await readJournal(run)).toHaveLength(1);
+    // A link is not the referee's own output either: it is not read through, here to a file of nine judged rounds.
+    const [line] = await readJournal(run);
+    const other = join(folder.base, "other-journal.jsonl");
+    await writeFile(
+      other,
+      `${Array.from({ length: 9 }, (_, round) =>
+        JSON.stringify({
+          ...line,
+          clone_tree_sha256: `${"0".repeat(63)}${round}`,
+        }),
+      ).join("\n")}\n`,
+    );
+    await rm(journal);
+    await symlink(other, journal);
+    expect(await evaluate(run)).toMatchObject({
+      verdict: "not_done",
+      stall: { round: 1, attempts: 1 },
+    });
+    expect((await lstat(journal)).isFile()).toBe(true);
+  },
+);
 
 it("rejects an Evidence entry that is not a regular file and never offers its name to a capture", async () => {
   const folder = await scaffold();
