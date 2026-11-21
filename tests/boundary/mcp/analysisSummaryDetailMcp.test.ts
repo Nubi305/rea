@@ -180,14 +180,14 @@ it("states each limitation sentence once per reply and keeps every sentence reac
   // The record's sentences: what a summary of it has always stated.
   const recorded = new Set(
     (
-      parent.normalized_result as {
+      parent.normalized_result as unknown as {
         readonly limitations: readonly string[];
         readonly graph: { readonly limitations: readonly string[] };
         readonly semantic_graph: { readonly limitations: readonly string[] };
       }
     ).limitations,
   );
-  const result = parent.normalized_result as {
+  const result = parent.normalized_result as unknown as {
     readonly graph: { readonly limitations: readonly string[] };
     readonly semantic_graph: { readonly limitations: readonly string[] };
   };
@@ -203,7 +203,7 @@ it("states each limitation sentence once per reply and keeps every sentence reac
     arguments: { ...input, detail: "summary" },
   });
   const summaryEvidence = parseEvidence(summary.structuredContent);
-  const summaryResult = summaryEvidence.normalized_result as {
+  const summaryResult = summaryEvidence.normalized_result as unknown as {
     readonly views: readonly { readonly arguments: Record<string, unknown> }[];
     readonly unknowns: readonly string[];
     readonly summary: Record<string, unknown>;
