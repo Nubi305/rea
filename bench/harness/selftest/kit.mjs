@@ -34,7 +34,7 @@ const stamp = (seconds) =>
  */
 export const turn = (tokens, calls) => ({ tokens, calls });
 
-const assistantLine = (step, index, usage) => ({
+const replyLine = (step, index, usage) => ({
   type: "assistant",
   timestamp: stamp(60 * (index + 1)),
   message: {
@@ -85,8 +85,8 @@ export const transcriptLines = (prompt, turns) => {
       cache_creation_input_tokens: created,
       output_tokens: output,
     };
-    lines.push(assistantLine(step, index, { ...usage, output_tokens: 1 }));
-    lines.push(assistantLine(step, index, usage));
+    lines.push(replyLine(step, index, { ...usage, output_tokens: 1 }));
+    lines.push(replyLine(step, index, usage));
     lines.push(resultLine(step, index));
   });
   return lines;
