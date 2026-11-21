@@ -5,7 +5,7 @@
 // No model is involved.
 //
 //   node bench/harness/task-score.mjs --root <dir> --transcripts <run directory>
-//        [--task <id>]... [--floor <floor.json>] [--out <file>]
+//        [--task <id>]... [--floor <floor.json>] [--note <text>]... [--out <file>]
 //   node bench/harness/task-score.mjs --workspace <dir> --transcript <file or run directory>
 //        [--cell <cell.json>] [--floor <floor.json>] [--out <file>]
 //
@@ -23,7 +23,7 @@ import { firstCommandOf, judgeAnswer, loadTask } from "./lib/tasks.mjs";
 import { findTranscript, readTranscript } from "./lib/transcript.mjs";
 import { readCell } from "./lib/workspace.mjs";
 
-const USAGE = `usage: task-score.mjs --root <dir> --transcripts <run directory> [--task <id>]... [--floor <floor.json>] [--out <file>]
+const USAGE = `usage: task-score.mjs --root <dir> --transcripts <run directory> [--task <id>]... [--floor <floor.json>] [--note <text>]... [--out <file>]
        task-score.mjs --workspace <dir> --transcript <file or run directory> [--cell <cell.json>] [--floor <floor.json>] [--out <file>]`;
 
 const options = () => {
@@ -36,6 +36,7 @@ const options = () => {
       cell: { type: "string" },
       task: { type: "string", multiple: true },
       floor: { type: "string" },
+      note: { type: "string", multiple: true, default: [] },
       out: { type: "string" },
     },
   });
@@ -80,6 +81,7 @@ const scoreCell = (cell, where, floor) => {
   return {
     ...header,
     scored: true,
+    run: { started_at: transcript.started_at, ended_at: transcript.ended_at },
     first_command: firstCommandOf(task, invocations),
     ...report,
     rule_breaks: ruleBreaksOf(transcript, cell.forbidden ?? []),
@@ -176,6 +178,7 @@ const main = async () => {
             version: cells[0].rea.version,
             node_version: cells[0].rea.node_version,
           },
+    notes: values.note,
     floor,
     summary: summarize(rows),
     rows,

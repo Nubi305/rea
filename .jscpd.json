@@ -12,6 +12,7 @@
     "bench/tasks/*/src/**",
     "bench/tasks/*/origin/**",
     "bench/tasks/*/site/**",
+    "bench/results/**",
     "third_party/**",
     "tests/conformance/**/*.c",
     "tests/conformance/**/*.m",

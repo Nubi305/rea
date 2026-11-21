@@ -5,7 +5,7 @@
 //
 //   node bench/harness/clone-score.mjs --workspace <dir> --transcript <file or run directory>
 //        --judge <checkout> [--cell <cell.json>] [--rea <checkout>] [--floor <floor.json>]
-//        [--out <file>] [--skip-hidden] [--keep] [--node <node>] [--original-port <n>]
+//        [--out <file>] [--note <text>]... [--skip-hidden] [--keep] [--node <node>] [--original-port <n>]
 //        [--clone-reset <command> --clone-stop <command> [--clone-address <url>]]
 //
 // It leaves both applications stopped, and says so in its result.
@@ -43,7 +43,7 @@ import { readCell } from "./lib/workspace.mjs";
 
 const USAGE = `usage: clone-score.mjs --workspace <dir> --transcript <file or run directory> --judge <checkout>
        [--cell <cell.json>] [--rea <checkout>] [--floor <floor.json>] [--out <file>]
-       [--skip-hidden] [--keep] [--node <node>] [--original-port <n>]
+       [--note <text>]... [--skip-hidden] [--keep] [--node <node>] [--original-port <n>]
        [--clone-reset <command> --clone-stop <command> [--clone-address <url>]]`;
 
 const options = () => {
@@ -61,6 +61,7 @@ const options = () => {
       "clone-reset": { type: "string" },
       "clone-stop": { type: "string" },
       "clone-address": { type: "string" },
+      note: { type: "string", multiple: true, default: [] },
       "skip-hidden": { type: "boolean", default: false },
       keep: { type: "boolean", default: false },
     },
@@ -249,6 +250,7 @@ const main = async () => {
   const underTest =
     values.rea === undefined ? cell.rea : checkoutFacts(values.rea, node);
   const transcriptFile = findTranscript(values.transcript, cell.label);
+  const transcript = readTranscript(transcriptFile);
   const workDir = mkdtempSync(join(tmpdir(), `rea-bench-score-${cell.id}-`));
   const treeBefore = treeDigest(cell.clone.root);
   let score;
@@ -274,9 +276,11 @@ const main = async () => {
       },
       judge: { commit: judge.commit_short, version: judge.version },
       transcript: transcriptFile,
+      run: { started_at: transcript.started_at, ended_at: transcript.ended_at },
+      notes: values.note,
       referee,
       hidden,
-      ...scoreTranscript(cell, readTranscript(transcriptFile), values.floor),
+      ...scoreTranscript(cell, transcript, values.floor),
       clone_tree: {
         files: treeBefore.files,
         sha256: treeBefore.sha256,

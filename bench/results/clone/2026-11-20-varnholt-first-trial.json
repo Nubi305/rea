@@ -1,0 +1,625 @@
+{
+  "schema": "rea.bench.clone-score/1",
+  "cell": {
+    "id": "varnholt-first-trial",
+    "label": "trial:cold-cloner",
+    "app": "varnholt",
+    "clone_name": "Larkspur Desk"
+  },
+  "scored_at": "2026-11-21T05:33:29.964Z",
+  "rea_under_test": {
+    "commit": "77500a50",
+    "version": "6.9.0",
+    "node_version": "v22.23.5"
+  },
+  "judge": {
+    "commit": "0e089b3e",
+    "version": "6.9.0"
+  },
+  "transcript": "/root/.claude/projects/-home-user/54db18d0-c8e4-5ba5-98b3-8082c6c439a0/subagents/workflows/wf_423c2dad-fa6/agent-ad2816139967c59d7.jsonl",
+  "run": {
+    "started_at": "2026-11-20T04:08:17.887Z",
+    "ended_at": "2026-11-20T04:58:14.919Z"
+  },
+  "notes": [
+    "The first blind trial, scored retroactively on 2026-11-21. It ran on 2026-11-20 from 04:08 to 04:58 UTC, before this harness existed; its cell description was written by hand.",
+    "Build: the agent used the work branch as it was built that morning (branch head b68840e5 then: committed 03:20 UTC, the next commit is from 05:43 UTC). That build is not kept as a checkout. rea_under_test names 77500a50, the head of the first fix round, which recomputed the verdict here.",
+    "Verdict: the run's own last evaluation recorded stalled, and the agent reported exit status 2. On a copy of the same run folder 77500a50 and the judge 0e089b3e both say not_done, exit status 1.",
+    "The trial's prompt had the agent install the skill itself, so 25,295 bytes of setup output are in its context that a prepared cell does not have; its original was stopped when the trial began.",
+    "There was no shim log: 28 capture commands are visible in command text (a loop counts once) and 48 capture Evidence files are in the run folder.",
+    "Hidden replay: the original ran from the repository's copy on port 5310 and the clone from a byte-identical copy of the trial's clone on port 5311, started with PORT=5311 HOST=127.0.0.1 node server.js, because the trial's own ports (4701 and 4711) are not this harness's."
+  ],
+  "referee": {
+    "verdict": "not_done",
+    "exit_status": 1,
+    "under_test": {
+      "evaluated_with": "77500a50",
+      "verdict": "not_done",
+      "exit_status": 1,
+      "summary": "not done: 1 blocking finding",
+      "checks": {
+        "scope": "pass",
+        "inputs": "pass",
+        "evidence": "pass",
+        "clean_start": "pass",
+        "coverage": "pass",
+        "parity": "pass",
+        "clean_room": "pass",
+        "unknowns": "fail"
+      },
+      "blocking": [
+        {
+          "reason": "unknown_open",
+          "count": 1
+        }
+      ],
+      "waivers": 0,
+      "stdout_bytes": 3015,
+      "problem": null
+    },
+    "by_judge": {
+      "evaluated_with": "0e089b3e",
+      "verdict": "not_done",
+      "exit_status": 1,
+      "summary": "not done: 1 blocking finding",
+      "checks": {
+        "scope": "pass",
+        "inputs": "pass",
+        "evidence": "pass",
+        "clean_start": "pass",
+        "coverage": "pass",
+        "parity": "pass",
+        "clean_room": "pass",
+        "unknowns": "fail"
+      },
+      "blocking": [
+        {
+          "reason": "unknown_open",
+          "count": 1
+        }
+      ],
+      "waivers": 0,
+      "stdout_bytes": 5280,
+      "problem": null
+    },
+    "recorded_in_run_folder": {
+      "verdict": "stalled",
+      "summary": "stalled after 4 judged rounds (the last two had the same findings and the same clone tree): 2 blocking findings",
+      "evaluated_at": "2026-11-20T04:55:22.013Z"
+    },
+    "recorded_differs": true
+  },
+  "hidden": {
+    "measured": true,
+    "clone_restarted_with": "given",
+    "differences": {
+      "volatile_fields": 40,
+      "renames": [
+        {
+          "from": "Varnholt",
+          "to": "Larkspur Desk"
+        }
+      ]
+    },
+    "captures_taken": 8,
+    "captures_failed": 0,
+    "steps": {
+      "steps": 79,
+      "unchanged": 77,
+      "changed": 2,
+      "unknown": 0,
+      "unstable": 0
+    },
+    "rules_total": 23,
+    "rules_agree": 23,
+    "rules_disagree": 0,
+    "rules_undecided": 0,
+    "scenarios": [
+      {
+        "id": "heldout-rules",
+        "compared": true,
+        "problem": null,
+        "exit_status": 1,
+        "verdict": "changed",
+        "start_state": {
+          "original": "clean",
+          "clone": "clean"
+        },
+        "captures": [
+          {
+            "side": "original",
+            "number": 1,
+            "ok": true,
+            "problem": null
+          },
+          {
+            "side": "clone",
+            "number": 1,
+            "ok": true,
+            "problem": null
+          },
+          {
+            "side": "original",
+            "number": 2,
+            "ok": true,
+            "problem": null
+          },
+          {
+            "side": "clone",
+            "number": 2,
+            "ok": true,
+            "problem": null
+          }
+        ],
+        "steps": {
+          "steps": 60,
+          "unchanged": 59,
+          "changed": 1,
+          "unknown": 0,
+          "unstable": 0
+        },
+        "steps_not_unchanged": [
+          {
+            "step_id": "scenario_start",
+            "status": "changed",
+            "findings": [
+              {
+                "dimension": "text",
+                "category": "value",
+                "pointer": null,
+                "side": null
+              }
+            ]
+          }
+        ],
+        "limitations": [
+          "The on-screen text difference at step scenario_start is listed there only: 59 later steps show the same text on both sides and carry no finding of their own for it."
+        ]
+      },
+      {
+        "id": "heldout-pages",
+        "compared": true,
+        "problem": null,
+        "exit_status": 1,
+        "verdict": "changed",
+        "start_state": {
+          "original": "clean",
+          "clone": "clean"
+        },
+        "captures": [
+          {
+            "side": "original",
+            "number": 1,
+            "ok": true,
+            "problem": null
+          },
+          {
+            "side": "clone",
+            "number": 1,
+            "ok": true,
+            "problem": null
+          },
+          {
+            "side": "original",
+            "number": 2,
+            "ok": true,
+            "problem": null
+          },
+          {
+            "side": "clone",
+            "number": 2,
+            "ok": true,
+            "problem": null
+          }
+        ],
+        "steps": {
+          "steps": 19,
+          "unchanged": 18,
+          "changed": 1,
+          "unknown": 0,
+          "unstable": 0
+        },
+        "steps_not_unchanged": [
+          {
+            "step_id": "scenario_start",
+            "status": "changed",
+            "findings": [
+              {
+                "dimension": "text",
+                "category": "value",
+                "pointer": null,
+                "side": null
+              }
+            ]
+          }
+        ],
+        "limitations": [
+          "The on-screen text difference at step scenario_start is listed there only: 2 later steps show the same text on both sides and carry no finding of their own for it."
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "R01-code-normalised",
+        "difficulty": "visible",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 2
+      },
+      {
+        "id": "R02-derived-totals",
+        "difficulty": "visible",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 2
+      },
+      {
+        "id": "R03-manifest-order",
+        "difficulty": "visible",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 2
+      },
+      {
+        "id": "R04-statuses-on-screen",
+        "difficulty": "visible",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 5
+      },
+      {
+        "id": "R05-code-unique",
+        "difficulty": "edge",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 1
+      },
+      {
+        "id": "R06-recipient-unique-per-manifest",
+        "difficulty": "edge",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 3
+      },
+      {
+        "id": "R07-text-limits",
+        "difficulty": "edge",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 2
+      },
+      {
+        "id": "R08-weight-rounding",
+        "difficulty": "edge",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 6
+      },
+      {
+        "id": "R09-weight-limit",
+        "difficulty": "edge",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 2
+      },
+      {
+        "id": "R10-charge",
+        "difficulty": "edge",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 4
+      },
+      {
+        "id": "R11-parcel-order",
+        "difficulty": "edge",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 1
+      },
+      {
+        "id": "R12-capacity-field",
+        "difficulty": "edge",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 2
+      },
+      {
+        "id": "R13-list-filters",
+        "difficulty": "edge",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 3
+      },
+      {
+        "id": "R14-capacity-quota",
+        "difficulty": "several-steps",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 5
+      },
+      {
+        "id": "R15-parcel-quota",
+        "difficulty": "several-steps",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 5
+      },
+      {
+        "id": "R16-state-machine",
+        "difficulty": "several-steps",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 9
+      },
+      {
+        "id": "R17-seal-needs-parcels",
+        "difficulty": "several-steps",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 1
+      },
+      {
+        "id": "R18-lock",
+        "difficulty": "several-steps",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 5
+      },
+      {
+        "id": "R19-delete-and-cascade",
+        "difficulty": "several-steps",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 3
+      },
+      {
+        "id": "R20-ids-and-freed-codes",
+        "difficulty": "several-steps",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 2
+      },
+      {
+        "id": "R21-summary",
+        "difficulty": "several-steps",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 3
+      },
+      {
+        "id": "R22-parcel-stays",
+        "difficulty": "several-steps",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 1
+      },
+      {
+        "id": "R23-order-of-checks",
+        "difficulty": "several-steps",
+        "result": "agrees",
+        "steps_not_unchanged": [],
+        "steps_cited": 3
+      }
+    ]
+  },
+  "cost": {
+    "model": "claude-fable-5-2",
+    "turns": 94,
+    "peak_context_tokens": 475393,
+    "first_turn_prompt_tokens": 64804,
+    "prompt_tokens_all_turns": 27111526,
+    "uncached_prompt_tokens": 475570,
+    "output_tokens": 226499,
+    "tool_calls": 100,
+    "wall_minutes": 50,
+    "net_of_floor": null
+  },
+  "context": {
+    "prompt_bytes": 4118,
+    "tool_input_bytes": 269295,
+    "tool_result_bytes": 443477,
+    "rea": {
+      "bytes": 170570,
+      "tool_calls": 46,
+      "by_command": {
+        "capture-browser-scenario": {
+          "calls": 28,
+          "bytes": 61112
+        },
+        "evaluate-clone-run": {
+          "calls": 13,
+          "bytes": 33206
+        },
+        "setup": {
+          "calls": 1,
+          "bytes": 25295
+        },
+        "(no command) --help": {
+          "calls": 1,
+          "bytes": 8728
+        },
+        "init-clone-run --help": {
+          "calls": 1,
+          "bytes": 8728
+        },
+        "capture-browser-scenario --schema": {
+          "calls": 2,
+          "bytes": 7501
+        },
+        "compare-scenario-behavior": {
+          "calls": 4,
+          "bytes": 5915
+        },
+        "export-web-scripts": {
+          "calls": 3,
+          "bytes": 5426
+        },
+        "init-clone-run": {
+          "calls": 1,
+          "bytes": 1856
+        },
+        "environment-build --help": {
+          "calls": 1,
+          "bytes": 1754
+        },
+        "environment-build": {
+          "calls": 1,
+          "bytes": 1754
+        },
+        "evaluate-clone-run --help": {
+          "calls": 1,
+          "bytes": 1743
+        },
+        "guidance --help": {
+          "calls": 1,
+          "bytes": 1743
+        },
+        "capture-browser-scenario --help": {
+          "calls": 1,
+          "bytes": 1432
+        },
+        "export-web-scripts --help": {
+          "calls": 1,
+          "bytes": 1400
+        },
+        "inspect-analysis-view --help": {
+          "calls": 1,
+          "bytes": 1400
+        },
+        "compare-scenario-behavior --help": {
+          "calls": 1,
+          "bytes": 895
+        },
+        "guidance": {
+          "calls": 2,
+          "bytes": 685
+        }
+      }
+    },
+    "skill": {
+      "bytes": 76652,
+      "tool_calls": 3,
+      "by_file": {
+        "SKILL.md": {
+          "calls": 1,
+          "bytes": 51161
+        },
+        "references/clone-runs.md": {
+          "calls": 1,
+          "bytes": 25087
+        },
+        ".": {
+          "calls": 1,
+          "bytes": 404
+        }
+      }
+    },
+    "other": {
+      "bytes": 196255,
+      "tool_calls": 51
+    },
+    "largest_results": [
+      {
+        "bucket": "skill",
+        "bytes": 51161,
+        "tool": "Read",
+        "what": "/home/user/rea-trial/work/home/.claude/skills/reverse-engineer-anything/SKILL.md"
+      },
+      {
+        "bucket": "rea",
+        "bytes": 25295,
+        "tool": "Bash",
+        "what": "date -u +%FT%TZ; mkdir -p /home/user/rea-trial/work && cd /home/user/rea-trial/work && export PATH=/home/user/rea-trial/bin:$PATH && HOME=/home/user/rea-trial/w"
+      },
+      {
+        "bucket": "skill",
+        "bytes": 25087,
+        "tool": "Read",
+        "what": "/home/user/rea-trial/work/home/.claude/skills/reverse-engineer-anything/references/clone-runs.md"
+      },
+      {
+        "bucket": "other",
+        "bytes": 25014,
+        "tool": "Bash",
+        "what": "cd /home/user/rea-trial/work && node notes/table.js run/scout/explore/manifests-api.capture.json 330 | sed -n '2,200p' | cut -c1-520"
+      },
+      {
+        "bucket": "other",
+        "bytes": 22415,
+        "tool": "Bash",
+        "what": "cd /home/user/rea-trial/work && node notes/table.js run/scout/explore/parcels-api.capture.json 300 | sed -n '14,400p' | cut -c1-430"
+      },
+      {
+        "bucket": "rea",
+        "bytes": 17455,
+        "tool": "Bash",
+        "what": "cd /home/user/rea-trial/work && export PATH=/home/user/rea-trial/bin:$PATH && rea --help 2>&1 | head -80; echo ----; rea init-clone-run --help 2>&1 | head -150"
+      },
+      {
+        "bucket": "rea",
+        "bytes": 14925,
+        "tool": "Bash",
+        "what": "cd /home/user/rea-trial/work/notes/gen && python3 - <<'EOF' p='gen.js'; s=open(p).read() s=s.replace('''fs.writeFileSync(out+\"/pages.json\",JSON.stringify({start"
+      },
+      {
+        "bucket": "other",
+        "bytes": 14647,
+        "tool": "Bash",
+        "what": "cd /home/user/rea-trial/work && cat > notes/order.js <<'EOF' const e=JSON.parse(require(\"fs\").readFileSync(process.argv[2],\"utf8\")); const nr=e.normalized_resul"
+      }
+    ]
+  },
+  "rea_invocations": {
+    "from_transcript": {
+      "total": 64,
+      "by_command": {
+        "setup": 1,
+        "(no command) --help": 1,
+        "init-clone-run --help": 1,
+        "evaluate-clone-run --help": 1,
+        "guidance --help": 1,
+        "init-clone-run": 1,
+        "capture-browser-scenario --help": 1,
+        "capture-browser-scenario --schema": 2,
+        "capture-browser-scenario": 28,
+        "export-web-scripts --help": 1,
+        "inspect-analysis-view --help": 1,
+        "export-web-scripts": 3,
+        "environment-build --help": 1,
+        "environment-build": 1,
+        "guidance": 2,
+        "evaluate-clone-run": 13,
+        "compare-scenario-behavior --help": 1,
+        "compare-scenario-behavior": 4
+      },
+      "captures": 28
+    },
+    "from_shim_log": null
+  },
+  "captures": {
+    "by_shim_log": null,
+    "in_transcript_text": 28,
+    "evidence_files_in_run": {
+      "original": 28,
+      "clone": 20
+    }
+  },
+  "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+  },
+  "agent_report": {
+    "outcome": "stalled",
+    "final_exit_code": "2"
+  },
+  "clone_tree": {
+    "files": 6,
+    "sha256": "4d37a64bd18455f011a64e7c78b2e892c1ce220800450f602dac03f31a18be27",
+    "changed_by_scoring": false
+  },
+  "left_running": {
+    "original": false,
+    "clone": false
+  }
+}

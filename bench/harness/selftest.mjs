@@ -3,13 +3,16 @@
 // known-bad case whose score is worked out by hand in bench/harness/selftest/.
 //
 //   node bench/harness/selftest.mjs [--judge <checkout> --ports <a>,<b>]
-//        [--app <id>] [--node <node>] [--keep]
+//        [--client <id>] [--app <id>] [--node <node>] [--keep]
 //
-// Without --judge it checks the readers and the task scorer (synthetic
-// transcripts, hand-written answer files). With --judge and two free ports it
+// Without --judge it checks the readers, the task scorer (synthetic
+// transcripts, hand-written answer files) and the workflow scripts (with a
+// stand-in for the workflow tool). With --judge and two free ports it
 // also runs the clone scorer on an application against an exact copy of
 // itself, which must agree on every rule, and against the copy with one rule
-// broken, which must disagree on exactly that rule.
+// broken, which must disagree on exactly that rule. With --client as well
+// it prepares a task cell and a clone cell for real and scores them with
+// this script standing in for the agent.
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -23,7 +26,9 @@ import {
   checkRuleBreaks,
   checkShellReader,
 } from "./selftest/readers.mjs";
+import { checkPreparedCells } from "./selftest/prepared.mjs";
 import { checkTaskScorer } from "./selftest/task-scorer.mjs";
+import { checkWorkflows } from "./selftest/workflows.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -36,6 +41,7 @@ const { values } = parseArgs({
       default:
         process.env.REA_BROWSER_EXECUTABLE ?? "/opt/pw-browsers/chromium",
     },
+    client: { type: "string" },
     keep: { type: "boolean", default: false },
   },
 });
@@ -46,17 +52,23 @@ try {
   checkRuleBreaks();
   checkFacts();
   checkTaskScorer(work);
+  await checkWorkflows();
   if (values.judge === undefined) {
     console.log(
-      "skip clone scorer: pass --judge <checkout> --ports <a>,<b> to run it",
+      "skip clone scorer and prepared cells: pass --judge <checkout> --ports <a>,<b> [--client <id>] to run them",
     );
   } else {
-    checkCloneScorer(work, {
+    const settings = {
       app: loadApp(values.app),
       judge: checkoutFacts(values.judge, values.node),
       ports: (values.ports ?? "").split(",").map(Number),
       browser: values.browser,
-    });
+      client: values.client,
+    };
+    checkCloneScorer(work, settings);
+    if (values.client === undefined)
+      console.log("skip prepared cells: pass --client <id> to run them");
+    else await checkPreparedCells(work, settings);
   }
 } finally {
   if (!values.keep) rmSync(work, { recursive: true, force: true });

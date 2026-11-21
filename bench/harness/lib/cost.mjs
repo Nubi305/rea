@@ -144,7 +144,8 @@ const roundTable = (table) =>
  * What filled the context, in bytes of tool results: results of commands
  * that ran REA (split by REA command), text read from the installed skill,
  * and everything else. A result of a command that ran several REA commands
- * is divided equally among them.
+ * is divided equally among them. `tool_input_bytes` is what the agent itself
+ * wrote as tool arguments (commands, files), which stays in its context too.
  */
 export const contextOf = (transcript, { skillDir = null } = {}) => {
   const state = newShellState();
@@ -168,6 +169,9 @@ export const contextOf = (transcript, { skillDir = null } = {}) => {
   }
   return {
     prompt_bytes: Buffer.byteLength(transcript.prompt),
+    tool_input_bytes: sum(transcript.tool_calls, (call) =>
+      Buffer.byteLength(JSON.stringify(call.input)),
+    ),
     tool_result_bytes: buckets.rea + buckets.skill + buckets.other,
     rea: {
       bytes: buckets.rea,
