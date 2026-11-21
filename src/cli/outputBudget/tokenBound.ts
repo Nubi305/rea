@@ -70,10 +70,10 @@ export interface CountedTokenWindow {
  * (not including) `offset + limit`, where a code point's position is the
  * whole number of tokens counted before it. Consecutive windows
  * (`offset`, `offset + limit`, ...) partition the text without gaps or
- * overlap. Because the last code point may end past the window's grid line, a
- * window of `limit` positions holds one counted token more than `limit` at
- * most; a caller that needs a bound of N passes `limit` N - 1 (see
- * {@link countedTokenWindowWithin}). Without `limit` the window runs to the end.
+ * overlap: this is the explicit `--token-offset` window. Because a code point
+ * may end past the window's last position, its text can count up to four
+ * tokens more than `limit`; a caller that needs a bound uses
+ * {@link countedTokenWindowWithin}. Without `limit` the window runs to the end.
  */
 export const countedTokenWindow = (
   text: string,
@@ -116,13 +116,73 @@ export const countedTokenWindow = (
   };
 };
 
-/** A window whose text counts at most `limit` tokens (limit at least 1). */
+/**
+ * A window from counted position `offset` whose text counts at most `limit`
+ * tokens. It uses the positions of {@link countedTokenWindow} and ends on a
+ * position boundary: every code point whose position equals the window's end
+ * belongs to the next window, so consecutive windows (`offset`, then each
+ * window's `end`) partition the text. A window always holds at least the code
+ * points of its first position.
+ */
 export const countedTokenWindowWithin = (
   text: string,
   offset: number,
   limit: number,
-): CountedTokenWindow =>
-  countedTokenWindow(text, offset, Math.max(1, limit - 1));
+): CountedTokenWindow => {
+  const bytes = Buffer.from(text, "utf8");
+  let totalUnits = 0;
+  for (const byte of bytes) totalUnits += units(byte);
+  const total = Math.ceil(totalUnits / TOKEN_UNITS);
+  const start = Math.max(0, Math.floor(offset));
+  const budget = Math.max(1, limit) * TOKEN_UNITS;
+  let used = 0;
+  let index = 0;
+  let from = -1;
+  let fromUnits = 0;
+  // Index and position of the first code point of each position seen in the window.
+  let positionStart = -1;
+  let positionStartIndex = -1;
+  while (index < bytes.length) {
+    const position = Math.floor(used / TOKEN_UNITS);
+    let width = 1;
+    while (
+      index + width < bytes.length &&
+      ((bytes[index + width] ?? 0) & 0xc0) === 0x80
+    )
+      width += 1;
+    let cost = 0;
+    for (let k = 0; k < width; k += 1) cost += units(bytes[index + k] ?? 0);
+    if (position >= start) {
+      if (from === -1) {
+        from = index;
+        fromUnits = used;
+      }
+      if (position !== positionStart) {
+        positionStart = position;
+        positionStartIndex = index;
+      }
+      if (used + cost - fromUnits > budget && position > start) {
+        // The code points of this position move to the next window.
+        return {
+          text: bytes.subarray(from, positionStartIndex).toString("utf8"),
+          start,
+          end: positionStart,
+          total,
+          truncated: true,
+        };
+      }
+    }
+    used += cost;
+    index += width;
+  }
+  return {
+    text: from === -1 ? "" : bytes.subarray(from).toString("utf8"),
+    start,
+    end: Math.max(total, start),
+    total,
+    truncated: from > 0,
+  };
+};
 
 /** The line printed after a cut window (contract 10.1). */
 export const countedWindowNotice = (window: CountedTokenWindow): string =>

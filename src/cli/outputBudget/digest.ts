@@ -975,9 +975,8 @@ export const buildDigest = (input: DigestInput): DigestDocument => {
   };
   assembleNext();
   if (input.brief !== undefined && whole) {
-    const room = limitBytes - utf8(text()) - 96;
     const helpers = {
-      room,
+      room: limitBytes - utf8(text()) - 96,
       cut: cutText,
       page: (path: string, from = 0): string | undefined => {
         const node = valueAt(document, path);
@@ -992,7 +991,16 @@ export const buildDigest = (input: DigestInput): DigestDocument => {
         return `${path}[${String(from)},${String(from + pageOf(row, from))}]`;
       },
     };
-    brief = room > 0 ? input.brief(helpers) : undefined;
+    brief = helpers.room > 0 ? input.brief(helpers) : undefined;
+    if (brief === undefined && body.omitted.length > 1) {
+      // Fit step 1 comes before step 2: offer the room the digest would have
+      // with one omitted row; the fit below removes the other rows first.
+      const all = body.omitted;
+      body.omitted = all.slice(0, 1);
+      const room = limitBytes - utf8(text());
+      body.omitted = all;
+      brief = room > 0 ? input.brief({ ...helpers, room }) : undefined;
+    }
     if (brief !== undefined) {
       if (brief.scopes !== undefined && brief.scopes.length > 0) {
         limitations = limitationScan(document, targets, whole, brief.scopes);
