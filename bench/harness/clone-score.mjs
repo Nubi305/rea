@@ -14,9 +14,10 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import { controlOriginal, copyOriginal, loadApp } from "./lib/clone-app.mjs";
+import { agentLabelOf, modelIdsOf, scoreText } from "./lib/agent-label.mjs";
 import { transcriptReport } from "./lib/cost.mjs";
 import { replayHeldout } from "./lib/heldout.mjs";
 import { listFiles } from "./lib/inputs.mjs";
@@ -254,6 +255,7 @@ const buildScore = async (context) => {
   const treeAfter = treeDigest(cell.clone.root);
   return {
     schema: "rea.bench.clone-score/1",
+    agent: agentLabelOf(cell),
     cell: {
       id: cell.id,
       label: cell.label,
@@ -316,7 +318,14 @@ const main = async () => {
     if (!values.keep) rmSync(context.workDir, { recursive: true, force: true });
   }
   score.left_running = left;
-  const text = `${JSON.stringify(score, null, 1)}\n`;
+  const text = scoreText(score, {
+    modelIds: modelIdsOf([context.transcript]),
+    paths: {
+      [cell.skill_dir]: "<skill>",
+      [join(cell.workspace, "home")]: "<home>",
+      [dirname(context.transcript.file)]: "<transcripts>",
+    },
+  });
   writeOut(values.out, text);
   process.stdout.write(text);
   console.error(headline(score));

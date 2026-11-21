@@ -23,6 +23,7 @@ import { checkCloneScorer } from "./selftest/clone-scorer.mjs";
 import { results } from "./selftest/kit.mjs";
 import {
   checkFacts,
+  checkModelMentions,
   checkRuleBreaks,
   checkShellReader,
 } from "./selftest/readers.mjs";
@@ -51,6 +52,7 @@ try {
   checkShellReader();
   checkRuleBreaks();
   checkFacts();
+  checkModelMentions();
   checkTaskScorer(work);
   await checkWorkflows();
   if (values.judge === undefined) {

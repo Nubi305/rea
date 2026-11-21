@@ -6,7 +6,9 @@ import { join } from "node:path";
 import { applyMutant, copyOriginal } from "../lib/clone-app.mjs";
 import { runRea } from "../lib/proc.mjs";
 import { CELL_SCHEMA } from "../lib/workspace.mjs";
+import { modelMentions } from "../lib/agent-label.mjs";
 import {
+  MODEL,
   runScorer,
   same,
   transcriptLines,
@@ -114,6 +116,11 @@ const checkVariant = (score, variant, breaks) => {
       original: false,
       clone: false,
     },
+  );
+  same(
+    `clone scorer, ${variant}: names the agent by label and never the model`,
+    [score.agent, modelMentions(score, new Set([MODEL]))],
+    ["unlabelled", []],
   );
   same(
     `clone scorer, ${variant}: cost read from the transcript`,

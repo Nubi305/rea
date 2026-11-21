@@ -1,8 +1,11 @@
 // Known-good and known-bad inputs for the readers the scorers are built on:
 // the shell reader, the rule-break reader and the judging of answer files.
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { modelMentions, scoreText } from "../lib/agent-label.mjs";
 import { ruleBreaksOf } from "../lib/rule-breaks.mjs";
 import { invocationsIn, newShellState, noteScript } from "../lib/shell.mjs";
-import { judgeAnswer, loadTask } from "../lib/tasks.mjs";
+import { BENCH_ROOT, judgeAnswer, loadTask } from "../lib/tasks.mjs";
 import { same } from "./kit.mjs";
 
 const keys = (command, state = newShellState()) =>
@@ -167,5 +170,48 @@ export const checkFacts = () => {
       changed: [...answer.changed, "."],
     }).facts.map((fact) => fact.right),
     [true, true, false],
+  );
+};
+
+const scoreFiles = (dir) =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory()
+      ? scoreFiles(join(dir, entry.name))
+      : entry.name.endsWith(".json")
+        ? [join(dir, entry.name)]
+        : [],
+  );
+
+// What makes a score file name a model, on a made-up one, and the committed
+// score files, none of which may hold a `model` key.
+export const checkModelMentions = () => {
+  const ids = new Set(["made-up-model-7"]);
+  same(
+    "labels: a model key or a model id anywhere in a score is found",
+    [
+      modelMentions({ cost: { model: "x" } }, new Set()),
+      modelMentions({ agent: "a", notes: ["ran on made-up-model-7"] }, ids),
+      modelMentions({ agent: "a", cost: { turns: 1 } }, ids),
+    ],
+    [["/cost/model"], ["/notes/0"], []],
+  );
+  let refused = false;
+  try {
+    scoreText({ agent: "made-up-model-7" }, { modelIds: ids, paths: {} });
+  } catch {
+    refused = true;
+  }
+  same("labels: a score naming the model is not written", refused, true);
+  const files = scoreFiles(join(BENCH_ROOT, "results"));
+  same(
+    "labels: no committed score file has a model key, and each names its agent",
+    files
+      .map((file) => JSON.parse(readFileSync(file, "utf8")))
+      .filter(
+        (score) =>
+          modelMentions(score, new Set()).length > 0 ||
+          typeof (score.agent ?? score.agents) === "undefined",
+      ).length,
+    0,
   );
 };

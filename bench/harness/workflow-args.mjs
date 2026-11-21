@@ -10,7 +10,9 @@
 //
 // Both forms can be mixed. A model after "=" is passed to the workflow for
 // those cells; without one the agents run on the model of the session that
-// launches the workflow. Without --parallel or --one-at-a-time the workflow
+// launches the workflow. Each entry also carries the cell's agent label (the
+// --agent of prepare): the workflow reports it, and the scorers write it
+// where a result would otherwise name the model. Without --parallel or --one-at-a-time the workflow
 // runs task cells together and anything with a clone cell one at a time.
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -54,6 +56,7 @@ const entry = (file, model) => {
     {
       kind: cell.kind,
       label: cell.label,
+      agent: cell.agent ?? "unlabelled",
       prompt: readFileSync(cell.prompt_file, "utf8"),
       ...(model === null ? {} : { model }),
       ...(values.effort === undefined ? {} : { effort: values.effort }),

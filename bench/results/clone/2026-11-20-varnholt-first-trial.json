@@ -1,5 +1,6 @@
 {
  "schema": "rea.bench.clone-score/1",
+ "agent": "first-trial",
  "cell": {
   "id": "varnholt-first-trial",
   "label": "trial:cold-cloner",
@@ -16,7 +17,7 @@
   "commit": "0e089b3e",
   "version": "6.9.0"
  },
- "transcript": "/root/.claude/projects/-home-user/54db18d0-c8e4-5ba5-98b3-8082c6c439a0/subagents/workflows/wf_423c2dad-fa6/agent-ad2816139967c59d7.jsonl",
+ "transcript": "<transcripts>/agent-ad2816139967c59d7.jsonl",
  "run": {
   "started_at": "2026-11-20T04:08:17.887Z",
   "ended_at": "2026-11-20T04:58:14.919Z"
@@ -27,7 +28,8 @@
   "Verdict: the run's own last evaluation recorded stalled, and the agent reported exit status 2. On a copy of the same run folder 77500a50 and the judge 0e089b3e both say not_done, exit status 1.",
   "The trial's prompt had the agent install the skill itself, so 25,295 bytes of setup output are in its context that a prepared cell does not have; its original was stopped when the trial began.",
   "There was no shim log: 28 capture commands are visible in command text (a loop counts once) and 48 capture Evidence files are in the run folder. Counted by hand from the lines the agent's own two capture scripts printed: 51 and 20 captures, and three more typed directly, about 74 in all.",
-  "Hidden replay: the original ran from the repository's copy on port 5310 and the clone from a byte-identical copy of the trial's clone on port 5311, started with PORT=5311 HOST=127.0.0.1 node server.js, because the trial's own ports (4701 and 4711) are not this harness's."
+  "Hidden replay: the original ran from the repository's copy on port 5310 and the clone from a byte-identical copy of the trial's clone on port 5311, started with PORT=5311 HOST=127.0.0.1 node server.js, because the trial's own ports (4701 and 4711) are not this harness's.",
+  "Rewritten on 2026-11-21 when score files stopped naming models: the agent label first-trial stands where the transcript's model id was (cost.model), and the transcript and skill paths are written as <transcripts> and <skill>, as clone-score.mjs now writes them. No number changed."
  ],
  "referee": {
   "verdict": "not_done",
@@ -403,7 +405,6 @@
   ]
  },
  "cost": {
-  "model": "claude-fable-5-2",
   "turns": 94,
   "peak_context_tokens": 475393,
   "first_turn_prompt_tokens": 64804,
@@ -523,7 +524,7 @@
     "bucket": "skill",
     "bytes": 51161,
     "tool": "Read",
-    "what": "/home/user/rea-trial/work/home/.claude/skills/reverse-engineer-anything/SKILL.md"
+    "what": "<skill>/SKILL.md"
    },
    {
     "bucket": "rea",
@@ -535,7 +536,7 @@
     "bucket": "skill",
     "bytes": 25087,
     "tool": "Read",
-    "what": "/home/user/rea-trial/work/home/.claude/skills/reverse-engineer-anything/references/clone-runs.md"
+    "what": "<skill>/references/clone-runs.md"
    },
    {
     "bucket": "other",

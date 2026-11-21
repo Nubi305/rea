@@ -12,9 +12,10 @@
 // With --root, the floor cell of the same root (t00-floor) is taken off every
 // other cell unless --floor names another. Servers that prepare started are
 // stopped.
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { agentLabelOf, modelIdsOf, scoreText } from "./lib/agent-label.mjs";
 import { costOf, transcriptReport } from "./lib/cost.mjs";
 import { parseJson, writeOut } from "./lib/proc.mjs";
 import { otherToolUseOf, ruleBreaksOf } from "./lib/rule-breaks.mjs";
@@ -50,9 +51,14 @@ const options = () => {
 const readAnswer = (file) =>
   existsSync(file) ? parseJson(readFileSync(file, "utf8")) : null;
 
+// Every transcript read, so that the score can be checked for their model ids.
+const transcriptsRead = [];
+
 const transcriptOf = (cell, where) => {
   try {
-    return readTranscript(findTranscript(where, cell.label));
+    const transcript = readTranscript(findTranscript(where, cell.label));
+    transcriptsRead.push(transcript);
+    return transcript;
   } catch (error) {
     return { missing: String(error.message) };
   }
@@ -65,6 +71,7 @@ const scoreCell = (cell, where, floor) => {
   const header = {
     cell: cell.id,
     label: cell.label,
+    agent: agentLabelOf(cell),
     task: task.id,
     title: task.title,
     known_gap: task.known_gap ?? null,
@@ -168,6 +175,7 @@ const main = async () => {
   const result = {
     schema: "rea.bench.task-scores/1",
     scored_at: new Date().toISOString(),
+    agents: [...new Set(rows.map((row) => row.agent))],
     root: values.root === undefined ? null : resolve(values.root),
     transcripts: resolve(where),
     rea_under_test:
@@ -183,7 +191,19 @@ const main = async () => {
     summary: summarize(rows),
     rows,
   };
-  const text = `${JSON.stringify(result, null, 1)}\n`;
+  const transcriptDir = statSync(where).isDirectory()
+    ? resolve(where)
+    : dirname(resolve(where));
+  const text = scoreText(result, {
+    modelIds: modelIdsOf(transcriptsRead),
+    paths: Object.fromEntries([
+      ...cells.flatMap((cell) => [
+        [cell.skill_dir, "<skill>"],
+        [join(cell.workspace, "home"), "<home>"],
+      ]),
+      [transcriptDir, "<transcripts>"],
+    ]),
+  });
   writeOut(values.out, text);
   process.stdout.write(text);
 };

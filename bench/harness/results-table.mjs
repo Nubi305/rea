@@ -44,7 +44,7 @@ const cloneRow = (file, score) => {
     day(score.run?.started_at),
     score.cell.app,
     score.rea_under_test.commit ?? "",
-    cost.model,
+    score.agent ?? "unlabelled",
     `${referee.verdict ?? "none"} (exit ${referee.exit_status})${referee.recorded_differs ? `; the run recorded ${recorded}` : ""}`,
     hidden.measured
       ? `${hidden.rules_agree} of ${hidden.rules_total} (${hidden.rules_disagree} disagree, ${hidden.rules_undecided} undecided)`
@@ -73,7 +73,7 @@ const taskFileRow = (file, scores) => {
   return [
     day(rows[0]?.run?.started_at),
     scores.rea_under_test?.commit ?? "",
-    [...new Set(rows.map((row) => row.cost.model))].join(", "),
+    (scores.agents ?? ["unlabelled"]).join(", "),
     `${summary.tasks_right} of ${summary.tasks_scored}`,
     `${summary.facts_right} of ${summary.facts_total}`,
     `${summary.first_command_expected} expected, ${summary.first_command_accepted} accepted, ${summary.first_command_other} other, ${summary.first_command_none} none`,
@@ -128,7 +128,7 @@ table(
     "Run",
     "Application",
     "Build",
-    "Model",
+    "Agent",
     "Referee",
     "Hidden rules agree",
     "Steps unchanged",
@@ -151,7 +151,7 @@ table(
   [
     "Run",
     "Build",
-    "Model",
+    "Agent",
     "Tasks right",
     "Facts right",
     "First command",

@@ -8,10 +8,11 @@
 //        --rea <checkout> --client <id> --clone-name <name>
 //        --original-port <n> --clone-port <n>
 //        [--id <cell id>] [--cell-dir <dir>] [--node <node>] [--minutes <n>]
-//        [--forbid <path>]... [--spare-ports <text>] [--browser <path>]
+//        [--forbid <path>]... [--agent <label>] [--spare-ports <text>] [--browser <path>]
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { DEFAULT_AGENT_LABEL, checkAgentLabel } from "./lib/agent-label.mjs";
 import { controlOriginal, copyOriginal, loadApp } from "./lib/clone-app.mjs";
 import { clonePrompt } from "./lib/prompts.mjs";
 import { portOpen } from "./lib/service.mjs";
@@ -21,7 +22,7 @@ import { createWorkspace, writeCell } from "./lib/workspace.mjs";
 const USAGE = `usage: clone-prepare.mjs --app <id> --workspace <dir> --rea <checkout> --client <id>
        --clone-name <name> --original-port <n> --clone-port <n>
        [--id <cell id>] [--cell-dir <dir>] [--node <node>] [--minutes <n>]
-       [--forbid <path>]... [--spare-ports <text>] [--browser <path>]`;
+       [--forbid <path>]... [--agent <label>] [--spare-ports <text>] [--browser <path>]`;
 
 const REQUIRED = [
   "app",
@@ -48,6 +49,7 @@ const options = () => {
       node: { type: "string", default: process.execPath },
       minutes: { type: "string", default: "80" },
       forbid: { type: "string", multiple: true, default: [] },
+      agent: { type: "string", default: DEFAULT_AGENT_LABEL },
       "spare-ports": { type: "string" },
       browser: {
         type: "string",
@@ -111,6 +113,7 @@ const main = async () => {
   const description = {
     kind: "clone",
     id,
+    agent: checkAgentLabel(values.agent),
     label: `bench:clone:${id}`,
     created_at: new Date().toISOString(),
     app: app.id,

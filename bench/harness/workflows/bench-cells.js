@@ -16,7 +16,9 @@ export const meta = {
   ],
 };
 
-// args: { cells: [{ kind, label, prompt, model?, effort? }], parallel? }
+// args: { cells: [{ kind, label, agent?, prompt, model?, effort? }], parallel? }
+// `model` only chooses what the agent runs on; the result names the agent by
+// its `agent` label.
 // Build it with bench/harness/workflow-args.mjs. The label is how the scorers
 // find an agent's transcript: keep it as given.
 
@@ -199,6 +201,6 @@ if (silent.length > 0) log(`no report from: ${silent.join(", ")}`);
 return cells.map((cell, index) => ({
   label: cell.label,
   kind: cell.kind,
-  model: cell.model || null,
+  agent: cell.agent || "unlabelled",
   report: reports[index] || null,
 }));

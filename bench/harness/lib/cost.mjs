@@ -26,9 +26,6 @@ const minutesBetween = (start, end) =>
 export const costOf = (transcript) => {
   const { turns } = transcript;
   return {
-    model: [...new Set(turns.map((turn) => turn.model).filter(Boolean))].join(
-      ",",
-    ),
     turns: turns.length,
     peak_context_tokens: Math.max(
       0,

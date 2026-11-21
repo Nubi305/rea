@@ -4,7 +4,9 @@
 // clone-score.mjs or task-score.mjs with --floor to get numbers net of it.
 //
 //   node bench/harness/floor.mjs --transcript <file or run directory> [--label <label>] [--out <file>]
+import { dirname } from "node:path";
 import { parseArgs } from "node:util";
+import { modelIdsOf, scoreText } from "./lib/agent-label.mjs";
 import { costOf } from "./lib/cost.mjs";
 import { writeOut } from "./lib/proc.mjs";
 import { findTranscript, readTranscript } from "./lib/transcript.mjs";
@@ -22,7 +24,11 @@ if (values.transcript === undefined)
   );
 
 const file = findTranscript(values.transcript, values.label);
-const floor = { transcript: file, ...costOf(readTranscript(file)) };
-const text = `${JSON.stringify(floor, null, 1)}\n`;
+const transcript = readTranscript(file);
+const floor = { transcript: file, ...costOf(transcript) };
+const text = scoreText(floor, {
+  modelIds: modelIdsOf([transcript]),
+  paths: { [dirname(file)]: "<transcripts>" },
+});
 writeOut(values.out, text);
 process.stdout.write(text);

@@ -2,6 +2,7 @@
 // one, each with a synthetic transcript whose score is worked out here.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { modelMentions } from "../lib/agent-label.mjs";
 import { CELL_SCHEMA } from "../lib/workspace.mjs";
 import {
   MODEL,
@@ -14,7 +15,7 @@ import {
 
 const FLOOR_PROMPT_TOKENS = 15_000;
 
-const fabricateCell = (root, id, task, answer) => {
+const fabricateCell = (root, id, task, { answer, agent }) => {
   const workspace = join(root, id);
   const cellDir = `${workspace}.cell`;
   mkdirSync(join(workspace, "input"), { recursive: true });
@@ -25,6 +26,7 @@ const fabricateCell = (root, id, task, answer) => {
     kind: "task",
     id,
     label: `selftest:${id}`,
+    ...(agent === undefined ? {} : { agent }),
     task,
     floor: task === "t00-floor",
     workspace,
@@ -152,9 +154,8 @@ const checkGood = (row) => {
       cost.output_tokens,
       cost.tool_calls,
       cost.wall_minutes,
-      cost.model,
     ],
-    [3, 27_000, 68_500, 27_000, 600, 3, 3, MODEL],
+    [3, 27_000, 68_500, 27_000, 600, 3, 3],
   );
   same(
     "task scorer: net of the floor in the same root",
@@ -213,23 +214,91 @@ const checkBad = (row) => {
   );
 };
 
+// The agent is named by the label prepare recorded, the model id the
+// transcripts carry is in no score, and the client's directories are written
+// by their placeholders.
+const checkLabels = (scores, transcripts) => {
+  same(
+    "task scorer: each row names its agent by the cell's label, unlabelled by default",
+    [scores.agents, scores.rows.map((item) => [item.cell, item.agent])],
+    [
+      ["unlabelled", "selftest-agent"],
+      [
+        ["bad", "unlabelled"],
+        ["floor", "unlabelled"],
+        ["good", "selftest-agent"],
+      ],
+    ],
+  );
+  const text = JSON.stringify(scores);
+  same(
+    "task scorer: the score names no model and writes the transcripts and the skill by placeholder",
+    [
+      modelMentions(scores, new Set([MODEL])),
+      text.includes(transcripts),
+      scores.transcripts,
+      text.includes("<skill>/SKILL.md"),
+    ],
+    [[], false, "<transcripts>", true],
+  );
+};
+
+// A score that would name the model is refused: here the lead gave the cell
+// the model id as its label.
+const checkModelRefused = (root, transcripts) => {
+  const cell = fabricateCell(
+    join(root, "..", "tasks-model"),
+    "named",
+    "t00-floor",
+    { answer: { ready: true }, agent: MODEL },
+  );
+  writeTranscript(
+    transcripts,
+    "named",
+    cell.label,
+    transcriptLines("named prompt", floorTurns(cell)),
+  );
+  let refused;
+  try {
+    runScorer("task-score.mjs", [
+      "--workspace",
+      cell.workspace,
+      "--cell",
+      join(cell.cell_dir, "cell.json"),
+      "--transcript",
+      transcripts,
+    ]);
+    refused = "scored";
+  } catch (error) {
+    refused = /would name a model/u.test(error.message) ? "refused" : "failed";
+  }
+  same(
+    "task scorer: refuses to write a score that names the transcript's model",
+    refused,
+    "refused",
+  );
+};
+
 export const checkTaskScorer = (work) => {
   const root = join(work, "tasks");
   const transcripts = join(work, "task-transcripts");
   mkdirSync(transcripts, { recursive: true });
   const hardening = "t01-elf-hardening";
   const cells = {
-    floor: fabricateCell(root, "floor", "t00-floor", { ready: true }),
+    floor: fabricateCell(root, "floor", "t00-floor", {
+      answer: { ready: true },
+    }),
     good: fabricateCell(root, "good", hardening, {
-      pie: false,
-      relro: "partial",
-      stack_canary: true,
-      runpath: "/opt/keyd/lib",
+      answer: {
+        pie: false,
+        relro: "partial",
+        stack_canary: true,
+        runpath: "/opt/keyd/lib",
+      },
+      agent: "selftest-agent",
     }),
     bad: fabricateCell(root, "bad", hardening, {
-      pie: true,
-      relro: "full",
-      stack_canary: true,
+      answer: { pie: true, relro: "full", stack_canary: true },
     }),
   };
   const turnsOf = { floor: floorTurns, good: goodTurns, bad: badTurns };
@@ -247,8 +316,10 @@ export const checkTaskScorer = (work) => {
     transcripts,
   ]);
   const row = (id) => scores.rows.find((item) => item.cell === id);
+  checkLabels(scores, transcripts);
   checkGood(row("good"));
   checkBad(row("bad"));
+  checkModelRefused(root, transcripts);
   const { summary } = scores;
   same(
     "task scorer: summary over the root",

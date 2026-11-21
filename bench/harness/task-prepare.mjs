@@ -7,13 +7,14 @@
 //
 //   node bench/harness/task-prepare.mjs --root <dir> --rea <checkout> --client <id>
 //        [--task <id>]... [--tag <text>] [--node <node>] [--minutes <n>]
-//        [--port <n>] [--forbid <path>]... [--browser <path>]
+//        [--port <n>] [--forbid <path>]... [--agent <label>] [--browser <path>]
 //
 // One cell per task: <root>/<task id> is the workspace and
 // <root>/<task id>.cell holds the prompt and the cell description.
 import { cpSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { DEFAULT_AGENT_LABEL, checkAgentLabel } from "./lib/agent-label.mjs";
 import { buildInputs, missingInputTools } from "./lib/inputs.mjs";
 import { checkoutFacts } from "./lib/proc.mjs";
 import { taskPrompt } from "./lib/prompts.mjs";
@@ -29,7 +30,7 @@ import { createWorkspace, writeCell } from "./lib/workspace.mjs";
 
 const USAGE = `usage: task-prepare.mjs --root <dir> --rea <checkout> --client <id>
        [--task <id>]... [--tag <text>] [--node <node>] [--minutes <n>]
-       [--port <n>] [--forbid <path>]... [--browser <path>]`;
+       [--port <n>] [--forbid <path>]... [--agent <label>] [--browser <path>]`;
 
 const options = () => {
   const { values } = parseArgs({
@@ -43,6 +44,7 @@ const options = () => {
       minutes: { type: "string", default: "20" },
       port: { type: "string", default: "5330" },
       forbid: { type: "string", multiple: true, default: [] },
+      agent: { type: "string", default: DEFAULT_AGENT_LABEL },
       browser: {
         type: "string",
         default:
@@ -96,6 +98,7 @@ const prepareTask = async (task, values, port) => {
   const description = {
     kind: "task",
     id,
+    agent: checkAgentLabel(values.agent),
     label: `bench:task:${id}`,
     created_at: new Date().toISOString(),
     task: task.id,

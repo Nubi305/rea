@@ -57,6 +57,7 @@ const checkAgents = async () => {
     {
       kind: "clone",
       label: "bench:x:one",
+      agent: "label-one",
       prompt: "first prompt",
       model: "model-one",
     },
@@ -82,11 +83,17 @@ const checkAgents = async () => {
     [true, false],
   );
   same(
-    "workflow: the result names each cell",
-    result.map((item) => [item.label, item.kind, item.report.summary]),
+    "workflow: the result names each cell and its agent label, never its model",
+    result.map((item) => [
+      item.label,
+      item.kind,
+      item.agent,
+      item.report.summary,
+      JSON.stringify(item).includes("model"),
+    ]),
     [
-      ["bench:x:one", "clone", "report of bench:x:one"],
-      ["bench:x:two", "task", "report of bench:x:two"],
+      ["bench:x:one", "clone", "label-one", "report of bench:x:one", false],
+      ["bench:x:two", "task", "unlabelled", "report of bench:x:two", false],
     ],
   );
 };
