@@ -348,7 +348,9 @@ export const cloneRunTargetSchema = z.strictObject({
     .min(1)
     .describe("How worklist commands spell the REA CLI, such as `rea`"),
   limits: z.strictObject({
+    /** Admitted captures each side needs per scenario; one capture cannot show a value steady. */
     min_captures: z.int().min(2),
+    /** Judged clone trees after which a run that is not done reads `stalled`. */
     max_rounds: z.int().min(1),
     capture_timeout_seconds: z.int().min(1),
   }),
@@ -377,7 +379,12 @@ export const cloneNameConflict = (
  * The step-id rules are part of the schema, because a scenario that breaks
  * them could pass without proving anything: ids are unique, the `fp-` steps
  * come first and there is at least one, and at least one step is neither
- * `fp-` nor `setup-`.
+ * `fp-` nor `setup-`. Ids starting `rea-` are REA's own.
+ *
+ * Strict, so a scenario sets nothing but its start path and actions: no
+ * stored state and no secrets. A `goto` writes `{origin}` at the start of its
+ * URL, the one place the referee puts in the side's address, and every
+ * `goto` must stay on that address once rendered.
  */
 export const cloneRunScenarioSchema = z
   .strictObject({
@@ -453,7 +460,9 @@ export type CloneRunObligation = z.infer<typeof cloneRunObligationSchema>;
 
 /**
  * `obligations/<area>.json`, named by its file. An observed obligation cites
- * at least one case.
+ * at least one case. Beyond the schema the referee requires obligation ids
+ * to be unique across files, and each case to name an existing scenario and
+ * behaviour steps of it that completed in every admitted original capture.
  */
 export const cloneRunObligationsSchema = z.strictObject({
   obligations: z
@@ -490,7 +499,9 @@ export const cloneRunUnknownRole = (id: string): CloneRunRole | undefined => {
 /**
  * `waivers.json`: only the lead writes it. A waiver names a person and a
  * reason; REA records both and cannot verify either. A waiver covers an
- * unknown proposal or an inferred obligation, never a parity finding.
+ * unknown proposal or an inferred obligation, never a parity finding, and
+ * the referee requires the one it names to exist; a `closed` entry names an
+ * existing unknown and an existing observed obligation.
  */
 export const cloneRunWaiversSchema = z.strictObject({
   waivers: z.array(
@@ -513,7 +524,12 @@ export const cloneRunWaiversSchema = z.strictObject({
 });
 export type CloneRunWaivers = z.infer<typeof cloneRunWaiversSchema>;
 
-/** `intended-differences.json`: only the lead writes it. */
+/**
+ * `intended-differences.json`: only the lead writes it. The rules of a rename
+ * and of a volatile field are those of the comparer's two schemas; beyond
+ * them the referee requires a volatile field to name an existing scenario
+ * and a step of it, or `*`.
+ */
 export const cloneRunIntendedDifferencesSchema = z.strictObject({
   renames: z.array(
     scenarioBehaviorRenameSchema.extend({ reason: z.string().min(1) }),
