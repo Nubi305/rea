@@ -4,14 +4,13 @@
  * are saved and named instead of printed. No key the projection gives is ever
  * removed: agents are told to follow `remediation.action`.
  */
+import { isRecord } from "../../kernel/isRecord.js";
 import { ERROR_BUDGET_BYTES } from "../../domain/outputBudget.js";
 import { err, ok, type Result } from "../../domain/result.js";
 import type { SavedReference, StoreFailure } from "./store.js";
 
 type Json = Readonly<Record<string, unknown>>;
 
-const isRecord = (value: unknown): value is Json =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
 const utf8 = (text: string): number => Buffer.byteLength(text, "utf8");
 
 /** Marker of a bounded error, beside the projection's own keys. */
@@ -152,6 +151,7 @@ export const boundError = async (
         kept[key] = value;
       else if (key === "issues" && Array.isArray(value))
         kept.issues = value
+          // sample-cap: the complete error, every issue included, is saved and named in complete_error
           .slice(0, DETAIL_ISSUES)
           .map((issue: unknown) =>
             isRecord(issue)

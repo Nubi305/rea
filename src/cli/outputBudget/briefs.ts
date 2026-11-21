@@ -4,6 +4,7 @@
  * brief knows the room left. No command module changes for this; each entry
  * reads only the paths named in the contract's table.
  */
+import { isRecord } from "../../kernel/isRecord.js";
 
 /** A brief's own room: at most this, the referee's worklist excepted. */
 export const BRIEF_ALLOWANCE_BYTES = 1200;
@@ -39,8 +40,6 @@ export type BriefBuilder = (helpers: BriefHelpers) => Brief | undefined;
 
 type Json = Readonly<Record<string, unknown>>;
 
-const isRecord = (value: unknown): value is Json =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
 const rows = (value: unknown): readonly unknown[] =>
   Array.isArray(value) ? value : [];
 const at = (value: unknown, ...keys: readonly string[]): unknown => {

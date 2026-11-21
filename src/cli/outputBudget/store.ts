@@ -6,6 +6,7 @@
  * Every platform fact (the platform, the user id, the clock, the directories)
  * is a parameter, so the same rules are tested for POSIX and for Windows.
  */
+import { isRecord } from "../../kernel/isRecord.js";
 import { createHash, randomBytes } from "node:crypto";
 import { createReadStream } from "node:fs";
 import {
@@ -344,7 +345,7 @@ export const saveDocument = async (
         file,
         bytes: written.bytes,
         sha256: written.sha256,
-        id: written.sha256.slice(0, SAVED_OUTPUT_ID_LENGTH),
+        id: written.sha256.substring(0, SAVED_OUTPUT_ID_LENGTH),
         directory: candidate.directory,
       });
     } catch (cause: unknown) {
@@ -592,7 +593,7 @@ export const resolveSaved = async (
     file: found.path,
     bytes: read.bytes,
     sha256: read.sha256,
-    id: read.sha256.slice(0, SAVED_OUTPUT_ID_LENGTH),
+    id: read.sha256.substring(0, SAVED_OUTPUT_ID_LENGTH),
     command: found.command,
     stored: true,
   });
@@ -725,7 +726,7 @@ export const listSaved = async (
           ? about.saved_at
           : new Date(facts.mtimeMs).toISOString();
       entries.push({
-        id: match[1].slice(0, SAVED_OUTPUT_ID_LENGTH),
+        id: match[1].substring(0, SAVED_OUTPUT_ID_LENGTH),
         command,
         saved_at: savedAt,
         bytes: facts.size,
@@ -798,9 +799,6 @@ export const clearSaved = async (
   }
   return { removed, bytes_freed: bytesFreed, directories };
 };
-
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
 
 const aboutValue = (value: unknown): string | number | boolean | undefined =>
   typeof value === "number" || typeof value === "boolean"

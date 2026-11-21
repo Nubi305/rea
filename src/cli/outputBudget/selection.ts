@@ -7,6 +7,7 @@
  * (contract 5.3). The writer uses `stops` to refuse a filter that matched
  * nothing (contract 10.4) instead of printing `{}`.
  */
+import { isRecord } from "../../kernel/isRecord.js";
 import type { OutputFilterPath, OutputFilterSegment } from "../outputFilter.js";
 
 /** One selected value: a node, or a range of rows of an array. */
@@ -37,9 +38,6 @@ export interface Selection {
   /** Targets past the cap that were not returned. */
   readonly more: number;
 }
-
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
 
 /** The writer's slice rule: negative counts from the end, NaN is 0. */
 export const normalizeSliceIndex = (index: number, length: number): number => {
@@ -206,11 +204,13 @@ export const unmatchedFilterMessage = (
   const stop = selection.stops[0];
   if (stop === undefined) return undefined;
   const where = stop.at === "" ? "the top level" : stop.at;
+  // sample-cap: the message counts the keys it does not name
+  const named = stop.keys?.slice(0, LISTED_KEYS) ?? [];
   const there =
     stop.rows !== undefined
       ? `There: an array of ${String(stop.rows)} rows; select rows with [start,end].`
       : stop.keys !== undefined && stop.keys.length > 0
-        ? `Keys there: ${stop.keys.slice(0, LISTED_KEYS).join(", ")}${stop.keys.length > LISTED_KEYS ? `, and ${String(stop.keys.length - LISTED_KEYS)} more` : ""}.`
+        ? `Keys there: ${named.join(", ")}${stop.keys.length > LISTED_KEYS ? `, and ${String(stop.keys.length - LISTED_KEYS)} more` : ""}.`
         : stop.keys !== undefined
           ? "There: an empty object."
           : "There: a value that has no keys.";

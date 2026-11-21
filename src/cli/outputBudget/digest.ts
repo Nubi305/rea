@@ -7,7 +7,8 @@
  * Pure: no I/O, deterministic. The caller saves the document first and passes
  * the reference; `render` measures the digest as it will be written.
  */
-import { createHash } from "node:crypto";
+import { isRecord } from "../../kernel/isRecord.js";
+import { sha256Hex } from "../../kernel/sha256Hex.js";
 
 import type { OutputFilterPath } from "../outputFilter.js";
 import { cutText, type Brief, type BriefBuilder } from "./briefs.js";
@@ -66,8 +67,6 @@ const INCOMPLETE_KEY =
 type Json = Readonly<Record<string, unknown>>;
 type Scalar = string | number | boolean;
 
-const isRecord = (value: unknown): value is Json =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
 const isEvidence = (document: unknown): document is Json =>
   isRecord(document) &&
   typeof document.evidence_id === "string" &&
@@ -151,6 +150,7 @@ const incompleteness = (
   const visit = (node: unknown, path: string, depth: number): void => {
     if (depth > FLAG_DEPTH) return;
     if (Array.isArray(node)) {
+      // generation-cap: rule 6.1 searches the first 50 rows of each array for flags
       node.slice(0, FLAG_ROWS).forEach((child, index) => {
         visit(
           child,
@@ -453,9 +453,7 @@ const parts = (
     const key =
       row.bytes < 64 || row.selected === true
         ? undefined
-        : `${String(row.bytes)}:${createHash("sha256")
-            .update(JSON.stringify(row.node) ?? "")
-            .digest("hex")}`;
+        : `${String(row.bytes)}:${sha256Hex(JSON.stringify(row.node) ?? "")}`;
     const prior = key === undefined ? undefined : seen.get(key);
     if (prior !== undefined) {
       (prior.also ??= []).push(row.path);
@@ -464,6 +462,7 @@ const parts = (
     if (key !== undefined) seen.set(key, row);
     unique.push(row);
   }
+  // sample-cap: the parts not listed are counted in omitted_more
   const listed = unique.slice(0, MAX_OMITTED_ROWS);
   // Free rows: the largest objects that neither hold nor lie inside a listed collection.
   if (listed.length < MAX_OMITTED_ROWS) {
