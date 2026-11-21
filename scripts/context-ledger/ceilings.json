@@ -1,0 +1,251 @@
+{
+  "schema": "rea.context-ledger.ceilings/1",
+  "note": "Ceilings are a ratchet set from the ledger on the commit in measured_on with the default --work: lower them with --write-ceilings, raise one only with --raise-reason. Targets are the plan's (program/PROGRAM.md, Judges, J1). Rows without a target have no plan row.",
+  "measured_on": {
+    "path": "/home/user/rea",
+    "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
+    "package": "rea-agents@6.10.1",
+    "node": "v22.23.5",
+    "full_census": false
+  },
+  "rows": {
+    "mcp.ten-calls.default": {
+      "metric": "o200k",
+      "ceiling": 118171,
+      "target": "at most 20,000",
+      "target_value": 20000,
+      "tolerance": 0.01,
+      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)",
+      "raised": [
+        {
+          "from": 118158,
+          "to": 118171,
+          "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
+          "reason": "Merge of upstream release 6.10.1 and the consolidated clone-run documents: a longer version string in printed paths and help, one upstream routing bullet and one sentence about the npm fallback in the skill body."
+        }
+      ]
+    },
+    "mcp.ten-calls.summary": {
+      "metric": "o200k",
+      "ceiling": 10897,
+      "target": "at most 9,700, stretch 7,100",
+      "target_value": 9700,
+      "tolerance": 0.01,
+      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)"
+    },
+    "mcp.status.default": {
+      "metric": "bytes",
+      "ceiling": 18613,
+      "target": "at most 8,000 B",
+      "target_value": 8000
+    },
+    "mcp.bundle.default": {
+      "metric": "bytes",
+      "ceiling": 349485,
+      "raised": [
+        {
+          "from": 349452,
+          "to": 349485,
+          "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
+          "reason": "Merge of upstream release 6.10.1 and the consolidated clone-run documents: a longer version string in printed paths and help, one upstream routing bullet and one sentence about the npm fallback in the skill body."
+        }
+      ]
+    },
+    "mcp.page.one-row": {
+      "metric": "bytes",
+      "ceiling": 7655
+    },
+    "mcp.catalogue": {
+      "metric": "tokenx",
+      "ceiling": 97143,
+      "tolerance": 0.01,
+      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)"
+    },
+    "mcp.catalogue.model-visible": {
+      "metric": "o200k",
+      "ceiling": 70009,
+      "tolerance": 0.01,
+      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)"
+    },
+    "mcp.instructions": {
+      "metric": "o200k",
+      "ceiling": 488,
+      "tolerance": 0.01,
+      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)"
+    },
+    "guidance.search.mean": {
+      "metric": "o200k",
+      "ceiling": 1737,
+      "target": "at most 600",
+      "target_value": 600,
+      "tolerance": 0.01,
+      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)"
+    },
+    "guidance.search.no-match": {
+      "metric": "count",
+      "ceiling": 2
+    },
+    "cli.census.largest": {
+      "metric": "bytes",
+      "ceiling": 1022330,
+      "target": "at most the answer budget (the audit proposed 6,000 B)",
+      "target_value": 6000,
+      "raised": [
+        {
+          "from": 1022084,
+          "to": 1022330,
+          "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
+          "reason": "Merge of upstream release 6.10.1 and the consolidated clone-run documents: a longer version string in printed paths and help, one upstream routing bullet and one sentence about the npm fallback in the skill body."
+        }
+      ]
+    },
+    "cli.census.total": {
+      "metric": "bytes",
+      "ceiling": 1487087
+    },
+    "cli.census.over-2000": {
+      "metric": "count",
+      "ceiling": 9
+    },
+    "cli.census-full.largest": {
+      "metric": "bytes",
+      "ceiling": 1023454,
+      "target": "at most the answer budget (the audit proposed 6,000 B)",
+      "target_value": 6000
+    },
+    "cli.census-full.total": {
+      "metric": "bytes",
+      "ceiling": 3892117,
+      "target": "at most 300 KB (the plan's figure is for the audit's 121 calls; this census has fewer)",
+      "target_value": 300000
+    },
+    "cli.census-full.over-2000": {
+      "metric": "count",
+      "ceiling": 25
+    },
+    "cli.mistakes.largest": {
+      "metric": "bytes",
+      "ceiling": 1022704,
+      "target": "at most 1,500 B",
+      "target_value": 1500,
+      "raised": [
+        {
+          "from": 1022458,
+          "to": 1022704,
+          "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
+          "reason": "Merge of upstream release 6.10.1 and the consolidated clone-run documents: a longer version string in printed paths and help, one upstream routing bullet and one sentence about the npm fallback in the skill body."
+        }
+      ]
+    },
+    "cli.help": {
+      "metric": "bytes",
+      "ceiling": 29652,
+      "target": "an index of at most 3,000 B",
+      "target_value": 3000,
+      "raised": [
+        {
+          "from": 29651,
+          "to": 29652,
+          "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
+          "reason": "Merge of upstream release 6.10.1 and the consolidated clone-run documents: a longer version string in printed paths and help, one upstream routing bullet and one sentence about the npm fallback in the skill body."
+        }
+      ]
+    },
+    "cli.help.command": {
+      "metric": "bytes",
+      "ceiling": 2096
+    },
+    "cli.setup.one-client": {
+      "metric": "o200k",
+      "ceiling": 6673,
+      "target": "at most 1,500",
+      "target_value": 1500,
+      "tolerance": 0.01,
+      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)"
+    },
+    "cli.progress.stderr": {
+      "metric": "bytes",
+      "ceiling": 5159
+    },
+    "skill.body": {
+      "metric": "o200k",
+      "ceiling": 10879,
+      "target": "at most 1,500",
+      "target_value": 1500,
+      "raised": [
+        {
+          "from": 10840,
+          "to": 10879,
+          "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
+          "reason": "Merge of upstream release 6.10.1 and the consolidated clone-run documents: a longer version string in printed paths and help, one upstream routing bullet and one sentence about the npm fallback in the skill body."
+        }
+      ]
+    },
+    "skill.lines-lost-at-carry-over": {
+      "metric": "lines",
+      "ceiling": 383,
+      "target": "0 (implied: a body under 1,500 tokens survives the carry-over whole)",
+      "target_value": 0,
+      "raised": [
+        {
+          "from": 381,
+          "to": 383,
+          "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
+          "reason": "Merge of upstream release 6.10.1 and the consolidated clone-run documents: a longer version string in printed paths and help, one upstream routing bullet and one sentence about the npm fallback in the skill body."
+        }
+      ]
+    },
+    "skill.loaded-per-request": {
+      "metric": "o200k",
+      "ceiling": 14115,
+      "target": "at most 2,000",
+      "target_value": 2000
+    },
+    "skill.routes-clear": {
+      "metric": "count",
+      "ceiling": 7,
+      "better": "higher",
+      "target": "at least 13",
+      "target_value": 13
+    },
+    "clone.loop.stdout": {
+      "metric": "o200k",
+      "ceiling": 31186,
+      "tolerance": 0.02,
+      "target": "at most 5,000",
+      "target_value": 5000,
+      "tolerance_reason": "timing-dependent: browser captures differ by a few bytes and digest characters between runs",
+      "raised": [
+        {
+          "from": 31183,
+          "to": 31186,
+          "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
+          "reason": "Merge of upstream release 6.10.1 and the consolidated clone-run documents: a longer version string in printed paths and help, one upstream routing bullet and one sentence about the npm fallback in the skill body."
+        }
+      ]
+    },
+    "clone.verdict.ten-items": {
+      "metric": "chars",
+      "ceiling": 8050,
+      "tolerance": 0.02,
+      "target": "at most 6,000 characters",
+      "target_value": 6000,
+      "tolerance_reason": "timing-dependent: browser captures differ by a few bytes and digest characters between runs"
+    },
+    "clone.behavior": {
+      "metric": "bytes",
+      "ceiling": 81011,
+      "tolerance": 0.02,
+      "target": "none on the fixture (the plan's 0.6 MB is for the trial's five scenarios)",
+      "tolerance_reason": "timing-dependent: browser captures differ by a few bytes and digest characters between runs"
+    },
+    "clone.step-read": {
+      "metric": "o200k",
+      "ceiling": 1506,
+      "tolerance": 0.02,
+      "target": "at most 700",
+      "target_value": 700,
+      "tolerance_reason": "timing-dependent: browser captures differ by a few bytes and digest characters between runs"
+    }
+  }
+}

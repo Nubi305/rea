@@ -7,7 +7,7 @@ import { readCloneTreeFile, type CloneTreeFile } from "./CloneRunTreeDigest.js";
 /**
  * The clean-room check of a clone run: no clone file is a copy of a file
  * taken from the original, and none of the original's names occurs in the
- * clone. Contract: docs/specs/reconstruction/clone-runs/spec.md, check 7.
+ * clone. Contract: docs/reference/clone-runs.md, "What done means", check 7.
  */
 
 /** Where a digest of the original's own bytes was seen. */

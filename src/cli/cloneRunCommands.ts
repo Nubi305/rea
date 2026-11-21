@@ -26,7 +26,8 @@ import type { CliInstance } from "./types.js";
 /**
  * The three clone-run commands: the behaviour comparer, the run-folder
  * scaffold and the referee. CLI-only, like `environment-compare`.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, "Commands".
+ * Contract: docs/reference/clone-runs.md, "Create a run", "Evaluate",
+ * "Compare captures directly" and "Refusals".
  */
 
 /** Same envelope label as the other application workflow commands. */

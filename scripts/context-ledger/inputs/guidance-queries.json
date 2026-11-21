@@ -1,0 +1,25 @@
+{
+  "source": "the audit census-skill 05-guidance.mjs: twenty queries an agent would type into rea guidance",
+  "queries": [
+    "clone a web application",
+    "rebuild website and check it matches",
+    "clone run prober",
+    "evidence_stale",
+    "stalled what now",
+    "decompile a function in a native binary",
+    "android apk classes methods",
+    "electron asar",
+    "firmware image",
+    "compare two versions",
+    "core dump crash",
+    "provider_unavailable",
+    "ghidra startup timeout",
+    "tools missing after setup",
+    "result too large truncated",
+    "which api endpoints does the page call",
+    "agent environment from a HAR",
+    "desktop app environment task",
+    "frida instrumentation",
+    "recover readable source from minified bundle"
+  ]
+}

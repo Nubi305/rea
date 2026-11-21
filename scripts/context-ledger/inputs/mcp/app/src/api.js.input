@@ -1,0 +1,14 @@
+const BASE = "https://api.notes.example/v1";
+async function fetchNotes() {
+  const response = await fetch(`${BASE}/notes?limit=20`, { headers: { accept: "application/json" } });
+  return response.json();
+}
+async function saveNote(note) {
+  const response = await fetch(BASE + "/notes", { method: "POST", body: JSON.stringify(note), headers: { "content-type": "application/json" } });
+  if (response.status === 409) throw new Error("duplicate");
+  return response.json();
+}
+async function deleteNote(id) {
+  return fetch(`${BASE}/notes/${id}`, { method: "DELETE" });
+}
+module.exports = { fetchNotes, saveNote, deleteNote };

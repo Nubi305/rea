@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { FORK_IDENTITY } from "./forkIdentity.js";
 import { SUPPORTED_NODE_VERSION_RANGE } from "./runtimeVersion.js";
 import { versionReport, versionReportSchema } from "./versionReport.js";
 
@@ -24,6 +25,7 @@ describe("version report", () => {
         range: SUPPORTED_NODE_VERSION_RANGE,
         satisfied: true,
       },
+      fork: FORK_IDENTITY,
     });
   });
 

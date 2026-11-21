@@ -3,8 +3,8 @@ import type { ScenarioBehaviorComparison } from "../../domain/scenarioBehaviorCo
 
 /**
  * A capture's own address in what its application prints.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, "The comparer",
- * rule **Origin**.
+ * Contract: docs/reference/clone-runs.md, "Comparison rules", the left's
+ * own address.
  *
  * An application that prints its own address prints another text at another
  * address. The left side's address is therefore read as the right side's, the

@@ -152,7 +152,7 @@ export const startBoard = async ({ port = 0 } = {}) => {
   const board = new TopicBoard();
   const site = { board, api: resources(board), pages: pages(board) };
   const server = createServer((request, response) => {
-    answer(site, request)
+    void answer(site, request)
       .catch((error) => ({
         status: 500,
         type: "text/plain",

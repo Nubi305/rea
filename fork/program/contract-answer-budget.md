@@ -1,0 +1,980 @@
+# Answer budget: the contract
+
+Revision 2, 2026-11-21, after the critique. Written against `/home/user/rea` at `0e089b3` (read-only) and the audit
+in `/home/user/rea-design/discover/`. It settles `decisions-answer-budget.md` (D1 to D19) against the code. The
+critic's twelve findings and what was done about each are in `contract-answer-budget-critique.md`; section 20 says
+where each landed. Every number is marked: **[run]** run for this contract (scripts in `contract-scripts/`),
+**[audit]** taken from an audit lens, **[sim]** computed by transforming saved real outputs with the prototype in
+`contract-scripts/` (not REA code; where it and this text disagree, this text is right), **[src]** read in the
+source at the given line.
+
+## 1. The rule and its words
+
+REA never puts more than the answer budget into a caller's context by default. A result over the budget is saved
+complete and replaced by a **digest**; a failure is printed as a **bounded error**; over MCP an omitted `detail`
+gets the smaller projection the tool already defines.
+
+| Word           | Meaning                                                                                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| document       | the value a command hands to the one result writer (`src/cli/cliResultOutput.ts` `write`)                                                                             |
+| selection      | what `--filter-output` selects in the document; without the flag, the whole document                                                                                  |
+| rendered bytes | UTF-8 bytes the writer would put on stdout: the selection in the display format, with the `--full-output` envelope and the trailing newline                           |
+| saved file     | the complete, unfiltered document as the bytes `--json` writes to a pipe today (compact, key order as produced, one `\n`)                                             |
+| budget active  | a limit is in force for this process (section 2)                                                                                                                      |
+| reader         | `<cli> saved-output show <id>` (8.3; `<cli>` is how this process was started, 5.6): every command a digest prints reads the saved file through it and re-runs nothing |
+
+Where each decision is settled: D1 sections 2 and 3; D2 section 2 and the `complete` line of section 5; D3 section
+19.1; D4 section 4 steps 5 and 6; D5 section 8; D6 section 5; D7 sections 7 and 8.4; D8 section 4 step 3; D9
+10.3; D10 10.1; D11 10.2; D12 10.4; D13 to D16 section 11; D17 section 13; D18 section 14; D19 section 12.
+
+## 2. Names, defaults, precedence
+
+| Name                                   | Kind                                                                                         | Values                                       | Default                  |
+| -------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------ |
+| `--output-budget <v>`                  | global CLI flag, valued                                                                      | `off`, or a decimal integer of at least 2048 | none                     |
+| `REA_OUTPUT_BUDGET`                    | environment, CLI process and MCP server start                                                | same values                                  | unset                    |
+| `--progress`                           | global CLI switch                                                                            | present or absent                            | absent                   |
+| `REA_SAVED_OUTPUT_DIR`                 | environment                                                                                  | an absolute directory                        | the per-user cache (8.1) |
+| `rea saved-output <list\|show\|clear>` | new CLI command, not an MCP tool                                                             | 8.3                                          |                          |
+| `--evidence-output`                    | spelling of `--evidence_output`; every snake_case option key also accepts its kebab spelling |                                              |                          |
+
+Fixed constants (not configurable): default budget 6,000 B; minimum budget 2,048 B; error budget 1,500 B; a page is
+at most 70% of the budget; store cap 512 MiB and 14 days; `--token-limit` counts one token per 1.3 ASCII bytes and
+one per other byte (10.1), so its smallest value is 1,576.
+
+CLI precedence, first match wins:
+
+| #   | Condition                                            | Budget    | `budget.source`     |
+| --- | ---------------------------------------------------- | --------- | ------------------- |
+| 1   | `--output-budget off`                                | off       |                     |
+| 2   | `--output-budget <n>`                                | n         | `--output-budget`   |
+| 3   | `REA_OUTPUT_BUDGET=off` or `=<n>`                    | off, or n | `REA_OUTPUT_BUDGET` |
+| 4   | stdout is a file of its own (section 3, kind `file`) | off       |                     |
+| 5   | otherwise                                            | 6,000     | `default`           |
+
+- Rows 1 to 3 are explicit and apply on every kind of stdout. Only the default (row 5) yields to a redirect.
+- `--token-limit N` without `--token-offset`, while the budget is active, replaces the limit of rows 3 and 5 for
+  this call: the answer is at most N counted tokens (`budget.bytes` shows `floor(1.3 x N)`), and also at most n
+  bytes when `--output-budget <n>` is given; source `--token-limit`. With the budget off it is today's window.
+- An invalid `--output-budget` value (a number under 2048 included) is refused through `cliOutputValueRejection`
+  (code `INVALID_OUTPUT_VALUE`, exit 1). An invalid `REA_OUTPUT_BUDGET` is a configuration error: one line on
+  stderr, exit 1, `doctor` excepted, through `cliConfigurationError` (as `REA_LOG_LEVEL`, `src/cliOneShot.ts:78-88`).
+- **Off means every gated behaviour of section 4 is off**: the complete document, today's error shape, TOON as the
+  unflagged format. That is what "exactly today's bytes" means here.
+- MCP has rows 3 and 5 only, read once at server start.
+- The budget is resolved **only at the two process entries** (`runOneShotCli`; the MCP runtime in `src/main/`).
+  `createCliResultOutput`, `cli.serve`, `createServer` and `ToolResultDelivery` take it as an argument that
+  defaults to off. Code that builds them directly (in-process tests, embedders) is unchanged.
+
+## 3. What each standard output gets
+
+An agent's shell does not always hand REA a pipe: the harness this contract was written in gives every command one
+regular file as both stdout and stderr **[run]** (`fstat` of fd 1 and fd 2: same device and inode). The launcher
+(`scripts/rea.mjs`) reads the kind once and passes it as `OneShotCliHost.stdoutKind`:
+
+| Kind       | Test, in this order                                                                                              |
+| ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| `terminal` | `process.stdout.isTTY`                                                                                           |
+| `capture`  | `fstatSync(1, {bigint: true})` is a regular file and `fstatSync(2, {bigint: true})` has the same `dev` and `ino` |
+| `file`     | fd 1 is a regular file and fd 2 is not that file                                                                 |
+| `other`    | everything else (pipe, socket, device); a failed `fstat`                                                         |
+
+| stdout                      | Typical caller                                              | Budget with nothing set | Unflagged format | A result over the budget prints      | Saved file                                                                        |
+| --------------------------- | ----------------------------------------------------------- | ----------------------- | ---------------- | ------------------------------------ | --------------------------------------------------------------------------------- |
+| `terminal`                  | a person                                                    | 6,000                   | TOON (today)     | digest, in TOON                      | yes                                                                               |
+| `other`: pipe, socket       | `rea x \| jq`, most agent shells, `\| tee f`                | 6,000                   | compact JSON     | digest                               | yes                                                                               |
+| `other`: `/dev/null`, `NUL` |                                                             | 6,000                   | compact JSON     | digest (discarded)                   | yes; 112 ms for the 15.9 MB document, 0.5 ms for 14 KB **[run]** `store-cost.mjs` |
+| `capture`                   | a harness that records both streams in one file; `> f 2>&1` | 6,000                   | compact JSON     | digest                               | yes                                                                               |
+| `file`                      | `> f`, `>> f` with stderr elsewhere                         | off                     | TOON (today)     | the complete document, today's bytes | no                                                                                |
+
+With row 2 or 3 of section 2 set to a number, every kind gets that budget, and compact JSON off a terminal.
+What the two file kinds cannot tell apart is in section 16 rows 24 and 25.
+
+## 4. The CLI pipeline, in order
+
+1. Global arguments parsed; budget and stdout kind resolved (sections 2 and 3). Invalid values stop here.
+2. `--evidence_output` pre-check (8.4), before `entry.definition.run`.
+3. The command runs. Exit statuses are set where they are today (`logCliCommand`, `runCliCommand`); nothing in
+   this contract sets or clears one, except the unmatched filter of 10.4 (exit 0 becomes 1).
+4. Writer: classify the document. A failure projection (what `cliOperationFailurePayload` recognizes through
+   `analysisErrorProjectionSchema`) goes to section 7. Everything else, including an unhealthy `doctor` report
+   and a `not_done` verdict that exits 1, is a result.
+5. `--filter-output` is applied. A filter that selects nothing is refused (10.4).
+6. The selection is rendered lazily (`jsonOutputParts`, `encodeLines`) and counted until it passes the budget.
+   At or under the budget it is written exactly as today. `--token-count` prints the count of the complete
+   rendering, as today.
+7. Over the budget: the **complete unfiltered document** is saved (section 8); only after the file is durable is
+   the digest of the selection built (section 5) and written in the display format. If no store directory can
+   be written (8.1), the complete result is written as today and one line goes to stderr:
+   `rea: answer budget not applied: cannot save to <dir> (<code>). The complete result follows.`
+
+| Gated by "budget active" (off restores today's stdout)                                                                    | Always on                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| digest; bounded error shape; compact JSON as the unflagged format off a terminal; `--token-limit` answering with a digest | `--output-budget`, `--progress`, `--evidence-output` accepted; nearest flag named; `--evidence_output` pre-check; unmatched filter refused; progress reports off a terminal; token windows cut by the counted-token rule |
+
+## 5. The digest
+
+One top-level key, so no field of it can be mistaken for a field of a result (`next` and `limitations` are real
+result keys today). A script tests `has("rea_digest")`. Keys appear in the order of the table.
+
+| Field               | Content                                                                                                                          | Removed to fit (5.4) |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `version`           | `1`                                                                                                                              | never                |
+| `command`           | CLI command name (for `saved-output show`, the command recorded in the file name)                                                | never                |
+| `untrusted_content` | `true`, or the list of digest paths that may quote the target (6.2); absent when none can                                        | never                |
+| `filter`            | the `--filter-output` expression this digest describes; absent for the whole document                                            | never                |
+| `result`            | facts: scalars keyed by their full `--filter-output` path (5.1)                                                                  | steps 3 and 6        |
+| `result_more`       | facts that qualified and are not shown                                                                                           | never                |
+| `brief`             | command-owned findings (5.5)                                                                                                     | step 2               |
+| `omitted`           | up to 6 parts that were left out (5.2)                                                                                           | step 1, down to 1    |
+| `omitted_more`      | parts not listed                                                                                                                 | never                |
+| `limitations`       | `{count, stated?, not_stated?, in_omitted_parts?}` (6.1)                                                                         | step 4               |
+| `saved`             | `{file, bytes, sha256}`; plus `evidence_id` when the file is an `--evidence_output` bundle                                       | never                |
+| `budget`            | `{bytes, source, result_bytes, format}`; with `--token-limit` also `{tokens, counted}`; `core_over: true` in the one case of 5.4 | never                |
+| `complete`          | one line, below                                                                                                                  | step 7               |
+| `next`              | at most 3 commands that work as printed (5.3, 5.6)                                                                               | step 5, down to 1    |
+
+`complete` names only ways that work for this call. Source `default`: `Every byte: redirect stdout to a file, pass
+--evidence_output <file>, or pass --output-budget off.` Any other source: `Every byte: pass --output-budget off, or
+--evidence_output <file>.` The `--evidence_output` clause is printed only for commands that have the option.
+
+With `--full-output` the digest is `data` of the usual envelope. With `jsonl` it is one line. With `csv`/`tsv` it
+is printed as JSON (as failures are today). A digest never triggers another save.
+
+### 5.1 Facts (`result`)
+
+Answer base: `normalized_result` when the document is Evidence (`evidence_id` and `normalized_result` present);
+`summary.normalized_result` plus `evidence_bundle` for the CLI summary wrapper; the root otherwise. For a selection
+(5.3), each selected object.
+
+| Order | Rule                                                                                                                                                                                                                                                                                                 |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Handles: `evidence_id`, `operation`, every scalar of `evidence_bundle`, `summary.evidence_id`, and any fact whose key is `parent_evidence_id`. Protected, and never removed by the fit order.                                                                                                        |
+| 2     | Coverage facts: scalars directly under an object keyed `coverage` or `completeness`, depth at most 3 below the base, at most 8. Protected.                                                                                                                                                           |
+| 3     | Breadth first from the base, document order, depth at most 4, until 16 facts: booleans, numbers, strings of at most 80 B, arrays of scalars of at most 200 B. An array with exactly one object row is entered as `<path>[0,1]`. Facts that qualify after the sixteenth are counted in `result_more`. |
+| 4     | Incompleteness flags found anywhere (6.1), at most 12 (the rest counted in `result_more`). Protected, added even past 16.                                                                                                                                                                            |
+
+Never a fact: `null`; a string that is an opaque digest id (`^([a-z][a-z0-9]{1,7}_)?[0-9a-f]{64}$`) under a key
+other than `evidence_id` and `parent_evidence_id` (a small array such as `evidence_links` is copied whole); the
+Evidence envelope keys at the root (`subject`, `provider`, `parameters`, `raw_result`, `locations`, and the rest
+listed in `digest.mjs` `ENVELOPE`); anything under a key that is not `[A-Za-z0-9_-]+`; **anything inside an object
+that has its own non-empty `limitations` array** (that object is listed under `omitted` with `limitations: n`). An
+object with three or more numeric children that are all zero is one fact, `"<path>": {"all_zero": n}`.
+
+### 5.2 Parts left out (`omitted`)
+
+From each selected object, descend objects to depth 6. **An array of one row that cannot be read whole** (its
+bytes with the path's envelope are over 70% of the budget) **is entered as `<path>[0,1]`**, and its parts are
+listed instead of it; no other array is entered. Candidates: arrays that are over 200 B or hold objects, strings
+over 500 B (JSON-encoded); ranked by bytes. Collections with identical content are one row with `also: [paths]`
+(objdump and gdb mirror `raw_result`; `doctor` prints `checks` twice). Free rows are filled with the largest
+objects over 500 B that neither contain nor lie inside a listed collection. Parts under a key that is not
+`[A-Za-z0-9_-]+` are not listed; they count in `omitted_more`.
+
+| Row kind | Fields                                                                                                                                                                              |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| rows     | `path`, `rows`, `bytes`, and `keys` (first 6 keys of the first row) or `of` (scalar type); `page` when the rows do not fit one page; for a selected range also `from` and `of_rows` |
+| text     | `path`, `text: true`, `lines`, `bytes`                                                                                                                                              |
+| object   | `path`, `keys_count`, `bytes`, `limitations?`                                                                                                                                       |
+
+`page` is the number of rows, counted from the first on the rows themselves (not on an average), that fit 70% of
+the budget together with the path's envelope: at least 1, at most 50.
+
+### 5.3 Selections, `next`, and the progress rule
+
+A digest of a selection (`rea saved-output show <id> --filter-output <expr>` over the budget) is built over the
+**saved document**, not over the printed projection, so its paths stay absolute. `resolveTargets(document, paths)`
+(new, `outputBudget/selection.ts`) walks each path: a key enters an object; a slice `[s,e]` on an array, not last,
+continues in every row as `<path>[i,i+1]`; a last slice, or a path ending at an array, is a **range** of that
+array; a range of one row is that row. A path that reaches nothing is **unmatched** (10.4).
+
+How a row is read. A reader may compose this for any row; `next` prints up to three:
+
+| Row                                                                           | Command after the reader                                  |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------- |
+| rows that fit one page                                                        | `--filter-output <path>`                                  |
+| rows with `page`                                                              | `--filter-output '<path>[<from>,<from + page>]'`          |
+| text                                                                          | `--text <path>` (8.3: the string's own lines, in windows) |
+| object                                                                        | `--filter-output <path>`                                  |
+| nothing listed at all (a wide object of scalars, keys that cannot be written) | `--text <selected path>`, `--text .` for the document     |
+
+`next`, in order, without duplicates: the brief's own command; when `not_stated` is above zero,
+`--filter-output <the paths the stated sentences were read from, joined by commas>` (for Evidence
+`limitations,normalized_result.limitations`); the largest rows; the largest text that has more than one line or
+fits a page; the other listed parts in listed order; one-line texts over the budget (encoded payloads) last. Rows
+the brief already shows are not offered again. Paths are quoted with the repository's `shellQuote`
+(`src/domain/desktop/shellQuote.ts`).
+
+| #   | Progress rule                                                                                | How it is met                                                                                                                                                                        |
+| --- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P1  | A digest never prints the command that produced it                                           | commands equal to the current call are removed                                                                                                                                       |
+| P2  | Every printed command selects strictly less than the digest describes                        | listed parts lie inside the selection; a page of a selected range is smaller than the range (when the computed page would cover it, half of it); a single row is entered, not listed |
+| P3  | A printed command returns at most the budget: content, or a digest that again meets P1 to P3 | an array is printed unsliced only when it fits one page                                                                                                                              |
+| P4  | Every value of the saved file can be reached by printed commands                             | rows and objects by descent; a string, and anything without listable parts, by `--text` windows, each of which prints the offset of the next                                         |
+
+Measured on the 61 census outputs over 6,000 B **[sim]** `follow-next.mjs` (`examples/follow-next.txt`): 162 printed
+commands, 159 return content and 3 a deeper digest (single rows of 16 to 22 KB); none repeats, none is over the
+budget; of 237 listed rows 234 reach content in one hop and 3 in two. The first prototype printed 22 dead ends
+among 134 commands and looped on single-row arrays (critique F2). On 13 synthetic shapes the census lacks
+(`follow-shapes.mjs`): 0 repeats, every path ends in content, deepest hop 4.
+
+### 5.4 Fit order
+
+While the digest as it will be written (display format, envelope, trailing newline) is over the limit (bytes,
+or counted tokens under `--token-limit`), in this order, whole items only, each from the end:
+
+| Step | Removed                                                        | Counted in     |
+| ---- | -------------------------------------------------------------- | -------------- |
+| 1    | `omitted` rows, down to 1                                      | `omitted_more` |
+| 2    | the brief's lists item by item down to 1, then the brief whole | `<list>_more`  |
+| 3    | facts that are not protected                                   | `result_more`  |
+| 4    | `limitations.stated` sentences                                 | `not_stated`   |
+| 5    | `next` commands, down to 1                                     |                |
+| 6    | coverage facts, then incompleteness flags (handles stay)       | `result_more`  |
+| 7    | the `complete` line                                            |                |
+
+`next` is rebuilt after steps 1, 2 and 4. What is left is the **core**: version, command, mark, handles, one
+`omitted` row, limitation counts, `saved`, `budget`, one command. The core is never cut: it names the saved file.
+If the core alone is over the limit (possible only with a store or bundle path of several hundred bytes at the
+minimum budget) it is printed and `budget.core_over` is `true`.
+
+Measured with a store directory of 199 B **[sim]** `min-budget.mjs` (`examples/min-budget.txt`):
+
+| Budget | Digests | Over the budget                  | Lost a protected fact | Lost the brief |
+| ------ | ------- | -------------------------------- | --------------------- | -------------- |
+| 1,024  | 112     | 44 (the core alone does not fit) | 57                    | 40 of 40       |
+| 1,536  | 111     | 0                                | 29                    | 37 of 40       |
+| 2,048  | 105     | 0                                | 5                     | 31 of 40       |
+| 3,000  | 95      | 0                                | 1                     | 21 of 38       |
+| 6,000  | 61      | 0                                | 0                     | 0 of 36        |
+
+Hence the minimum of 2,048 B. `--token-limit 1576`: 105 digests, 0 over, at most 1,574 counted tokens.
+
+### 5.5 Briefs: the findings themselves, for the commands agents call first
+
+One new file holds them all (`src/cli/outputBudget/briefs.ts`), keyed by CLI command; no command module changes.
+A brief is built after the rest of the digest and is told the room that is left. It reads only the paths below,
+takes at most 1,200 B of the room (the referee's worklist takes all of it), cuts every string it copies to 160
+characters (the worklist copies whole items), and names the scope it read so that scope's limitation sentences are
+stated with it.
+
+| Command                                     | Brief fields (source path)                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `analyze-javascript-application`, `analyze` | `nodes_by_kind`, `edges_by_relation` (counts over `normalized_result.graph.nodes[].kind`, `.edges[].relation`); `endpoints`: first 20 `identity.key` of nodes of kind `endpoint`. Scope `normalized_result.graph`. Own command: the first page of `normalized_result.graph.nodes`, from the page rule of 5.2                                          |
+| `inspect-artifact`                          | `format` (`normalized_result.subject.root_format`); `next_probes`; `observations_by_kind`; `unexplored`: first 5 `{reason, next_probe}`; `files`: first 20 `substeps[].evidence.normalized_result.occurrences[].logical_path`                                                                                                                         |
+| `capture-browser-scenario`                  | `steps`, `steps_by_status`, `first_failures`: first 3 `{step_id, status, error}` (from `normalized_result.steps`, or `summary.normalized_result.summary.steps` in the summary wrapper)                                                                                                                                                                |
+| `evaluate-clone-run`                        | `worklist`: the items of `next[]` **whole and in order** (role, reason, file, command, message, side, scenario), as many as the room holds; `worklist_more`: items not shown. Own command, first in `next`: `--filter-output 'next[<shown>,<shown + page>]'`. An item is shown whole or not at all, because its message carries the reset instruction |
+| `providers`, `capabilities`                 | `providers`: `{<id>: availability.status}` from `analysis_provider_candidates`                                                                                                                                                                                                                                                                        |
+| `doctor`                                    | `failing_checks`: `{name, detail}` (detail cut to 120 characters) where `checks[].ok` is false                                                                                                                                                                                                                                                        |
+| `inspect-web-page`                          | `roles`: counts of `accessibility.nodes[].role` not ignored; `headings`: first 10 names of role `heading`                                                                                                                                                                                                                                             |
+| `compare-web-captures`                      | `steps_by_status` over `normalized_result.steps[].status`                                                                                                                                                                                                                                                                                             |
+| `inspect-with-objdump`, `debug-with-gdb`    | `stdout_lines`; `stdout_head`: first 8 lines, each cut to 100 characters                                                                                                                                                                                                                                                                              |
+| `setup`                                     | `planned`: `{kind, label}` of `plannedActions[]`                                                                                                                                                                                                                                                                                                      |
+| `inspect-evidence-bundle`                   | `records`: `{evidence_id, operation}` of `records[]`                                                                                                                                                                                                                                                                                                  |
+
+The referee's ten-item verdict from the audit (11,126 B) **[sim]** `follow-worklist.mjs`: first reply 5,126 B with
+the verdict, the checks and 4 whole items; `'next[4,8]'` and `'next[8,12]'` bring the other 6; all 10 arrive whole
+and in order after 2 follow-ups, 11,261 B in all. Under the budget a long verdict costs about what it costs today,
+in three turns: the digest keeps the loop safe, and only P4's bounded worklist (ledger: at most 6,000 characters)
+makes it cheap, after which the verdict passes the budget unchanged.
+
+### 5.6 How a printed command spells REA
+
+`rea` is not always on the caller's `PATH` (the skill starts it as `npx -y rea-agents@latest ...`; a checkout as
+`node scripts/rea.mjs`), so "works as printed" needs the spelling this process was started with. The launcher
+passes `OneShotCliHost.invocation = {execPath, script}`; `policy.ts` `selfCommand()` returns the prefix used by
+`next`, by bounded errors and by E1:
+
+| Started as                                                                                     | Prefix                                                                |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| a package runner (`invokingPackageRunner`, `src/application/ClientRegistrationIdentity.ts:36`) | `npx -y <package name>@<running version>`, or `bunx <name>@<version>` |
+| a script named `rea` or `rea-agents` whose directory is on `PATH`                              | that name                                                             |
+| anything else                                                                                  | `<shellQuote(execPath)> <shellQuote(script)>`                         |
+| no invocation given (in-process drivers, tests)                                                | `rea`                                                                 |
+
+The acceptance script runs every printed command through `/bin/sh` exactly as printed.
+
+### 5.7 Worked examples
+
+`rea inspect-artifact inputs/sample.zip --json` on a pipe: 14,146 B today **[audit]**, digest 3,263 B **[sim]**
+(`examples/digest.inspect-artifact.zip.json`; pretty-printed here; twelve of its sixteen facts, the keys of three
+rows and one of two limitation sentences left out for space):
+
+```json
+{
+  "rea_digest": {
+    "version": 1,
+    "command": "inspect-artifact",
+    "untrusted_content": true,
+    "result": {
+      "evidence_id": "ev_90adae5ef1c139de6e5859c53d9cf9314edc5e856485dc51c5101c6b4d20ce9c",
+      "operation": "inspect_artifact",
+      "normalized_result.coverage.status": "complete-within-substeps",
+      "normalized_result.substeps[0,1].status": "completed"
+    },
+    "result_more": 7,
+    "brief": {
+      "next_probes": [],
+      "format": "zip",
+      "observations_by_kind": { "root-manifest": 1 },
+      "unexplored": [],
+      "files": [
+        ".",
+        "README.txt",
+        "blob.bin",
+        "config",
+        "config/settings.json",
+        "docs",
+        "docs/notes.md",
+        "hello.c"
+      ]
+    },
+    "omitted": [
+      {
+        "path": "normalized_result.substeps[0,1].evidence.normalized_result.occurrences",
+        "rows": 8,
+        "bytes": 4323,
+        "keys": [
+          "occurrence_id",
+          "artifact_id",
+          "parent_occurrence_id",
+          "relationship_coverage",
+          "logical_path",
+          "entry_kind"
+        ],
+        "page": 7
+      },
+      {
+        "path": "normalized_result.substeps[0,1].evidence.normalized_result.edges",
+        "rows": 7,
+        "bytes": 2192
+      },
+      {
+        "path": "normalized_result.substeps[0,1].evidence.normalized_result.nodes",
+        "rows": 8,
+        "bytes": 2184
+      },
+      { "path": "normalized_result.observations", "rows": 1, "bytes": 698 }
+    ],
+    "limitations": {
+      "count": 2,
+      "stated": [
+        "Inspection derives bounded static hypotheses and next probes; it does not execute the artifact or claim format-specific semantics."
+      ]
+    },
+    "saved": {
+      "file": "/home/analyst/.cache/rea/saved-output/579a321194d6d1861f06ae8b9a61a02c6dd2baf8375daeecc3b2e6bf182176bf.inspect-artifact.json",
+      "bytes": 14146,
+      "sha256": "579a321194d6d1861f06ae8b9a61a02c6dd2baf8375daeecc3b2e6bf182176bf"
+    },
+    "budget": {
+      "bytes": 6000,
+      "source": "default",
+      "result_bytes": 14146,
+      "format": "json"
+    },
+    "complete": "Every byte: redirect stdout to a file, pass --evidence_output <file>, or pass --output-budget off.",
+    "next": [
+      "rea saved-output show 579a321194d6 --filter-output 'normalized_result.substeps[0,1].evidence.normalized_result.occurrences[0,7]'",
+      "rea saved-output show 579a321194d6 --filter-output 'normalized_result.substeps[0,1].evidence.normalized_result.edges'",
+      "rea saved-output show 579a321194d6 --filter-output 'normalized_result.substeps[0,1].evidence.normalized_result.nodes'"
+    ]
+  }
+}
+```
+
+The three commands return 3,867 B, 2,275 B and 2,267 B of content **[sim]**. In the first contract this digest
+offered `'normalized_result.substeps[0,1]'`, which returned a digest that offered the same command again.
+
+A selection: `rea saved-output show e9798a6c6e6b --filter-output 'analysis_provider_candidates[0,1]'` selects one
+provider row of 16,238 B. Its digest (2,985 B, `examples/digest.providers.one-row.json`) has
+`"filter": "analysis_provider_candidates[0,1]"`, sixteen facts keyed `analysis_provider_candidates[0,1].<...>`, four
+rows inside the row, and as first command `--filter-output
+'analysis_provider_candidates[0,1].capabilities[0,1].groups[0,7]'`.
+
+## 6. What a digest must not hide
+
+### 6.1 Limitations
+
+REA's limitations qualify the answer; the digest shows a count, and with it every sentence that qualifies
+something the digest itself shows.
+
+| Rule                                                       | How it is met                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A fact is never shown without the limitations of its scope | Facts come only from the answer base and from objects that carry no `limitations` of their own (5.1). The base's sentences (`limitations` and `normalized_result.limitations`, each distinct sentence once, document order) are printed under `stated`, up to 2,500 B. A brief adds its scope's sentences.                                                                                                                                                                                                        |
+| The measured outputs fit                                   | Root-scope sentences fit 2,500 B in 121 of 121 census outputs, 1,500 B in 114 **[run]** `limitations-scope.mjs`.                                                                                                                                                                                                                                                                                                                                                                                                  |
+| When they do not fit                                       | Whole sentences only; the rest are counted in `not_stated` and a `next` command prints the paths they were read from (5.3).                                                                                                                                                                                                                                                                                                                                                                                       |
+| Sentences of parts the digest did not open                 | Counted in `in_omitted_parts`; each object row carries its own `limitations: n`, read with `--filter-output <row path>.limitations`. They also arrive with the part when it is read.                                                                                                                                                                                                                                                                                                                              |
+| A selection                                                | States the sentences the selected objects carry themselves. The sentences of enclosing scopes are in the digest of the whole document, as with any `--filter-output` call today, which shows none.                                                                                                                                                                                                                                                                                                                |
+| Incompleteness is never reduced to prose                   | Any scalar under a key named `truncated`, `*_truncated`, `has_more`, `partial` (true), `complete`, `source_complete` (false), `next_offset`, `next_cursor`, `next_row_offset` (not null), `omitted_count` (above 0) is copied into `result` with its path: searched to depth 8, first 50 rows of each array, `raw_result` skipped, at most 12 (then counted in `result_more`). Below 3,000 B the fit order may move coverage facts and flags into `result_more` (5.4); at the default it never did on the census. |
+| The digest states no negative of its own                   | It copies values and counts rows that are present; it never says "none found".                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+
+Test: for every row of the real-output table (section 13), `stated` plus `not_stated` equals the number of
+distinct sentences in the root scope and the brief's scope of the saved file, and every flag the scan finds in
+the saved file is a key of `result` or counted in `result_more`.
+
+### 6.2 Text from the target
+
+A digest concentrates target-derived strings (file names, endpoints, page headings, the head of tool output) into
+a short, answer-first document. On the CLI today no result carries a marking **[src]** (no occurrence of
+`untrusted` under `src/cli/`); over MCP results of contracts with `returnsTargetContent` carry
+`_meta.provenance.untrusted_content` (`src/server/toolResultEncoding.ts:32-37`).
+
+| Rule           | Detail                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mark           | `policy.ts` `targetText(command)`. `true`: every string under `result` and `brief` may be target text; for commands with a contract operation that has `toolReturnsTargetContent(name)` (`src/contracts/toolEffects.ts:167`) and for every command without a contract operation not named below. A list: only those digest paths may quote the target; `evaluate-clone-run` is `["brief.worklist.message"]`, because the referee writes its commands, files, roles and reasons itself (`cloneRunCaptureCommand`, `src/application/cloneRun/CloneRunWorkspace.ts:1328`) while a message may quote a value the applications returned (`CloneRunEvaluation.ts:896`). Absent: `doctor`, `providers`, `capabilities`, `setup`, `update`, `uninstall`, `guidance`, `guided-workflows`, `instructions`, `list-architectures`, `list-objdump-architectures`, `init-clone-run`, `saved-output list`, `saved-output clear`. `saved-output show` inherits the mark of the command in the file name; an arbitrary path is `true`. |
+| Position       | Target strings appear only as JSON string values inside `result` and `brief`, never as keys, never in `omitted[].path`, `complete` or `next`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Size           | A fact string is at most 80 B; a string a brief copies is cut to 160 characters, the worklist's whole items excepted.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Over MCP       | Unchanged: the summary reply goes through `successResult`, which adds `TARGET_CONTENT_RESULT_META` by contract (`ToolResultDelivery.ts:503-505`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Bounded errors | Add no target text the error did not already carry and move partial Evidence out of the reply; no mark is added, as the full error has none today.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+
+## 7. The bounded error
+
+Same projection, same key names (`code`, `category`, `message`, `retryable`, `remediation`, `recovery`,
+`details`), so a script that reads `.code`, `.details.path` or `.remediation.action` keeps working. **No key the
+projection gives is ever removed**: the skill tells agents to follow `remediation.action`
+(`references/connection-and-recovery.md:63`), and the projection sets it to the message when no other repair is
+written (6 of the 19 census mistakes **[run]**). Marker: top-level `"bounded": 1`. Edits, in order, applied to
+every failure projection when the budget is active:
+
+| #   | Edit                                                                                                                                                                                                                                                                                            |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1  | When `recovery.kind` is `inspect_input_contract`, `remediation.action` becomes `Run '<cli> <command> --help', correct the listed fields, then retry.` (`<cli>` as 5.6; replaces the one MCP sentence, `src/domain/analysisErrorPresentation.ts:244`). Nothing else touches `remediation`.       |
+| E2  | `details.reason` is dropped when it is 40 characters or longer and `message` contains it (reason codes such as `exists` stay).                                                                                                                                                                  |
+| E3  | `details.partial_observation` that is Evidence is saved as its own Evidence file and replaced by `{kind: "saved-evidence", evidence_id, operation, file, bytes, sha256}`; `details.source_closure.recovery` (which says nothing was retained) is removed; `next` gets the reader for that file. |
+| E4  | Still over 1,500 B: the complete original error is saved; `details` keeps its scalars, strings of at most 200 B, `issues` (first 5, `path` and `reason`), the E3 reference and `complete_error: {file, bytes, sha256}`; `next` gets `<reader> --filter-output details`.                         |
+| E5  | Still over: `message` is cut at a code point to 400 B and says where the complete text is; `remediation.action` gets the same cut (when it equals the message, the same text).                                                                                                                  |
+
+Argument failures written by `report()` (`{code, message, fieldErrors}`, 55 to 316 B today) are not reshaped.
+The bounded error is printed in the display format; exit status as today. If E3 or E4 cannot save (no store
+directory, 8.1), the error is printed as today with the stderr line of section 4 step 7.
+
+Worked example: `rea analyze-javascript-application inputs/jsbundle --detail summary --evidence_output
+work/ev/jsbundle.analysis.json --json` run a second time. Today 1,022,734 B, exit 1 **[audit]**; bounded 896 B
+**[sim]** (`examples/bounded-error.evidence-output-exists.json`):
+
+```json
+{
+  "code": "invalid_request",
+  "category": "invalid_input",
+  "message": "Evidence file already exists. Choose another output path.",
+  "retryable": false,
+  "remediation": {
+    "action": "Evidence file already exists. Choose another output path."
+  },
+  "details": {
+    "operation": "write",
+    "reason": "exists",
+    "path": "/…/work/ev/jsbundle.analysis.json",
+    "partial_observation": {
+      "kind": "saved-evidence",
+      "evidence_id": "ev_6a5502b324dbcf8cddea8623ec3aefa4f159f9873550354f23a7d1a4895454b1",
+      "operation": "analyze_javascript_application",
+      "file": "/home/analyst/.cache/rea/saved-output/59fd2dd720898590c5da993bb21977967913abef61ee6ac28f629e70790c423f.analyze-javascript-application.json",
+      "bytes": 1022291,
+      "sha256": "59fd2dd720898590c5da993bb21977967913abef61ee6ac28f629e70790c423f"
+    }
+  },
+  "bounded": 1,
+  "next": ["rea saved-output show 59fd2dd72089"]
+}
+```
+
+Over the census's 19 real mistakes the largest bounded error is 1,390 B (invalid view kind, which lists 58
+kinds); the five that carry partial Evidence inline today (6,833 B to 1,022,734 B) become 878 to 1,024 B; the
+missing file, whose sentence the projection states twice, is 953 B **[sim]**
+(`examples/bounded-errors.19-mistakes.tsv`). With the pre-check of
+8.4 the collision no longer reaches this path except in a race.
+
+## 8. The store
+
+### 8.1 Where and how
+
+| Item                  | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Directory             | The first of these that can be created and written: (1) `REA_SAVED_OUTPUT_DIR` when set; (2) `reaCacheDirectory(home, env, platform, "saved-output")` (`src/filesystem/cacheDirectory.ts:12`): `~/.cache/rea/saved-output` or `$XDG_CACHE_HOME/rea/saved-output`, `~/Library/Caches/rea/saved-output` on macOS; home from `homeDirectoryFromEnvironment`; (3) `<os.tmpdir()>/rea-saved-output-<uid>` (no uid on Windows). A candidate inside the current working directory is skipped.                                                                      |
+| Why a third candidate | A sandboxed agent shell can leave the home directory read-only and only the workspace and the temporary directory writable (one widely used agent CLI documents exactly that for its default sandbox). Without (3) every over-budget call there would fall back to megabytes. When (1) is set and unusable, nothing else is tried: step 7's fallback applies.                                                                                                                                                                                               |
+| Why (2) first         | REA's existing convention for per-user state it owns (`kuna`, `build-computer`); outside the working directory, any target, clone or run folder                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Directory mode        | created `0700`. Where `process.getuid` exists (REA's own test for POSIX permissions, `src/process/OwnedLease.ts:338`), an existing directory is refused when it is not owned by the user or is group- or world-writable. **On Windows no mode check is made**: Node synthesizes the bits there. The default lies under the user profile and inherits its access control, the same boundary REA's other caches and `--evidence_output` files have on Windows today; a directory given through `REA_SAVED_OUTPUT_DIR` is the user's choice. `cli.md` says so. |
+| File name             | `<sha256>.<command>.json`; lookup is by hash prefix, so equal content from two commands is one file (the first name stays)                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| File content          | section 1 "saved file"; written with `jsonParts` (`src/domain/jsonSerialization.ts`) to `<name>.<8 random hex>.tmp` opened `wx`, mode `0600`, hashed while written, then renamed. The same mode REA gives `--evidence_output` bundles **[run]**                                                                                                                                                                                                                                                                                                             |
+| Beside it             | `<sha256>.<command>.about.json`, at most 1 KB, same mode: `{command, saved_at, bytes, about}`. `about` holds up to six scalars **copied from the document**: for Evidence (or the wrapper's `summary`) `subject.name`, `subject.local_path`, `subject.identity.sha256` or `.url`, `evidence_id`, `operation`; otherwise the first four root-level strings of at most 200 B (a verdict: `schema`, `run`, `evaluated_at`, `verdict`). `list` reads only these.                                                                                                |
+| Existing file         | not rewritten; its mtime is set to now                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Cap and age           | After a save, in one pass: `*.tmp` older than one hour are removed; documents not saved or read for 14 days are removed; then, oldest mtime first, documents are removed until the total is under 512 MiB. A document changed or read in the last hour, and the one just saved, are never removed. An `about` file goes with its document.                                                                                                                                                                                                                  |
+| Read refreshes        | `saved-output show` sets the file's mtime to now                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Integrity             | `show` re-hashes a store file and refuses it when the hash differs from its name                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| What is never stored  | argv, environment, anything that is not in the document the command would have printed                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Removal               | `rea saved-output clear`; `rea uninstall` removes candidates (2) and (3)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+
+### 8.2 `--evidence_output`
+
+| Call                                    | Document on stdout                              | Saved file named by the digest                                                                                                                                                                                |
+| --------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--detail complete --evidence_output f` | the complete Evidence record                    | `f` itself with `evidence_id` (the record is in the bundle); `bytes` from the publication receipt, `sha256` of `f`; nothing goes to the store. The reader is `<cli> saved-output show <f> --evidence-id <id>` |
+| `--detail summary --evidence_output f`  | `{summary, evidence_bundle}` (7 to 25 KB today) | the wrapper is saved in the store; `result` always carries `evidence_bundle.path` and `.bytes`                                                                                                                |
+
+### 8.3 `rea saved-output`
+
+| Form                                                           | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `rea saved-output list [--limit <n=10>] [--command <name>]`    | `{directories, entries_total, bytes_total, cap_bytes, entries: [{id, command, saved_at, bytes, file, about}]}`, newest first, from every candidate directory that exists. Ten entries are about 4.5 KB, so the default fits the budget; the results of `list` and `clear` are never themselves saved. This is how a later command, or a session after a context reset, finds its answers and tells ten analyses of ten targets apart.                                                                                                                                                                                                                                                                                                                                                            |
+| `rea saved-output show <ref> [--evidence-id <id>]`             | `<ref>` is 8 to 64 hex characters (unique prefix of a stored hash) or a path to any JSON file. With `--evidence-id`, one record of an Evidence bundle. The loaded document is then an ordinary result: `--filter-output`, `--format`, the budget and the token flags apply. A digest printed here names the same file and saves nothing.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `rea saved-output show <ref> --text <path> [--offset <bytes>]` | **Raw text**: `<path>` must select exactly one value (`.` is the document). A string is printed as its own characters, any other value as JSON indented by two spaces; no quoting, real line breaks. A text that fits the budget is printed whole. Otherwise, with the budget active: whole lines from `--offset` (default 0) up to 90% of the budget (a longer line is cut on a code point), then one line `[text <path>: bytes a-b of n, lines x-y of m; next: --offset b; to search it all: add --output-budget off and pipe to a search tool]`. With the budget off: everything from the offset, no notice, so `... --text <path> --output-budget off \| grep -n <word>` searches a 348 KB listing in one call. `--filter-output`, `--format` and the token flags are refused with `--text`. |
+| `rea saved-output clear [--older-than-days <n>]`               | `{removed, bytes_freed, directories}`; `removed` counts documents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+
+An ambiguous prefix lists its matches. An unknown one answers: `No saved output matches <ref> in <directories>.
+Saved outputs are per user and per machine: run 'rea saved-output list', run the command again, or set
+REA_SAVED_OUTPUT_DIR to a directory that persists.` Registered through `CLI_COMMANDS`
+(`src/contracts/cliCommandNames.ts`) like `guidance`; hand-built, no contract operation.
+
+### 8.4 `--evidence_output` checked before the work
+
+In `runCliCommand`, after `parseCliArgv` succeeds and before `entry.definition.run`: when
+`options.evidence_output` is a string, `lstat` the absolute path. Exists: refuse. Parent missing or not a
+directory: refuse. The refusal is today's projection without the Evidence, and no bounded-error edit changes it,
+so `artifactCallerSelection.test.ts:81-87` passes unchanged and under the budget alike:
+
+`{"code":"invalid_request","category":"invalid_input","message":"Evidence file already exists. Choose another output path.","retryable":false,"remediation":{"action":"<same sentence>"},"details":{"operation":"write","reason":"exists","path":"<abs>"}}`
+(parent: message `Evidence output directory does not exist. Choose an existing directory and try again.`,
+reason `missing`). The late refusal in `publishEvidenceDelivery` (`src/application/EvidenceBundleCommands.ts:149-169`)
+stays for the race and is bounded by E3.
+
+## 9. Scope notes for the writer
+
+- `--full-output`, `yaml`, `md`: the budget is tested on what would be written. An explicit token window
+  (`--token-offset`) is its own limit and is never replaced by a digest (10.1).
+- An `agent-only` result hidden on a terminal: nothing is written, nothing is saved.
+- The terminal update notice is written after the document as today and is outside the budget.
+- Discovery text (`--help`, `--llms`, `--schema`), `--version`, completions and the unknown-command reply do not
+  pass the result writer and are untouched here (package P3b owns them). They keep TOON or text.
+- `rea mcp doctor` bypasses the result writer (the launcher writes it) and is untouched: 1,569 B on head **[run]**.
+
+## 10. Token limit, format, progress, repairs
+
+### 10.1 `--token-limit` (D10)
+
+**Counted tokens**: every ASCII byte counts 1/1.3 token and every other byte counts one token, rounded up over
+the text (`tokenBound.ts` `countedTokens`). REA ships no tokenizer, so this is an upper count, not a real one.
+
+| Content, o200k **[run]** `token-bound.mjs`, `token-classes.mjs` (`examples/token-classes.txt`) | Bytes per real token           | A fixed 1.4 is a bound | Counted is a bound                    |
+| ---------------------------------------------------------------------------------------------- | ------------------------------ | ---------------------- | ------------------------------------- |
+| 118 census outputs, lowest 2,000-character window (a base64 PNG)                               | 1.47; whole-output median 3.39 | yes                    | yes                                   |
+| sentences in Russian, Korean, Chinese, Japanese, Arabic, Greek, Thai                           | 4.24 to 7.98                   | yes                    | yes                                   |
+| random Latin-1, emoji                                                                          | 1.81 to 1.99                   | yes                    | yes                                   |
+| random Hangul, Cyrillic, rare CJK (the critic's cases); half rare CJK, half base64             | 1.01 to 1.34                   | **no**                 | yes: every such byte counts one token |
+| random hex, digits, base64, punctuation, brackets, JSON control escapes                        | 1.42 to 2.99                   | yes                    | yes                                   |
+| uniformly random printable ASCII                                                               | 1.36                           | **no**                 | yes                                   |
+
+Counted tokens were at least the real ones in all 21 classes run. Typical JSON delivers about 38% of N. o200k is not
+the tokenizer of every model; the notice says what was counted.
+
+| Call                                                            | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--token-limit N`, budget active, any format, `--json` included | the answer is at most N counted tokens: under it the document, over it the digest, whose fit order (5.4) measures counted tokens. `budget` says `{"source":"--token-limit","tokens":N,"counted":"1 token per 1.3 ASCII bytes and per other byte"}`. N under 1,576 is refused: `--token-limit must be at least 1576 here: a digest needs 2048 bytes. To read less, select a part with --filter-output.`                                                                                                              |
+| `--token-offset K [--token-limit N]`, `toon` or `md`            | the explicit window over the rendering, as today and never a digest, but positions are counted tokens and the cut is on a code point: the code points whose first byte starts at counted position K up to K+N. An N given is honoured as given; without N the window ends where the budget does when the budget is active, and at the end of the text when it is off. Notice: `[window: tokens K-<end> of <total>, counted as 1 per 1.3 ASCII bytes and 1 per other byte; next: --token-offset <end>]`. No minimum. |
+| `--token-offset` with `json`, `jsonl`, `yaml`                   | refused as today; the message names `--filter-output` slices and `rea saved-output show --text`                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| budget off, `--token-limit N` alone                             | today's head window, cut by the same counted-token rule                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+
+### 10.2 Unflagged format (D11)
+
+Compact JSON when the budget is active and stdout is not a terminal; TOON otherwise. Set in `runCliCommand`
+(`controls.format` when `!controls.formatExplicit`), so results and `report()` failures agree. It costs no
+tokens: on the 60 census outputs at or under 6,000 B compact JSON is 56,838 o200k tokens against 59,049 for TOON
+(the critic's run). Blast radius with this gating: 0 existing tests (they run with the budget off); 2 documents
+(`docs/getting-started/cli.md`, `docs/guides/runtime/process-capture.md`). Without the gating it would be 19 of
+the 54 non-terminal parity goldens in `tests/fixtures/cli-parity/` **[run]** plus an unknown number of the 171
+test files whose CLI calls name no format **[run]** `scan-test-cli-calls.mjs`.
+
+### 10.3 Progress (D9)
+
+| Writer                                                                             | Lines                                                                                | Rule                                                                                                                                           |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| JavaScript analysis (`src/cli/javascriptApplicationAnalysis.ts:119-123`)           | 33 for 5 files, 614 for 100 **[audit]**; 5,159 B on the audit's 3-file app **[run]** | written only when stderr is a terminal or `--progress` is given                                                                                |
+| `capture-process` status (`src/application/process/ProcessCli.ts:126-131`)         | about one per 100 ms                                                                 | same                                                                                                                                           |
+| `observe-web-session`, `observe-web-execution` (`cliProgressReporter`)             | 2 to 3 per observation                                                               | always written: the documented signal a caller waits for before acting (`docs/guides/web/browser-observation.md:323-331`, `web-runtime.md:16`) |
+| `capture-desktop-application` events (`src/cli/desktopCaptureCommands.ts:575-584`) | one per event                                                                        | always written: `bridge/agentenv/capture.py:190-205` starts the capture with stderr in a file and no flag, and waits on these lines at `:118`  |
+
+`src/cli/cliProgress.ts` gets `configureCliProgress(enabled)` (called once by `runCliCommand` with
+`stderr.isTTY || --progress`), a gated `writeCliProgressLine` and an ungated `writeCliEventLine`;
+`cliProgressReporter` and the desktop capture use the event writer.
+
+### 10.4 Repairs (D12)
+
+| Repair           | Site                                       | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| kebab spelling   | `argvParser.ts` `optionName`               | an unknown `--a-b` is retried as `a_b`; `--evidence-output` works on all 40 commands                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| nearest flag     | `argvParser.ts` parse failures             | when a declared or global flag is within edit distance 2 of the typed one (`editDistance` of `src/cli/commandSuggestion.ts`, exported for this): `Unknown flag: --detial. Did you mean --detail?`; otherwise today's text. Only declared flag names are suggested, and nothing is suggested for a failure in which redaction replaced part of the typed flag.                                                                                                                                                                                                                                                                                                                                     |
+| unmatched filter | writer step 5, with `resolveTargets` (5.3) | **matched nothing** means no path of the expression reaches a value: a missing key at any depth, a key applied to a nested array, an empty or out-of-range slice. Today these print `{}`, `{"normalized_result":{}}` or `{"a":[]}` with exit 0 **[run]**. Now a failure `invalid_request`, exit 1, on every stdout kind: `--filter-output matched nothing: <path> stops at <prefix, or "the top level">. Keys there: a, b, c.` (first 20 keys; for an array: `an array of N rows; select rows with [start,end]`). An expression of which at least one path matches prints what matched, as today. A command that returns no document keeps today's empty output (`renderEmptyFilteredCliOutput`). |
+
+## 11. MCP
+
+### 11.1 Rule 13: omitted `detail`
+
+One site: `ToolResultDelivery.successResult` already tries caller-supplied `alternatives` when a reply does not
+fit the transport budget (`ToolResultDelivery.ts:479-498`). It gains a second trigger.
+
+| Condition                         | Source                                                                                                                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the delivery has an answer budget | 4th constructor argument (carried by `withNoTargetRecovery`), set only at `src/main/deferredRuntime.ts:200` and `src/main/eagerRuntime.ts:136` from the parsed start-up configuration |
+| the call did not send `detail`    | new fact `McpToolRequest.detailOmitted`, captured in `captureCallerParameters` (`McpToolRequest.ts:55`), the one place that sees the caller's raw input                               |
+| the text block is over the budget | `Buffer.byteLength(encoded.text)`                                                                                                                                                     |
+| a smaller projection exists       | `alternatives`                                                                                                                                                                        |
+
+Then the first alternative that encodes and is smaller is delivered, even if it is itself over the budget.
+Alternatives: for Evidence (`toEvidenceToolResult`) the summary view of the retained record, only when
+`recorded?.ok` (`summarizeRetainedAnalysis` with retention bound once through a new `withRetention`, beside
+`withNoTargetRecovery`); the view is recorded as the explicit path records it, and the reply is the reply
+`detail: "summary"` gives, with `normalized_result.parent_evidence_id`.
+
+**The reply says that it was made smaller.** No advertised schema carries a `default` (0 of 263 tools **[run]**);
+what an omitted `detail` returns is promised in descriptions. Three say "Omitted or complete returns the
+complete ..." (`src/contracts/artifactToolContracts.ts:41,149`, `src/contracts/native/nativeToolContracts.ts:143`:
+`inspect_artifact`, `decode_interface_builder`, `inspect_macho` **[run]**); they become `complete returns the
+complete ...; omitted returns it when it fits the server's answer budget, otherwise the summary.` The shared
+`analysisDetailSchema` description says nothing about omission and stays. In the reply a second text block
+follows the result block: `REA note: detail was omitted and the complete reply (<n> B) is over this
+server's answer budget (<b> B), so this is the summary. Call again with detail "complete" for all of it, or read
+parts with inspect_analysis_view and normalized_result.parent_evidence_id.` `_meta` gets
+`"rea/answer_budget": {"delivered": "summary", "complete_bytes": n, "budget_bytes": b}`. Structured content and
+the first text block are unchanged and equal, as today. The note costs about 230 B and is the only place that
+says why a call without `detail` got a summary.
+
+A server that retains nothing, an operation without a summary projector, and every call that sends `detail`
+(`"complete"` included) are answered exactly as today, with one text block. Structured content stays valid: the
+summary is a shape the tool's registered output schema already admits.
+
+### 11.2 Rule 14: the two always-listed tools are lean whatever the size
+
+Both switch on "the server has an answer budget and `detail` was omitted" (`McpToolRequest.detailOmitted`)
+alone, not on the size of the reply, so one call never has two shapes. The binding resolves it
+(`serviceToolBindings.ts:1393` for the bundle, `sessionStatusTool.ts` for the status), being told whether the
+server has a budget.
+
+| Tool                  | Today                                                                       | With `detail` omitted                                                                                                                                                                                                                                                                                                                      | Explicit `detail`                                |
+| --------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| `get_evidence_bundle` | complete: 364,339 B after two analyses, 136 B in an empty session **[run]** | budget active: the `summary` projection, always (7,498 B after two analyses **[run]**); budget off: `complete`, as today                                                                                                                                                                                                                   | unchanged; `"complete"` is the importable bundle |
+| `binary_session`      | summary: 18,604 B no target, 21,173 B target open **[run]**                 | budget active: `"lean"`, a new third value of `detail` that can also be asked for: `tool_availability` is `{client_requirements, available: <count>, unavailable: [{reason, count}]}` and `capabilities` is left out; both paths join `omitted_fields`. 5,216 B and 6,645 B **[sim]** `lean-status.mjs`. Budget off: `"summary"`, as today | `"summary"` and `"complete"` unchanged           |
+
+The lean shape is a new member of the `binary_session` output union (`detail: "lean"`,
+`src/contracts/toolOutputSchemaPrimitives.ts:718`). Two descriptions change with it:
+
+| Where                                                                                     | Today                                                      | Becomes                                                                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_evidence_bundle`, tool description (`src/contracts/sessionToolContracts.ts:255-258`) | "Default complete returns an importable canonical bundle." | `With detail omitted it lists record metadata (the summary); a server started with REA_OUTPUT_BUDGET=off returns the complete bundle instead. detail complete returns an importable canonical bundle.` The rest is unchanged. |
+| `binary_session`, `detail` (`src/contracts/sessionStatusContract.ts:30`)                  | "Start with summary (default): it keeps ..."               | `Omitted: lean under the server's answer budget (counts per reason instead of one row per tool; omitted_fields lists what it leaves out), summary otherwise. summary keeps ...` The rest is unchanged.                        |
+
+The build records the catalogue from these.
+
+### 11.3 Rule 15: one setting
+
+`REA_OUTPUT_BUDGET` governs both surfaces. The audit's ten-call task with default arguments, recomputed from its
+recorded replies **[run]** `mcp-task-at-budget.mjs`:
+
+| Budget           | Calls answered with the summary | Bytes   | o200k tokens |
+| ---------------- | ------------------------------- | ------- | ------------ |
+| 6,000            | 3                               | 44,693  | 11,837       |
+| 12,000           | 2                               | 49,731  | 12,979       |
+| 25,000 to 40,000 | 1                               | 61,206  | 17,348       |
+| today            | 0                               | 342,377 | 118,999      |
+
+The note of 11.1 adds about 230 B to each summarized reply (about 0.7 KB over the task). Every candidate meets
+the ledger target of 20,000; 6,000 is the lowest and no measurement asks for a different number over MCP.
+
+### 11.4 Rule 16: tools without `detail`
+
+263 tools, 57 with `detail`, 206 without **[run]**. The SDK validates `structuredContent` of every non-error
+result against the registered output schema and fails the call otherwise
+(`node_modules/@modelcontextprotocol/server/dist/mcp-*.mjs:1821-1826`); REA registers the canonical output schema
+for every tool even when it advertises none (`src/server/toolRegistrationOptions.ts:50`,
+`src/contracts/mcpSchemaPresentation.ts:36-47`). A generic digest as structured content is therefore impossible,
+and a digest in the text block alone would help no client that forwards structured content.
+
+**Decision: these replies are not changed by this contract.** Each gets a `detail` with a summary view or a
+smaller default page in the package named. 39 of the 206 have a measured reply; 16 are over 6,000 B:
+
+| Tool                          | Reply            | Measured                   | Owner                              |
+| ----------------------------- | ---------------- | -------------------------- | ---------------------------------- |
+| `inspect_elf_unwind_ranges`   | 111,910 B        | CLI census, same operation | P2a: default `limit` 16 (it pages) |
+| `compare_web_captures`        | 60,479 B         | CLI census                 | P2d (repeats) then `detail`        |
+| `capture_web_screenshot`      | 40,529 B         | CLI census                 | P2d (PNG to a file)                |
+| `inspect_web_page`            | 35,268 B         | CLI census                 | P2a: `detail`                      |
+| `read_guidance_section`       | 29,735 B         | MCP **[audit]**            | P2c                                |
+| `trace_application_feature`   | 28,129 B         | CLI census                 | P2a: `detail`                      |
+| `inspect_analysis_settings`   | 18,197 B         | MCP **[run]**              | P2b                                |
+| `inspect_sqlite_database`     | 12,450 B         | CLI census (table rows)    | P2a: `row_limit` default           |
+| `observe_web_execution`       | 12,029 B         | CLI census                 | P2a                                |
+| `audit_release_exposure`      | 10,331 B         | MCP **[run]** (CLI 10,890) | P2a: `detail`                      |
+| `inspect_analysis_view`       | 10,573 B         | MCP **[audit]**            | P2a (limitations once)             |
+| `compare_artifacts`           | 9,105 B          | CLI census                 | P2a                                |
+| `inspect_web_event_listeners` | 9,010 B          | CLI census                 | P2a                                |
+| `export_web_scripts`          | 8,882 B          | CLI census                 | P2a                                |
+| `search_guidance`             | 6,511 to 7,147 B | MCP **[run]**, **[audit]** | P2c                                |
+| `trace_web_module_imports`    | 6,137 B          | CLI census                 | P2a                                |
+
+167 tools were not measured (they need a provider, a device or a browser). The ledger keeps this list; a new
+tool without `detail` whose recorded reply is over the budget fails it.
+
+## 12. Code sites, in the order they change
+
+New modules are written from this text; `contract-scripts/digest.mjs`, `briefs.mjs` and `filter.mjs` are a working
+reference for the rules of section 5, section 7 and the text reader, nothing more.
+
+| #   | Package | File                                                                                                                                                                                                                                                                                                                                                                                                                                     | Change                                                                                                                                                                                                                                                                                                               |
+| --- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | A1      | `src/cli/outputBudget/policy.ts` (new)                                                                                                                                                                                                                                                                                                                                                                                                   | `resolveOutputBudget({flag, environment, stdoutKind, tokenLimit}) -> Result<{limitBytes?: number, tokenLimit?: number, source, unflaggedFormat: "json"\|"toon"}, string>`; `selfCommand(invocation, environment, platform, identity)` (5.6); `targetText(command)` (6.2)                                             |
+| 2   | A1      | `src/cli/outputBudget/selection.ts` (new)                                                                                                                                                                                                                                                                                                                                                                                                | `resolveTargets(document, paths) -> {targets, stops}` (5.3); the unmatched message of 10.4                                                                                                                                                                                                                           |
+| 3   | A1      | `src/cli/outputBudget/store.ts` (new)                                                                                                                                                                                                                                                                                                                                                                                                    | `storeDirectories(env, platform, cwd)`, `saveDocument(parts, {command, about}) -> Result<{file, bytes, sha256, id}, {code, directory}>`, `resolveSaved(ref)`, `listSaved`, `clearSaved`, the cap-and-age pass; `platform` and `getuid` are parameters                                                                |
+| 4   | A1      | `src/cli/outputBudget/digest.ts`, `briefs.ts` (new)                                                                                                                                                                                                                                                                                                                                                                                      | `buildDigest(input)` (section 5); `digestBrief(command, document)` returning a function of `{room, page, cut}`                                                                                                                                                                                                       |
+| 5   | A1      | `src/cli/outputBudget/boundedError.ts`, `tokenBound.ts`, `textWindow.ts` (new)                                                                                                                                                                                                                                                                                                                                                           | E1 to E5; `countedTokens`, the counted window; the `--text` window                                                                                                                                                                                                                                                   |
+| 6   | A1      | `src/domain/outputBudget.ts` (new), `src/domain/numericLimitRegistry.ts`, `docs/design/rea-limit-inventory.md`                                                                                                                                                                                                                                                                                                                           | `parseOutputBudget(value) -> Result<number \| "off", string>` with the default 6,000 and the minimum 2,048: `policy.ts` (CLI) and `parseConfig.ts` (MCP, package C) both use it, so neither imports the other. Registry entry for `REA_OUTPUT_BUDGET` (`read: "startup"`); without it `npm run lint` fails **[run]** |
+| 7   | A1      | `.github/workflows/ci.yml`                                                                                                                                                                                                                                                                                                                                                                                                               | one line: `tests/boundary/cli/outputBudgetStore.test.ts` in the list of the `windows-curated` job (`tests/process-global/curatedWindowsLane.test.ts` checks that the path exists)                                                                                                                                    |
+| 8   | A2      | `src/cliBuiltinArguments.ts`                                                                                                                                                                                                                                                                                                                                                                                                             | `--output-budget` in `VALUED_OUTPUT_FLAGS`; `--progress` in `CLI_BUILTIN_FLAGS` and `OUTPUT_SWITCHES`                                                                                                                                                                                                                |
+| 9   | A2      | `src/cliOutput.ts`, `src/cliConfiguration.ts`                                                                                                                                                                                                                                                                                                                                                                                            | value validation; `--token-limit` with JSON no longer refused when the budget is active; environment check                                                                                                                                                                                                           |
+| 10  | A2      | `scripts/rea.mjs`, `tests/support/cli/cliCommandSessionWorker.mjs`, `src/cliOneShot.ts`                                                                                                                                                                                                                                                                                                                                                  | `stdoutKind` (section 3) and `invocation` (5.6) on the host (`"other"` and none in the worker); resolve the policy; pass it to `createCliResultOutput`                                                                                                                                                               |
+| 11  | A2      | `src/cli/cliResultOutput.ts`                                                                                                                                                                                                                                                                                                                                                                                                             | third argument `policy` (default off), exposed as `output.policy`; steps 4 to 7 of section 4                                                                                                                                                                                                                         |
+| 12  | A2      | `src/cli/runCliCommand.ts`                                                                                                                                                                                                                                                                                                                                                                                                               | unflagged format; pre-check (8.4); `configureCliProgress`; nothing else                                                                                                                                                                                                                                              |
+| 13  | A2      | `src/cli/tokenWindow.ts`, `src/cli/outputEnvelope.ts`                                                                                                                                                                                                                                                                                                                                                                                    | counted windows and the notice                                                                                                                                                                                                                                                                                       |
+| 14  | A2      | `src/cli/cliProgress.ts`, `src/cli/desktopCaptureCommands.ts:583`, `src/application/process/ProcessCli.ts:128`                                                                                                                                                                                                                                                                                                                           | 10.3                                                                                                                                                                                                                                                                                                                 |
+| 15  | A2      | `src/cli/savedOutputCommands.ts` (new), `src/contracts/cliCommandNames.ts`, `src/cli/cliCommandRegistrations.ts`, `src/cli.ts`, `src/cli/discovery.ts:54` (`CLI_CUSTOM_GLOBAL_OPTIONS`), `src/application/Uninstall.ts`                                                                                                                                                                                                                  | the command with `--text`; the two globals in help, schema and manifests; uninstall removes the store                                                                                                                                                                                                                |
+| 16  | A2      | `vitest.config.ts`, `tests/support/cli/cliFixture.ts` (`cliProcessEnvironment`), `tests/fixtures/cli-parity/`, the test files of 13.2                                                                                                                                                                                                                                                                                                    | the switch (section 13); goldens re-recorded; existing tests updated                                                                                                                                                                                                                                                 |
+| 17  | B       | `src/cli/argvParser.ts`, `src/cli/argumentErrors.ts`, `src/cli/commandSuggestion.ts` (export `editDistance`)                                                                                                                                                                                                                                                                                                                             | 10.4 rows 1 and 2                                                                                                                                                                                                                                                                                                    |
+| 18  | C       | `src/config/environment.ts`, `src/config/parseConfig.ts`, `src/application/SetupRegistrationEnvironment.ts`                                                                                                                                                                                                                                                                                                                              | `REA_OUTPUT_BUDGET` in the server configuration and in the settings `rea setup` carries into a registration                                                                                                                                                                                                          |
+| 19  | C       | `src/server/McpToolRequest.ts`, `src/server/ToolResultDelivery.ts`, `src/server/toolResult.ts:12` (`createToolResultDelivery` takes the budget), `src/main/deferredRuntime.ts:200`, `src/main/eagerRuntime.ts:136`, `src/server/registerSessionTools.ts`                                                                                                                                                                                 | 11.1 with its note; the budget reaches the session bindings                                                                                                                                                                                                                                                          |
+| 20  | C       | `src/contracts/sessionToolContracts.ts`, `src/contracts/artifactToolContracts.ts:41,149` and `src/contracts/native/nativeToolContracts.ts:143` (descriptions), `src/contracts/sessionStatusContract.ts` (`"lean"`, description), `src/server/serviceToolBindings.ts:1393`, `src/server/sessionStatusTool.ts`, `src/application/CapabilityInventory.ts`, `src/contracts/toolOutputSchemaPrimitives.ts`, `tests/fixtures/localToolsMcp.ts` | 11.1 descriptions; 11.2; the switch for compiled test servers                                                                                                                                                                                                                                                        |
+| 21  | D       | documents and scripts of section 14                                                                                                                                                                                                                                                                                                                                                                                                      |                                                                                                                                                                                                                                                                                                                      |
+
+`src/recordedMcpCatalog.ts` and `src/recordedCliCommandRegistrations.ts` are stubs that the build fills; nobody
+edits them.
+
+## 13. Tests
+
+### 13.1 The one switch
+
+`REA_OUTPUT_BUDGET=off`, set once in the runner's `test.env` (`vitest.config.ts:178-180`, beside `TMPDIR`), reaches
+every test process and every child that inherits or spreads `process.env` (every project has `extends: true`,
+`vitest.config.ts:162`). Two helpers build a clean child environment on purpose and get one line each that
+forwards it: `cliProcessEnvironment` (`tests/support/cli/cliFixture.ts:114`, used by 642 test files **[run]**,
+including the shared command session) and `localToolsMcpEnvironment` (`tests/fixtures/localToolsMcp.ts:21`, 177
+files **[run]**). A test of the budgeted path passes its own value in the invocation's environment and a
+temporary `REA_SAVED_OUTPUT_DIR`.
+
+In-process tests need no switch (section 2, last bullet): 46 files serve the CLI in process and about 240 build
+`createServer` directly **[run]**.
+
+Not covered by the switch, found by source scan **[run]** `scan-test-cli-calls.mjs`: 122 test files name
+`scripts/rea.mjs` themselves, 17 of them with an environment that does not spread `process.env`. Package A2 runs
+the built groups (`npm run test:built`) and adds the variable where one of those reads a result over 6,000 B.
+
+### 13.2 Existing tests that change whatever the switch (all owned by A2 unless noted)
+
+| Change                                                        | Files (source scan)                                                                                                                                                                                                                                                                                                                                                                | What to do                                                                    |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| help, schema, manifests and completions list two more globals | 27 help goldens, 3 completion goldens, schema goldens in `tests/fixtures/cli-parity/`; `tests/boundary/cli/cliParityGoldens.test.ts`                                                                                                                                                                                                                                               | re-record (`REA_RECORD_CLI_PARITY=1`), review                                 |
+| progress reports off a pipe                                   | `tests/boundary/cli/cliOutput.test.ts:544,559,574`, `tests/boundary/cli/javascriptApplicationProgress.test.ts`, `tests/acceptance/applications/javascriptCancellationCli.test.ts`, `tests/boundary/process/processCaptureProgress.test.ts`. The two observe tests (`tests/acceptance/webRuntimeCli.test.ts`, `webSessionCliProgress.test.ts`) assert event lines and do not change | add `--progress`                                                              |
+| token windows cut by counted tokens                           | `tests/boundary/cli/cliTokenWindowOutput.test.ts`, `cliTokenWindowUnicode.test.ts` and those of the 22 test files naming `--token-limit` that assert window text; 3 goldens (`output-token-limit`, `output-token-offset`, `error-unknown-command-token-limit`)                                                                                                                     | update expected text                                                          |
+| unmatched filter refused                                      | `tests/boundary/cli/cliOutput.test.ts:239,543`, `tests/boundary/cli/javascriptApplicationJsonOutput.test.ts:137,174`                                                                                                                                                                                                                                                               | expect the refusal                                                            |
+| nearest flag (B)                                              | `tests/boundary/cli/argvParser.test.ts`, `cliOptionAliases.test.ts` (B's). The other 6 test files assert with `toContain` or use flags far from any real one (`--bogus`, `--zzz-bogus`, redacted values); the 2 goldens use `--no-such-flag` and `--`                                                                                                                              | B updates its two files; if a third fails in `test:built`, B reports it to A2 |
+| pre-check                                                     | `tests/boundary/cli/artifactCallerSelection.test.ts:60-100` passes unchanged                                                                                                                                                                                                                                                                                                       | none                                                                          |
+
+### 13.3 New tests
+
+`cli-boundary` is the built project of `tests/boundary/cli/`. A1 writes the rule and store tests; A2 the CLI
+ones; C the MCP ones; D the scripts guard and the budgeted verifier case.
+
+| Test                                                                                                                     | Asserts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Number        |
+| ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| real-output table (A2, `outputBudgetCli.test.ts`)                                                                        | at least 12 commands on repository fixtures (the brief commands of 5.5 that need no browser, plus two failures): every budgeted stdout is at most the budget; `sha256` of the saved file equals `saved.sha256`; `rea saved-output show <id> --json --output-budget off` equals the saved bytes; equals a second unbudgeted run for the deterministic commands                                                                                                                                                                                                          | 12 of 12 rows |
+| printed commands (A2, same table)                                                                                        | every `next` command of every row, run as printed through a shell: exit 0, at most the budget, never the reply it came from; **content within 3 hops** for every `next` command and for the command each `omitted` row composes (5.3)                                                                                                                                                                                                                                                                                                                                  | 0 failures    |
+| minimum budget (A2, same table)                                                                                          | every row again with `--output-budget 2048`: stdout at most 2,048 B, a digest, `budget.core_over` absent; `--output-budget 1024` and `--token-limit 500` refused                                                                                                                                                                                                                                                                                                                                                                                                       | all rows      |
+| digest rules (A1, `outputBudgetRules.test.ts`, over at least 12 real documents and the 13 shapes of `follow-shapes.mjs`) | 6.1 test; fit order of 5.4 step by step, the brief dropped before a protected fact; P1 to P4 by following commands in process; no path outside `[A-Za-z0-9_-]+`; `untrusted_content` per 6.2; page from the largest rows, not the average                                                                                                                                                                                                                                                                                                                              | all rows      |
+| referee worklist (A2)                                                                                                    | `init-clone-run`, three scenario files, no browser: a verdict of about 9 KB with 10 items. Budgeted: every item shown is whole; `worklist_more` plus shown equals the item count; following only the first printed command yields every item of the unbudgeted `next`, in order; `untrusted_content` is `["brief.worklist.message"]`                                                                                                                                                                                                                                   | 1             |
+| stdout kinds (A2)                                                                                                        | pipe; file alone (complete, TOON unflagged); **file shared with stderr (digest)**; `/dev/null`; pseudo-terminal: section 3 table                                                                                                                                                                                                                                                                                                                                                                                                                                       | 5 of 5        |
+| precedence (A2)                                                                                                          | section 2 table, each row; **`REA_OUTPUT_BUDGET=6000` with stdout in a file gives a digest whose `complete` does not name the redirect**; `--output-budget off` beats the environment                                                                                                                                                                                                                                                                                                                                                                                  | 7             |
+| store (A1, `outputBudgetStore.test.ts`, also in the Windows lane)                                                        | modes `0700`/`0600` where `getuid` exists; with `platform: "win32"` no mode refusal and the same layout; random temporary names (two saves with one pid do not collide); no rewrite of an existing hash; the 14-day rule, `*.tmp` cleanup and oldest-first eviction with the one-hour grace (clock and cap passed as parameters); refused foreign directory; tampered file refused; two concurrent saves of one document leave one file; **read-only cache directory: saved under the temporary directory and found by `list`**; `about` copied from the document only | each          |
+| working directory (A2)                                                                                                   | a budgeted run in a temporary project leaves the project tree byte-identical                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | 0 new files   |
+| bounded errors (A2)                                                                                                      | the collision, missing parent, missing file, invalid view kind: at most 1,500 B; `code` and `message` unchanged; **`remediation.action` present whenever the unbudgeted error has it** (the pre-check refusal included); the saved partial Evidence opens with `inspect-analysis-view` as an `evidence-file`                                                                                                                                                                                                                                                           | 4 of 4        |
+| reader (A2)                                                                                                              | `list` after two analyses of two targets shows two `about` values that differ; `show --text <string path>` prints raw lines and the notice, `--offset` continues at the printed byte, `--output-budget off` prints everything; an unknown id names `list`                                                                                                                                                                                                                                                                                                              | each          |
+| token bound (A2)                                                                                                         | `--token-limit 2000` with `--json`: valid JSON, at most 2,000 counted tokens (at most 2,600 B); a document of non-ASCII strings stays under the count                                                                                                                                                                                                                                                                                                                                                                                                                  | 2             |
+| MCP (C, `tests/boundary/mcp/answerBudgetMcp.test.ts`)                                                                    | rule 13 on and off; **the note block and `_meta` on a summarized reply, one block otherwise**; explicit `detail: "complete"` byte-identical to a server without a budget; no retention means complete; `get_evidence_bundle` without `detail` is the summary in an empty session too, and `complete` on a server without a budget; `binary_session` without `detail` is `lean` with a budget and `summary` without; no advertised `detail` description says "Omitted or complete returns"; the lean and summary replies validate against the tool's output schema      | each          |
+| scripts guard (D, source project `evaluation`)                                                                           | every file under `scripts/` that names `rea.mjs` reaches `scripts/lib/verifier-cleanup.mjs` through its imports or names `REA_OUTPUT_BUDGET`; `scripts/rea.mjs` and `scripts/plugin-mcp-launcher.mjs` do neither                                                                                                                                                                                                                                                                                                                                                       | 0 violations  |
+| budgeted loop, real browser (D, one case in `verify:clone-run`)                                                          | 14, row "clone-run verifier"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | 1 case        |
+
+Follow `docs/development/testing.md`: public CLI and MCP workflows first; unit tests only for the rules above that
+a workflow cannot isolate.
+
+## 14. Documents and printed commands
+
+| Where                                                                                                                                                              | What relied on megabytes on a pipe, or describes changed behaviour                                                                                            | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Owner |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| `docs/getting-started/cli.md:294`, `docs/guides/native/cyclonedx-view.md:88`                                                                                       | `... --json \| jq '.normalized_result.document' > sbom.cdx.json` would write `null` from a digest                                                             | add `--output-budget off`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | D     |
+| `docs/getting-started/cli.md:1733`                                                                                                                                 | `... --json \| jq . > inspection.json`                                                                                                                        | `... --json > inspection.json`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | D     |
+| `docs/getting-started/cli.md` (global options, TOON default, `--token-limit`)                                                                                      | 3 passages                                                                                                                                                    | describe sections 2, 3, 10; add "Answer budget" and `saved-output` with `--text`; say that saved outputs hold target-derived content per user and per machine, that Windows applies no mode check, and that a session whose home does not persist sets `REA_SAVED_OUTPUT_DIR` to a persistent folder outside clone and run folders                                                                                                                                                                                                                                                                                                                | D     |
+| `docs/guides/javascript/javascript-artifact-reconstruction.md:31`, `docs/guides/runtime/process-capture.md:200-240`                                                | progress lines on stderr                                                                                                                                      | "with `--progress` or on a terminal"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | D     |
+| `docs/guides/web/browser-observation.md:323`, `docs/guides/web/web-runtime.md:16`, `docs/desktop-application-capture.md:128`                                       | armed and event lines                                                                                                                                         | state that these are always written                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | D     |
+| `docs/api-contracts.md:47`, `docs/javascript-route-inventory.md:68`, `docs/desktop-applications.md:56`                                                             | "complete Evidence through `get_evidence_bundle`"                                                                                                             | add `detail: "complete"`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | D     |
+| `docs/design/rea-limit-inventory.md`                                                                                                                               | limit list                                                                                                                                                    | row for `REA_OUTPUT_BUDGET`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | A1    |
+| `docs/reference/mcp-contracts.md` (generated), `docs/getting-started/client-configuration.md`                                                                      | default `detail` of the 57 tools, `binary_session`, `get_evidence_bundle`; environment table                                                                  | regenerate; one row and the rule of 11.1 in one paragraph                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | C     |
+| `scripts/lib/verifier-cleanup.mjs`                                                                                                                                 | 94 of the 106 script files that start the launcher import it, directly or not **[run]** `scripts-switch-coverage.mjs`; 119 script files parse stdout as JSON  | one statement: `process.env.REA_OUTPUT_BUDGET ??= "off";`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | D     |
+| `scripts/verify-http3-network-captures.mjs`, `scripts/verify-package-pack.mjs`, `scripts/verify/termux/browser.mjs`, `scripts/verify/firmware/esp-image-tools.mjs` | start the launcher, parse JSON, do not reach that module                                                                                                      | the same statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | D     |
+| clone-run verifier (`scripts/lib/clone-run-e2e-context.mjs:88-106`; parses `evaluate-clone-run` and `compare-scenario-behavior` stdout, `:145`, `:327`)            | reads `gate.next[].command` from stdout                                                                                                                       | unbudgeted through the statement above (it imports the cleanup module through `clone-run-e2e.mjs`). **Plus one budgeted case**, new file `scripts/lib/clone-run-e2e-budget-cases.mjs`, registered last in `CASES` of `scripts/lib/clone-run-e2e.mjs`: add one scenario with `addFixtureScenario`; evaluate with `--output-budget 3000`; read the worklist from the digest and by following its first printed command only; run each capture command as printed with `REA_OUTPUT_BUDGET=3000` in front; evaluate again until `done`. Asserts: `done` is reached, at least one referee reply was a digest, and no capture printed more than 3,000 B | D     |
+| `src/application/cloneRun/CloneRunWorkspace.ts:1328-1347` (referee's capture command)                                                                              | prints a 25.5 KB summary each time; under the budget a digest of about 4.2 KB **[sim]** that names `evidence_bundle.path`                                     | none needed for correctness; the receipt filter stays with P4                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | P4    |
+| `.agents/skills/reverse-engineer-anything/references/clone-runs.md:37,200-203,231,294` (role cards)                                                                | "on 1, read `next`: each item names a role, a reason, a file, what is wrong and the exact command"                                                            | two lines: a verdict over the budget arrives as a digest whose `brief.worklist` holds the first items whole and whose first `next` command gives the following ones; after a reset: `rea saved-output list`                                                                                                                                                                                                                                                                                                                                                                                                                                       | P4    |
+| `.agents/skills/reverse-engineer-anything/SKILL.md:64,582`                                                                                                         | `npx -y rea-agents@latest analyze-javascript-application <app> --json` now returns a digest with the endpoints brief; "complete CLI JSON output also streams" | wording only; one line for a client whose shell records output in files: set `REA_OUTPUT_BUDGET=6000`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | P3    |
+| release note (`CHANGELOG.md` is generated from commits by release-please)                                                                                          | default changed for piped output                                                                                                                              | a `BREAKING CHANGE:` footer on A2's commit naming the ways to every byte                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | A2    |
+
+## 15. Ledger rows
+
+| Row                                                                       | Today                                            | With the contract                                                                                                                                                                                                                                                               | Source of today's value |
+| ------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| CLI census, largest first answer (121 outputs)                            | 15,886,925 B                                     | at most 6,000 B (5,999 **[sim]**)                                                                                                                                                                                                                                               | **[audit]**             |
+| CLI census, total first-answer bytes                                      | 24,792,993 B                                     | 371,229 B, 102,791 o200k **[sim]** (program target 300,000: missed; 296,424 B at 4,000, see 19.1)                                                                                                                                                                               | **[audit]**             |
+| Whole task, 24 answer-position questions, following printed commands only | 3,135,399 B, 1,112,175 o200k, 0 follow-ups       | 95,145 B, 27,206 o200k: 18 answered in the first reply, 5 after one printed command, 1 not reached in three hops (a word in a 173 KB listing; one call with the pipeline the text notice names: 95,324 B, 27,264 o200k, 6 follow-ups, 24 of 24) **[sim]** `simulate-follow.mjs` | **[run]**               |
+| Printed commands that lead nowhere (61 digests)                           | n/a                                              | 0 of 162; 0 repeats **[sim]** `follow-next.mjs`                                                                                                                                                                                                                                 |                         |
+| Digest size over the 61 digests                                           | n/a                                              | median 2,911 B, p90 4,042 B, largest 5,126 B **[sim]**                                                                                                                                                                                                                          |                         |
+| Largest error (19 mistakes)                                               | 1,022,734 B                                      | at most 1,500 B (1,390 **[sim]**)                                                                                                                                                                                                                                               | **[audit]**             |
+| Head checkout, six first calls and the rest (`accept-cli-budget.mjs`)     | largest 291,745 B; total 375,355 B; `FAIL 50/61` | `PASS 61/61`                                                                                                                                                                                                                                                                    | **[run]**               |
+| Collision error on the head checkout                                      | 292,176 B after 2,476 ms                         | under 1,500 B, before the analysis                                                                                                                                                                                                                                              | **[run]**               |
+| stderr of one JavaScript analysis (3-file app)                            | 5,159 B                                          | 0 B                                                                                                                                                                                                                                                                             | **[run]**               |
+| `--token-limit 2000`: real tokens                                         | up to 5,930; refused with `--json` (207 B)       | at most 2,000; works with `--json`                                                                                                                                                                                                                                              | **[audit]**, **[run]**  |
+| Ten-item referee verdict (11,126 B)                                       | one reply                                        | 5,126 B first reply with 4 whole items; 11,261 B over 3 calls for all 10 **[sim]**. Not a saving: the row "at most 6,000 characters" is P4's                                                                                                                                    | **[audit]**             |
+| Ten MCP calls, default arguments                                          | 118,999 o200k                                    | about 12,000 **[sim]** (11,837 plus three notes; target 20,000)                                                                                                                                                                                                                 | **[audit]**             |
+| `get_evidence_bundle` with no arguments                                   | 364,339 B                                        | at most 8,000 B                                                                                                                                                                                                                                                                 | **[run]**               |
+| Default status call                                                       | 18,604 B no target, 21,173 B target open         | 5,216 B and 6,645 B **[sim]** (target 8,000)                                                                                                                                                                                                                                    | **[run]**               |
+| MCP probe (`mcp-probe.mjs`)                                               | `FAIL 9/12`                                      | `PASS 12/12`                                                                                                                                                                                                                                                                    | **[run]**               |
+
+## 16. How an answer could be lost or a reader misled, and what stops it
+
+| #   | Who                                              | How                                                                                             | What stops it                                                                                                                                                                                                                                                                                                             |
+| --- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | script                                           | `rea x --json \| jq .verdict` receives a digest and reads `null`                                | one top-level key, so no digest field has a result's name; exit status unchanged; section 14 documents; `BREAKING CHANGE` note                                                                                                                                                                                            |
+| 2   | person                                           | `rea x \| tee out.json` keeps a digest                                                          | the digest names the saved file and the ways to every byte                                                                                                                                                                                                                                                                |
+| 3   | agent                                            | the only copy of a live capture is evicted                                                      | 512 MiB and 14 days, oldest first, one-hour grace, reads refresh; the cards and the referee already pass `--evidence_output`; `saved-output list` shows what is left                                                                                                                                                      |
+| 4   | anyone                                           | the store cannot be written                                                                     | three candidate directories (8.1); if none works the complete result is printed as today, with one stderr line; nothing is replaced by a digest that names no file                                                                                                                                                        |
+| 5   | agent after a reset                              | lost the path, or cannot tell ten saved analyses apart                                          | `rea saved-output list` with `about` (8.3)                                                                                                                                                                                                                                                                                |
+| 6   | agent                                            | reads a count without its caveat                                                                | 6.1                                                                                                                                                                                                                                                                                                                       |
+| 7   | agent                                            | acts on target text placed at the top of a short answer, or distrusts the referee's own command | 6.2: the mark names the paths that may quote the target                                                                                                                                                                                                                                                                   |
+| 8   | script                                           | a `--filter-output` typo printed `{}` or an empty shell with exit 0                             | refusal with the keys where the path stopped (10.4)                                                                                                                                                                                                                                                                       |
+| 9   | driver                                           | waits for an armed or window event that is no longer written                                    | events are exempt from the progress gate (10.3)                                                                                                                                                                                                                                                                           |
+| 10  | MCP caller                                       | expected the complete record by default                                                         | the note block names `detail: "complete"` (11.1); the summary names `parent_evidence_id`; `REA_OUTPUT_BUDGET=off`                                                                                                                                                                                                         |
+| 11  | MCP caller on a server without retention         | would get a summary whose parent is gone                                                        | rule 13 requires a recorded parent; otherwise the complete reply                                                                                                                                                                                                                                                          |
+| 12  | anyone                                           | saved file altered or half-written                                                              | random temporary name and rename; `show` verifies the hash; stale `*.tmp` removed                                                                                                                                                                                                                                         |
+| 13  | anyone                                           | a 12-character id matches two files                                                             | refused with the matches listed                                                                                                                                                                                                                                                                                           |
+| 14  | clone run                                        | a file appears in the clone tree and stales its Evidence                                        | no store candidate inside the working directory; test "working directory"                                                                                                                                                                                                                                                 |
+| 15  | person                                           | target-derived content now persists on disk                                                     | `0700`/`0600` on POSIX, the profile's access control on Windows, 14 days, cap, `clear`, `uninstall`, `off`; argv is never stored; stated in `cli.md`                                                                                                                                                                      |
+| 16  | agent                                            | reruns a capture to "expand" it and gets a different observation                                | every `next` command reads the saved file                                                                                                                                                                                                                                                                                 |
+| 17  | agent                                            | `--evidence_output` path exists; megabytes arrive inside an error after seconds of work         | pre-check (8.4); E3 for the race                                                                                                                                                                                                                                                                                          |
+| 18  | reader of an error                               | `source_closure.recovery` says nothing was retained although the partial Evidence was saved     | E3 removes the sentence and names the file                                                                                                                                                                                                                                                                                |
+| 19  | agent                                            | asks for 2,000 tokens and receives 5,930                                                        | counted tokens (10.1)                                                                                                                                                                                                                                                                                                     |
+| 20  | developer                                        | a verifier script parses a digest and reports a false failure months later                      | the statement in `verifier-cleanup.mjs` and the scripts guard                                                                                                                                                                                                                                                             |
+| 21  | two users, one machine                           | read each other's answers                                                                       | per-user directory, ownership check; the temporary candidate carries the uid                                                                                                                                                                                                                                              |
+| 22  | anyone                                           | sets a budget too small for a digest                                                            | values under 2,048 B (1,576 tokens) refused; `core_over` for the residual case of 5.4                                                                                                                                                                                                                                     |
+| 23  | Windows user                                     | `next` commands are quoted for a POSIX shell                                                    | not solved here; ids need no quoting, paths with spaces do. Not run on Windows.                                                                                                                                                                                                                                           |
+| 24  | agent in a harness that records stdout in a file | the budget is silently off and megabytes arrive                                                 | kind `capture` when the file is also stderr (section 3); `REA_OUTPUT_BUDGET=<n>` applies on every kind. **Not stopped**: a harness that records the two streams in two files, or an agent that adds `2>/dev/null` in a one-file harness, looks exactly like `> f` and gets today's bytes until the variable is set (19.5) |
+| 25  | person                                           | `rea x > f 2>&1` now holds a digest                                                             | the digest names the saved file and `--output-budget off`; with a number set explicitly the `complete` line does not name the redirect                                                                                                                                                                                    |
+| 26  | agent                                            | follows a printed command into the same digest again                                            | progress rule P1 to P3 (5.3); tests "printed commands" and "digest rules"                                                                                                                                                                                                                                                 |
+| 27  | agent                                            | needs a word in a long text and pages 2 KB windows of an escaped one-line string                | `--text` prints real lines; its notice names the one-call search (8.3)                                                                                                                                                                                                                                                    |
+| 28  | clone team                                       | a referee item arrives without its command or its reset instruction                             | worklist items are whole or absent, counted, and continued by the first printed command (5.5); test "referee worklist"                                                                                                                                                                                                    |
+| 29  | agent or script                                  | follows `remediation.action` and finds the key gone                                             | no key of the projection is removed (section 7)                                                                                                                                                                                                                                                                           |
+| 30  | agent                                            | runs a printed `rea ...` where only `npx` or a checkout exists                                  | the spelling of 5.6; acceptance runs commands as printed                                                                                                                                                                                                                                                                  |
+| 31  | MCP caller                                       | `get_evidence_bundle` is importable when small and a summary when large                         | lean whatever the size (11.2); description rewritten                                                                                                                                                                                                                                                                      |
+
+## 17. Packages
+
+No two packages edit the same file. A1, B and C start at once; A2 builds against A1's signatures (section 12)
+and merges after it; C needs A1 merged only for `src/domain/outputBudget.ts` and the registry entry that keeps
+`npm run lint` green; D last.
+The prototype does not exercise four things the tables above specify: the `--evidence_output` bundle as the
+saved file (8.2), the store itself, the CLI spelling of 5.6, and non-JSON display formats.
+
+| Id  | Title                                                                   | Owns                                                                                                                                            | Depends on                                                       | Size   | Acceptance (command, number)                                                                                                                                                                                                                                     |
+| --- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | Digest, briefs, selection, bounded error, text window, store, policy    | sites 1 to 7; `tests/boundary/cli/outputBudgetRules.test.ts`, `outputBudgetStore.test.ts`                                                       | none                                                             | medium | `npm run test:focused -- tests/boundary/cli/outputBudgetRules.test.ts tests/boundary/cli/outputBudgetStore.test.ts`: 0 failures; `npm run lint`: exit 0                                                                                                          |
+| A2  | CLI wiring, `saved-output`, flags, progress, the switch, existing tests | sites 8 to 16; `tests/boundary/cli/outputBudgetCli.test.ts`                                                                                     | A1                                                               | large  | `node fork/program/contract-scripts/accept-cli-budget.mjs <worktree>/scripts/rea.mjs <inputs> <scratch>`: `FAIL 2/61` at most before B merges (the two it leaves are B's: kebab spelling and nearest flag; today `FAIL 50/61`); `npm run test:built`: 0 failures |
+| B   | Argument repairs                                                        | site 17; `tests/boundary/cli/argvParser.test.ts`, `cliOptionAliases.test.ts`                                                                    | none                                                             | small  | `npm run test:focused -- tests/boundary/cli/argvParser.test.ts tests/boundary/cli/cliOptionAliases.test.ts`: 0 failures; after A2 the acceptance script prints `PASS 61/61`                                                                                      |
+| C   | MCP rules 13 and 14                                                     | sites 18 to 20; `docs/reference/mcp-contracts.md`, `docs/getting-started/client-configuration.md`; `tests/boundary/mcp/answerBudgetMcp.test.ts` | A1, for `src/domain/outputBudget.ts` and the registry entry only | medium | `REA_ROOT=<worktree> node .../mcp-probe.mjs <inputs> <scratch> out.json`: `PASS 12/12` (today `FAIL 9/12`); `npm run test:mcp`: 0 failures                                                                                                                       |
+| D   | Documents, verifier scripts, the budgeted verifier case                 | site 21 (section 14 rows owned by D); `tests/evaluation/scriptsCompleteOutput.test.ts`                                                          | A2, C                                                            | small  | `npm run docs:check`: exit 0; `npm run verify:clone-run`: exit 0 with the budgeted case reported; `grep -rnE "rea .*--json.*\| *jq" docs --include=*.md \| grep -vc -- "--output-budget off"`: 0 (today 3)                                                       |
+
+Inputs for the two acceptance scripts: `tar -xzf /home/user/rea-design/discover/census-mcp/inputs.tar.gz`.
+
+Other packages of the same wave touch three of these places. The rule for each:
+
+| With             | Shared place                                                                                            | Rule                                                                                                                                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P3b (help index) | `src/cli/discovery.ts`, the help and completion goldens                                                 | whoever merges second rebases, then re-records the goldens with `REA_RECORD_CLI_PARITY=1`; goldens are never merged by hand                                                                                                      |
+| P4 (clone loop)  | the shape of the referee's `next` items; the capture command it prints; `scripts/lib/clone-run-e2e.mjs` | the worklist brief copies items whole, so a new item shape needs no change here; if P4 renames `next`, P4 changes the one path in `briefs.ts` after A1 merges; D's case is one new file and one line in `CASES`, rebased onto P4 |
+| P3 (skill)       | `SKILL.md`, `references/clone-runs.md`                                                                  | P3 and P4 write the lines section 14 names; this contract edits no skill file                                                                                                                                                    |
+
+## 18. Decisions I could not write as given
+
+| Decision                                                                                                      | Evidence                                                                                                                                                                                                                              | What this contract does                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| D1 "the budget applies ... when standard output is not a regular file"                                        | an agent harness hands REA a regular file: here fd 1 and fd 2 are one file **[run]**, so the test switches the budget off for the caller it was made for (critique F1)                                                                | the default yields only to a file that is not also stderr; explicit settings apply on every kind (sections 2 and 3); the residual in 19.5 |
+| D2 "three ways ... all stated in the digest in one line"                                                      | with `REA_OUTPUT_BUDGET=<n>` or `--output-budget <n>` a redirect no longer gives every byte                                                                                                                                           | the line names only the ways that work for the call (section 5)                                                                           |
+| D7 "states each sentence once"                                                                                | the projection sets `remediation.action` to the message when no repair is written (6 of 19 census mistakes), and the skill tells agents to follow that key (critique F5)                                                              | the key always stays; duplicates are removed only from `details.reason`. Cost: 57 to 327 B in those six, all under 1,500 B                |
+| D10 one bound "for any content class the audit measured"                                                      | 1.4 bytes per token fails for random non-ASCII text and for random printable ASCII **[run]**                                                                                                                                          | counted tokens: 1 per 1.3 ASCII bytes, 1 per other byte (10.1)                                                                            |
+| D11 "compact JSON when stdout is not a terminal" together with D2 "a regular file gets exactly today's bytes" | `src/cliOutput.ts:147`: the unflagged format is TOON on every stdout, so a regular file cannot receive both JSON and today's bytes                                                                                                    | JSON only where the budget is active and stdout is not a terminal; a `file` and `off` keep TOON (10.2)                                    |
+| D9 "progress only on a terminal or with `--progress`"                                                         | `bridge/agentenv/capture.py:190-205` starts the capture with stderr in a file and no flag and waits for `rea_progress` events at `:118`; `docs/guides/web/browser-observation.md:323-331` tells callers to act only on the armed line | progress reports are gated; the events a caller waits on are always written (10.3)                                                        |
+| D8 "exit statuses do not change" together with D12 "an unmatched filter is refused"                           | `tests/boundary/cli/cliOutput.test.ts:543` pins `{}` with exit 0 today                                                                                                                                                                | the unmatched filter and nothing else changes its status, 0 to 1                                                                          |
+| D12 "refused with the available top-level keys"                                                               | a nested typo prints `{"normalized_result":{}}` today **[run]**; the top-level keys do not help there                                                                                                                                 | the keys where the path stopped (10.4)                                                                                                    |
+| D7 "an error ... is saved and named", read as a new error shape                                               | scripts and `artifactCallerSelection.test.ts:81-87` read `code`, `message`, `remediation.action`                                                                                                                                      | the projection keeps its keys; only oversized parts move (section 7)                                                                      |
+| D5 "the same content through `--evidence_output`"                                                             | the file is a bundle of records, the stdout document is one record (`analysisEvidenceDelivery.ts:241-246`); with `--detail summary` the stdout document is not in the bundle at all                                                   | 8.2                                                                                                                                       |
+| D5 "follow the conventions REA already has for per-user state"                                                | a sandbox with a read-only home defeats the cache directory                                                                                                                                                                           | a per-user directory under the temporary directory as the last candidate (8.1)                                                            |
+| D14 `get_evidence_bundle` "lean by default", first written as "lean when over the budget"                     | the tool description promises an importable bundle by default, and one call would have two shapes (critique F7)                                                                                                                       | lean whatever the size; description rewritten (11.2)                                                                                      |
+| D13 "the reply is the summary" for an omitted `detail`, as a silent switch                                    | three tools' `detail` descriptions promise the complete record when `detail` is omitted **[run]**                                                                                                                                     | those descriptions corrected, and the reply carries a note that names `detail: "complete"` (11.1)                                         |
+| D16 a digest for tools without `detail`                                                                       | SDK output validation, `mcp-*.mjs:1821-1826`                                                                                                                                                                                          | listed with sizes and owners; unchanged here (11.4)                                                                                       |
+
+## 19. Open points for the lead
+
+1. **6,000 or 4,000.** On the 24 questions, following printed commands, the search pipeline allowed for the one
+   text question **[sim]** (`examples/simulate-follow.txt`):
+
+   | Budget | Whole task  | o200k     | Follow-up calls                               | Answered in the first reply | Census total (121) |
+   | ------ | ----------- | --------- | --------------------------------------------- | --------------------------- | ------------------ |
+   | 3,000  | 72,417 B    | 19,998    | 10, and 4 questions not reached in three hops | 10                          | 260,158 B          |
+   | 4,000  | 79,716 B    | 21,938    | 9                                             | 15                          | 296,424 B          |
+   | 6,000  | 95,324 B    | 27,264    | 6                                             | 18                          | 371,229 B          |
+   | 8,000  | 101,916 B   | 29,729    | 5                                             | 19                          | 425,508 B          |
+   | 12,000 | 118,785 B   | 34,629    | 5                                             | 19                          | 509,074 B          |
+   | today  | 3,135,399 B | 1,112,175 | 0                                             | 24                          | 24,792,993 B       |
+
+   The contract keeps 6,000 (D3): three more questions are answered without a second turn than at 4,000. The
+   price is 5,326 more tokens over the task and the census row: 371,229 B against the program's 300,000; 4,000
+   meets it with 296,424 B. The lead should restate that row as about 380,000 or choose 4,000.
+
+2. `--detail complete` on a pipe answers with a digest (D1). `AGENTS.md` says "honor requested detail". The
+   complete record is produced, saved and named, and a file or `off` delivers it; the lead should confirm this
+   reading of the repository rule.
+3. The name `--output-budget` sits beside an existing result field `output_budget_bytes` (objdump's capture cap,
+   16 MiB). The digest therefore says `budget`, not `output_budget`.
+4. New surface the decisions did not name: `rea saved-output list|show|clear`, with `show --text` for raw text.
+   Without the first, `next` would re-run analyses; without the second, text is read as windows of one escaped
+   line and cannot be searched.
+5. Which stdout is an agent's (D1). The file-and-stderr test covers the one harness measured. A harness with two
+   capture files, or `2>/dev/null` inside a one-file harness, still gets today's bytes. Treating a generic agent
+   marker variable such as `AI_AGENT` as "budget on" would close that, and was not written: a script the agent
+   runs (`rea x --json > f; jq ... f`) would then read a digest only when an agent started it. The lead may
+   prefer that risk, or have `rea setup` and the skill set `REA_OUTPUT_BUDGET` for such clients.
+6. The lean default `binary_session` drops remediation text and tool names from the first status reply (5,216 B
+   and 6,645 B computed) to meet the 8,000 B target; keeping remediation gives 8,607 B and 10,710 B. Remediation
+   stays in tool errors and under `detail: "complete"`.
+7. The simulation follows printed commands with a mechanical reader; whether agents do the same is J3's question.
+   All digest and error sizes come from the prototype over saved outputs.
+8. Not run: Windows, a terminal session by hand, any client. The store, `fstat` kinds and quoting are specified
+   from Node's documented behaviour there; 167 of the 206 MCP tools without `detail` were not measured.
+
+## 20. Where the critique landed
+
+| Finding                       | Closed by                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| F1 file as stdout             | sections 2, 3, the `complete` line; tests "stdout kinds", "precedence"; 16 rows 24 and 25; 19.5  |
+| F2 dead ends and loops        | 5.2, 5.3 (P1 to P4), 8.3 `--text`; tests "printed commands", "digest rules"; ledger rows 3 and 4 |
+| F3 minimum budget             | 5.4, section 2; test "minimum budget"                                                            |
+| F4 referee worklist           | 5.5, 6.2; test "referee worklist"; the budgeted verifier case                                    |
+| F5 remediation dropped        | section 7; test "bounded errors"                                                                 |
+| F6 Windows store              | 8.1; test "store" in the Windows lane                                                            |
+| F7 `get_evidence_bundle`      | 11.1 note, 11.2; site 20; section 14                                                             |
+| F8 list after a reset         | 8.1 `about`, 8.3                                                                                 |
+| F9 token bound                | 10.1                                                                                             |
+| F10 store details             | 8.1                                                                                              |
+| F11 prototype against text    | section 12 first line; 5.3; 6.1                                                                  |
+| F12 verification and overlaps | 13.2 owners, 13.3 last row, section 17 second table                                              |

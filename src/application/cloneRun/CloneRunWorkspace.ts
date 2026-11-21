@@ -83,7 +83,8 @@ import {
 /**
  * The run folder: scaffolding, reading the files agents write, rendering
  * capture inputs and writing the referee's outputs.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, "Run folder".
+ * Contract: docs/reference/clone-runs.md, "The run folder", "Capture inputs"
+ * and "Admission".
  */
 
 /** One side's team commands, as flags give them; an omitted one is recorded as null. */

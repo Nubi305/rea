@@ -64,7 +64,7 @@
       event.preventDefault();
       const title = addForm.elements.title.value;
       if (title.trim() === "") return notice("alert", MESSAGES.title_required);
-      call("POST", "/api/topics", {
+      void call("POST", "/api/topics", {
         title: title,
         pinned: addForm.elements.pinned.checked,
       }).then(function (result) {
@@ -84,7 +84,7 @@
     findForm.addEventListener("submit", function (event) {
       event.preventDefault();
       const q = findForm.elements.q.value;
-      call("GET", "/api/topics?q=" + encodeURIComponent(q)).then(
+      void call("GET", "/api/topics?q=" + encodeURIComponent(q)).then(
         function (result) {
           showList(result.data.items);
           notice("status", result.data.total + " found");
@@ -99,7 +99,7 @@
       event.preventDefault();
       const title = renameForm.elements.title.value;
       if (title.trim() === "") return notice("alert", MESSAGES.title_required);
-      call("PUT", "/api/topics/" + renameForm.dataset.id, {
+      void call("PUT", "/api/topics/" + renameForm.dataset.id, {
         title: title,
       }).then(function (result) {
         if (!result.ok) return notice("alert", MESSAGES[result.data.error]);
@@ -113,7 +113,7 @@
   const deleteButton = document.getElementById("delete-topic");
   if (deleteButton) {
     deleteButton.addEventListener("click", function () {
-      call("DELETE", "/api/topics/" + deleteButton.dataset.id).then(
+      void call("DELETE", "/api/topics/" + deleteButton.dataset.id).then(
         function (result) {
           if (!result.ok) return notice("alert", MESSAGES[result.data.error]);
           deleteButton.disabled = true;

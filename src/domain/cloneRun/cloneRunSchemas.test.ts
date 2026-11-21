@@ -22,37 +22,35 @@ import {
   cloneRunWaiversSchema,
 } from "./cloneRunSchemas.js";
 
-const spec = readFileSync(
-  new URL(
-    "../../../docs/specs/reconstruction/clone-runs/spec.md",
-    import.meta.url,
-  ),
+const contract = readFileSync(
+  new URL("../../../docs/reference/clone-runs.md", import.meta.url),
   "utf8",
 );
 
-/** The JSON example the specification gives right after naming a file. */
-const specExample = (heading: string): unknown => {
-  const start = spec.indexOf(heading);
+/** The JSON example the clone-run reference gives right after naming a file. */
+const contractExample = (heading: string): unknown => {
+  const start = contract.indexOf(heading);
   expect(start, heading).toBeGreaterThan(-1);
-  const open = spec.indexOf("```json\n", start) + "```json\n".length;
-  return JSON.parse(spec.slice(open, spec.indexOf("\n```", open)));
+  const open = contract.indexOf("```json\n", start) + "```json\n".length;
+  return JSON.parse(contract.slice(open, contract.indexOf("\n```", open)));
 };
 
 describe("clone run contract", () => {
-  it("accepts the specification's minimal example of each authored file", () => {
+  it("accepts the reference's minimal example of each authored file", () => {
     expect(
       cloneRunScenarioSchema.safeParse(
-        specExample("`scenarios/notes-api.json`"),
+        contractExample("`scenarios/notes-api.json`"),
       ).error?.issues,
     ).toBeUndefined();
     expect(
       cloneRunObligationsSchema.safeParse(
-        specExample("`obligations/notes.json`"),
+        contractExample("`obligations/notes.json`"),
       ).error?.issues,
     ).toBeUndefined();
     expect(
-      cloneRunUnknownSchema.safeParse(specExample("`unknowns/prober-1.json`"))
-        .error?.issues,
+      cloneRunUnknownSchema.safeParse(
+        contractExample("`unknowns/prober-1.json`"),
+      ).error?.issues,
     ).toBeUndefined();
   });
 
@@ -130,12 +128,12 @@ describe("clone run contract", () => {
     expect(cloneNameConflict("Jotter", ["Notely", "Acme"])).toBeUndefined();
   });
 
-  it("maps every reason code to a check and a role, and the specification names each code", () => {
+  it("maps every reason code to a check and a role, and the reference names each code", () => {
     for (const code of CLONE_RUN_REASON_CODES) {
       expect(CLONE_RUN_CHECKS).toContain(cloneRunReasonCheck(code));
       for (const side of [undefined, "original", "clone"] as const)
         expect(CLONE_RUN_ROLES).toContain(cloneRunReasonRole(code, side));
-      expect(spec, code).toContain(`\`${code}\``);
+      expect(contract, code).toContain(`\`${code}\``);
     }
     expect(Object.keys(CLONE_RUN_REASONS)).toEqual([...CLONE_RUN_REASON_CODES]);
     expect(cloneRunReasonRole("evidence_missing", "original")).toBe("prober");

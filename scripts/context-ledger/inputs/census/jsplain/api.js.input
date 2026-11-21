@@ -1,0 +1,19 @@
+const BASE = "/api";
+export async function listTopics(query) {
+  const response = await fetch(`${BASE}/topics?q=${encodeURIComponent(query || "")}`);
+  if (!response.ok) throw new Error(`list failed: ${response.status}`);
+  return response.json();
+}
+export async function createTopic(title) {
+  const response = await fetch(`${BASE}/topics`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title }) });
+  return { status: response.status, body: await response.json() };
+}
+export async function deleteTopic(id) {
+  const response = await fetch(`${BASE}/topics/${id}`, { method: "DELETE" });
+  return response.status === 204 || response.ok;
+}
+export function openSocket(onMessage) {
+  const socket = new WebSocket(`ws://${location.host}/live`);
+  socket.addEventListener("message", (event) => onMessage(JSON.parse(event.data)));
+  return socket;
+}

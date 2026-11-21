@@ -5,6 +5,12 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { MANAGED_SKILL_FILES } from "../../src/application/SetupSkill.js";
+import { CLONE_RUN_RESIDUAL_TRUST } from "../../src/application/cloneRun/CloneRunEvaluation.js";
+import { describeScenarioBehavior } from "../../src/application/scenarioBehavior/ScenarioBehaviorComparisonService.js";
+import {
+  LEFT,
+  readCapture,
+} from "../../src/application/scenarioBehavior/scenarioBehaviorCapture.fixture.js";
 import { createCli } from "../../src/cli.js";
 import { cliCommand } from "../../src/cli/commandRegistry.js";
 import { optionFlagName } from "../../src/cli/optionFields.js";
@@ -16,6 +22,7 @@ import {
 import { CLI_COMMAND_NAMES } from "../../src/contracts/catalog/catalogIdentity.js";
 import { inspectAnalysisViewInputSchema } from "../../src/domain/analysisView/analysisViewRequest.js";
 import { browserScenarioSchema } from "../../src/domain/browserScenario.js";
+import { DEFAULT_BROWSER_SCENARIO_CAPTURE_LIMITS } from "../../src/domain/browserScenarioCaptureLimits.js";
 import { BROWSER_SCENARIO_START_STEP_ID } from "../../src/domain/browserScenarioValues.js";
 import {
   CLONE_RUN_CHECKS,
@@ -58,7 +65,6 @@ const PLAYBOOK = "references/clone-runs.md";
 const SKILL_PATH = ".agents/skills/reverse-engineer-anything/SKILL.md";
 const PLAYBOOK_PATH = `.agents/skills/reverse-engineer-anything/${PLAYBOOK}`;
 const REFERENCE_PATH = "docs/reference/clone-runs.md";
-const SPEC_PATH = "docs/specs/reconstruction/clone-runs/spec.md";
 const CLI_GUIDE_PATH = "docs/getting-started/cli.md";
 const CLI_GUIDE_SECTION = "Rebuild a web application with a referee";
 
@@ -414,7 +420,7 @@ describe("clone run playbook", () => {
   });
 });
 
-describe.each([PLAYBOOK_PATH, REFERENCE_PATH, SPEC_PATH])("%s", (path) => {
+describe.each([PLAYBOOK_PATH, REFERENCE_PATH])("%s", (path) => {
   it("names only commands the CLI has, and each clone-run command", async () => {
     const commands = namedCommands(await readProse(path));
     expect(commands.filter((command) => !KNOWN_COMMANDS.has(command))).toEqual(
@@ -458,50 +464,29 @@ describe("clone run section of the CLI guide", () => {
   });
 });
 
-describe("clone run specification", () => {
-  it("gives each reason code its check and its roles in the reason table", async () => {
-    const { text } = await readProse(SPEC_PATH);
-    const rows = tableRows(section(text, "What done means"), 1);
-    const listed = rows.flatMap(([, codes]) => codesIn(codes ?? ""));
-    expect([...listed].sort()).toEqual([...CLONE_RUN_REASON_CODES].sort());
-    const wrong: string[] = [];
-    for (const [check, codes, role, also] of rows)
-      for (const code of codesIn(codes ?? "")) {
-        if (check !== cloneRunReasonCheck(code))
-          wrong.push(`${code}: check ${String(check)}`);
-        if (
-          [...rolesIn(role ?? "")].sort().join() !==
-          [...ownRoles(code)].sort().join()
-        )
-          wrong.push(`${code}: role ${String(role)}`);
-        if (
-          [...rolesIn(`${role ?? ""} ${also ?? ""}`)].sort().join() !==
-          [...actingRoles(code)].sort().join()
-        )
-          wrong.push(`${code}: also addressed to ${String(also)}`);
-      }
-    expect(wrong).toEqual([]);
-  });
-});
-
 describe("clone run reference", () => {
-  it("gives each reason code its check and every role that acts on it", async () => {
+  it("gives each reason code its check, its own roles and every other role that acts on it", async () => {
     const { text } = await readProse(REFERENCE_PATH);
     const rows = tableRows(section(text, "What done means"), 0);
     expect(rows.flatMap(([code]) => codesIn(code ?? ""))).toEqual([
       ...CLONE_RUN_REASON_CODES,
     ]);
     const wrong: string[] = [];
-    for (const [reason, check, role] of rows) {
+    for (const [reason, check, role, also] of rows) {
       const [code] = codesIn(reason ?? "");
       if (code === undefined) continue;
       if (check !== cloneRunReasonCheck(code))
         wrong.push(`${code}: check ${String(check)}`);
       if (
         [...rolesIn(role ?? "")].sort().join() !==
-        [...actingRoles(code)].sort().join()
+        [...ownRoles(code)].sort().join()
       )
         wrong.push(`${code}: role ${String(role)}`);
+      if (
+        [...rolesIn(`${role ?? ""} ${also ?? ""}`)].sort().join() !==
+        [...actingRoles(code)].sort().join()
+      )
+        wrong.push(`${code}: also addressed to ${String(also)}`);
       // A cell that splits the roles by side names each side's own role in that side's part.
       for (const side of CLONE_RUN_SIDES) {
         const part = (role ?? "")
@@ -552,5 +537,64 @@ describe("clone run reference", () => {
         text,
       ).toHaveLength(1);
     }
+  });
+});
+
+/** The behaviour table's entry for a text reply of `bytes` bytes. */
+const tableReply = async (bytes: number): Promise<unknown> => {
+  const capture = await readCapture(LEFT, [
+    {
+      id: "fp-list",
+      calls: [{ line: "GET /api/big", reply: { text: "x".repeat(bytes) } }],
+    },
+  ]);
+  const step = describeScenarioBehavior([capture]).steps.find(
+    ({ step_id }) => step_id === "fp-list",
+  );
+  return step?.transactions[0]?.reply;
+};
+
+/** Every size a document states in KiB. */
+const kibIn = (text: string): Set<number> =>
+  new Set(
+    [...oneLine(text).matchAll(/(\d+) KiB/gu)].map((match) => Number(match[1])),
+  );
+
+describe("numbers the clone-run documents state", () => {
+  it("numbers the residual trust as the gate lists it, one line each", async () => {
+    const { text } = await readProse(REFERENCE_PATH);
+    const numbered = section(text, "What a verdict does not establish")
+      .split("\n")
+      .filter((line) => /^\d+\. /u.test(line))
+      .map((line) => Number.parseInt(line, 10));
+    expect(numbered).toEqual(
+      CLONE_RUN_RESIDUAL_TRUST.map((_, index) => index + 1),
+    );
+  });
+
+  it("states the capture's body limit and the behaviour table's as the code applies them", async () => {
+    const captureKib =
+      DEFAULT_BROWSER_SCENARIO_CAPTURE_LIMITS.max_network_body_bytes / 1024;
+    // The table's limit is read from what the table does with a body far over it.
+    const over = await tableReply(200_000);
+    const tableBytes = Number(
+      /over the table's (\d+)$/u.exec(
+        z.looseObject({ reason: z.string() }).parse(over).reason,
+      )?.[1],
+    );
+    expect(await tableReply(tableBytes)).toMatchObject({ kind: "text" });
+    expect(await tableReply(tableBytes + 1)).toMatchObject({ kind: "omitted" });
+    const tableKib = tableBytes / 1024;
+    // The referee's own residual-trust lines name the capture limit only.
+    expect(kibIn(CLONE_RUN_RESIDUAL_TRUST.join(" "))).toEqual(
+      new Set([captureKib]),
+    );
+    for (const path of [REFERENCE_PATH, PLAYBOOK_PATH]) {
+      const text = (await readProse(path)).text;
+      expect(kibIn(text), path).toEqual(new Set([captureKib, tableKib]));
+    }
+    expect(oneLine((await readProse(REFERENCE_PATH)).text)).toContain(
+      `A body over ${String(tableKib)} KiB (${tableBytes.toLocaleString("en-US")} bytes) is left out of the table`,
+    );
   });
 });

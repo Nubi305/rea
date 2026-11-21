@@ -100,7 +100,7 @@ import {
 /**
  * The referee: recompute every check of a clone run from authenticated
  * Evidence and the clone's current files, and issue the verdict and worklist.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, "What done means".
+ * Contract: docs/reference/clone-runs.md, "Evaluate" and "What done means".
  *
  * It never starts, stops or resets a target, and it never reads its own
  * outputs as a source of a pass.
@@ -108,7 +108,8 @@ import {
 
 /**
  * What the verdict cannot establish; `gate.json` repeats these lines. The
- * specification's "Trust" section holds the same list, in the same order.
+ * reference's "What a verdict does not establish" numbers the same list in
+ * the same order, and a conformance test holds the count.
  */
 export const CLONE_RUN_RESIDUAL_TRUST: readonly string[] = [
   "The authorisation statement is recorded as given; REA cannot verify it.",

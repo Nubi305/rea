@@ -55,7 +55,7 @@ import {
 
 /**
  * Behaviour comparison of browser scenario captures.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, "The comparer".
+ * Contract: docs/reference/clone-runs.md, "Compare captures directly".
  *
  * `scenarioBehaviorCapture.ts` reads one capture into per-step observations;
  * `scenarioBehaviorReplies.ts` compares the reply bodies of one transaction.

@@ -8,8 +8,8 @@ import {
 
 /**
  * Which comparer findings block a step of a clone run, by the step's kind.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, "What done means",
- * check 6.
+ * Contract: docs/reference/clone-runs.md, "Parity on setup and fingerprint
+ * steps".
  *
  * A behaviour step must be `unchanged`, so every finding blocks it. A `setup-`
  * or `fp-` step ("prepared" below) is not behaviour: it may be unsteady, and

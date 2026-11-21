@@ -1,0 +1,141 @@
+{
+  "source": "Traced by hand in the audit (census-skill 10-routing-test.mjs) against the SKILL.md body below. Each request names the line where the route is given (anchor: that line, verbatim), the references the route tells the agent to read (whole files are what a client loads), and the reader verdict. Redo the trace whenever the body changes: see README.md.",
+  "skill_body_sha256": "3660096060144c484efb3fce538675aac53ba18b1e5b1f0a733bcca7fec0e3d6",
+  "requests": [
+    {
+      "id": "R1",
+      "request": "Here is /opt/acme/bin/licensed, a Linux ELF. Explain how it validates the licence key.",
+      "route_file_line": 480,
+      "anchor": "  availability and leaves target support unknown.",
+      "references": [],
+      "verdict": "late",
+      "clear": false
+    },
+    {
+      "id": "R2",
+      "request": "Find where app-release.apk builds its login request.",
+      "route_file_line": 125,
+      "anchor": "  Archive member inventory still uses the archive route above.",
+      "references": [],
+      "verdict": "clear",
+      "clear": true
+    },
+    {
+      "id": "R3",
+      "request": "How does this Electron app (app.asar) implement auto-update?",
+      "route_file_line": 100,
+      "anchor": "  [JavaScript applications reference](references/javascript-applications.md).",
+      "references": [],
+      "verdict": "wrong default",
+      "clear": false
+    },
+    {
+      "id": "R4",
+      "request": "Rebuild the web app at http://127.0.0.1:4000 as new code under a new name and tell me when it matches. I can reset it.",
+      "route_file_line": 92,
+      "anchor": "  a served recording of an application, not a rebuild of it.",
+      "references": ["clone-runs.md"],
+      "verdict": "clear",
+      "clear": true
+    },
+    {
+      "id": "R5",
+      "request": "The service crashed; here is core.1234 and the binary. What happened?",
+      "route_file_line": 467,
+      "anchor": "  [recorded crash guide](https://github.com/morluto/rea/blob/main/docs/guides/native/recorded-crashes.md).",
+      "references": [],
+      "verdict": "late, stale",
+      "clear": false
+    },
+    {
+      "id": "R6",
+      "request": "Here is router firmware fw-2.1.bin. What is inside, and is there a hard-coded password?",
+      "route_file_line": 130,
+      "anchor": "  Linux; see the [firmware guide](https://github.com/morluto/rea/blob/main/docs/guides/firmware/firmware-analysis.md).",
+      "references": [],
+      "verdict": "clear, no fallback",
+      "clear": true
+    },
+    {
+      "id": "R7",
+      "request": "Here are v3.1 and v3.2 of the vendor's Linux agent binary. What changed in the update check?",
+      "route_file_line": 673,
+      "anchor": "  [references/clone-runs.md](references/clone-runs.md)",
+      "references": ["native-and-artifacts.md"],
+      "verdict": "ambiguous",
+      "clear": false
+    },
+    {
+      "id": "R8",
+      "request": "This is main.4f2a.js, minified, from the site. Recover readable source and tell me how it signs requests.",
+      "route_file_line": 100,
+      "anchor": "  [JavaScript applications reference](references/javascript-applications.md).",
+      "references": ["javascript-applications.md"],
+      "verdict": "wrong",
+      "clear": false
+    },
+    {
+      "id": "R9",
+      "request": "Which API endpoints does the checkout page call? I have it open in Chrome.",
+      "route_file_line": 155,
+      "anchor": "  and the focused follow-up browser tools.",
+      "references": ["runtime-observation.md"],
+      "verdict": "ambiguous",
+      "clear": false
+    },
+    {
+      "id": "R10",
+      "request": "What does Acme.Licensing.dll (.NET) do with the registry?",
+      "route_file_line": 126,
+      "anchor": "- Managed PE/CLI assembly: `inspect_managed_artifact`.",
+      "references": [],
+      "verdict": "clear",
+      "clear": true
+    },
+    {
+      "id": "R11",
+      "request": "I recorded checkout.har on staging. Build an agent environment from it.",
+      "route_file_line": 158,
+      "anchor": "  `capture_browser_scenario` and writes the bundle with `export_environment_bundle`.",
+      "references": ["environments.md"],
+      "verdict": "ambiguous",
+      "clear": false
+    },
+    {
+      "id": "R12",
+      "request": "Build me a GIMP environment where the agent crops a photo to a square.",
+      "route_file_line": 165,
+      "anchor": "  app on a build computer from `start_build_computer`, then export and witness.",
+      "references": ["desktop-build.md"],
+      "verdict": "clear, long",
+      "clear": true
+    },
+    {
+      "id": "R13",
+      "request": "What does the app keep in app.db?",
+      "route_file_line": 457,
+      "anchor": "  [SQLite guide](https://github.com/morluto/rea/blob/main/docs/guides/data/sqlite-databases.md).",
+      "references": [],
+      "verdict": "late",
+      "clear": false
+    },
+    {
+      "id": "R14",
+      "request": "Is /usr/sbin/sshd built with PIE, RELRO and stack canaries?",
+      "route_file_line": 334,
+      "anchor": "  [binary hardening guide](https://github.com/morluto/rea/blob/main/docs/binary-hardening.md).",
+      "references": [],
+      "verdict": "clear, overlapping",
+      "clear": true
+    },
+    {
+      "id": "R15",
+      "request": "Run ./migrate --dry-run and tell me which files it touches and what it prints.",
+      "route_file_line": 141,
+      "anchor": "  own contract says so.",
+      "references": ["runtime-observation.md"],
+      "verdict": "clear over MCP, blocked on CLI",
+      "clear": true
+    }
+  ]
+}

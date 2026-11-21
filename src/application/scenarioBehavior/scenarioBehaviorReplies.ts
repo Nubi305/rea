@@ -22,7 +22,7 @@ import type { RecordedBody } from "./scenarioBehaviorCapture.js";
 
 /**
  * Reply body comparison of one matched transaction.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, "The comparer".
+ * Contract: docs/reference/clone-runs.md, "Comparison rules".
  *
  * `judgeReplyLeaves` decides, exactly and by position, which leaves differ
  * and what each difference is. `compareAnswers` is the differ that names a

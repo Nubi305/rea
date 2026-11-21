@@ -26,7 +26,7 @@ import { sha256Hex } from "../../kernel/sha256Hex.js";
 
 /**
  * The digest that ties clone-side Evidence to the clone's files.
- * Contract: docs/specs/reconstruction/clone-runs/spec.md, "Staleness".
+ * Contract: docs/reference/clone-runs.md, "Staleness".
  */
 
 /** One entry of the clone tree, by its `/`-separated path relative to the root. */

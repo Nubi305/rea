@@ -1466,6 +1466,11 @@ rea --version --json
 | `supported_runtime.range`            | Supported Node.js range.                                                                                       |
 | `supported_runtime.satisfied`        | Whether this runtime is supported, judged as `rea doctor` judges it; Bun by its Node.js compatibility version. |
 
+This fork's build also reports `fork`: its `name` (`rea-clone-runs`), the
+`commands` it adds to upstream's, and `upstream_package_note`. Its `version` is
+the upstream rea-agents release it was merged from, so the npm package of the
+same version is upstream's build, which has none of these commands.
+
 The field names are stable. The report contains no paths, environment values,
 user or host names, and it starts no provider and reads no target. `--format`
 selects any CLI output format, such as `--format yaml`. JSON follows the usual
