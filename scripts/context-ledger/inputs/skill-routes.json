@@ -1,12 +1,10 @@
 {
-  "source": "Re-traced by hand on the router body (ctx/skill), the way the audit traced the old body (census-skill 10-routing-test.mjs): for each request, the SKILL.md line that gives the route (anchor: that line, verbatim), the references the route tells the agent to read (whole files are what a client loads), and the reader verdict. top_down_* is what a top-down reader loads before the first correct command: body lines 1 to the route line, plus the reference from its top to the first command (o200k); top_down_tokens_cli adds the CLI paragraph where the command needs it. This is a reading, not a run of agents. Redo the trace whenever the body changes: see README.md.",
-  "skill_body_sha256": "e419b818da76ab072bea0a48ec9e6a27bb70ae399a70756704a34a74bc450178",
+  "source": "Re-traced by hand on the router body (ctx/skill), the way the audit traced the old body (census-skill 10-routing-test.mjs): for each request, the SKILL.md line that gives the route (anchor: that line, verbatim), the references the route tells the agent to read (whole files are what a client loads), and the reader verdict. top_down_* is what a top-down reader loads before the first correct command: body lines 1 to the route line, plus the reference from its top to the first command (o200k); top_down_tokens_cli adds the CLI paragraph where the command needs it. This is a reading, not a run of agents. Redo the trace whenever the body changes: see README.md. Re-traced on 2026-11-21 for the routing follow-up: line numbers moved by the new first-step lines; R8, R13 and R14 anchors changed wording, and every route stays clear.",
+  "skill_body_sha256": "d6240b8b68ac168723407213d3b0d4e9d4a1a3d38e8eb8b2a6cac302dccccdf8",
   "previous_trace": {
-    "skill_body_sha256": "3660096060144c484efb3fce538675aac53ba18b1e5b1f0a733bcca7fec0e3d6",
-    "routes_clear": 7,
-    "mean_loaded_o200k": 14080,
-    "mean_top_down_lines": 284,
-    "mean_top_down_o200k": 4486
+    "skill_body_sha256": "e419b818da76ab072bea0a48ec9e6a27bb70ae399a70756704a34a74bc450178",
+    "routes_clear": 15,
+    "note": "router body before the routing follow-up (decisions 1, 2, 5 and 6)"
   },
   "requests": [
     {
@@ -21,18 +19,18 @@
       "top_down_lines": 20,
       "top_down_tokens": 245,
       "top_down_tokens_cli": 865,
-      "note": "First-step line for a native program. No provider is installed in this environment, so the call itself ends at provider_unavailable; the refusal rule (body 'When a step is refused') names the inspectors that still work. A CLI agent also reads the CLI paragraph (body lines 45-53) for rea search / rea function."
+      "note": "First-step line for a native program. No provider is installed in this environment, so the call itself ends at provider_unavailable; the refusal rule (body 'When a step is refused') names the inspectors that still work. A CLI agent also reads the CLI paragraph (body lines 45-53) for rea search / rea function. Re-traced after the routing follow-up: the refusal rule now names rea inspect-with-objdump and rea debug-with-gdb, and the provider refusal lists both with the file's path."
     },
     {
       "id": "R2",
       "request": "Find where app-release.apk builds its login request.",
-      "route_file_line": 32,
+      "route_file_line": 33,
       "anchor": "- Android APK → `inspect_android_package`",
       "references": [],
       "verdict": "clear",
       "clear": true,
       "first_command": "inspect_android_package {path}",
-      "top_down_lines": 26,
+      "top_down_lines": 27,
       "top_down_tokens": 444,
       "top_down_tokens_cli": 444,
       "note": "One line. The JADX requirement is in the tool's refusal, which names the download (seen here)."
@@ -40,13 +38,13 @@
     {
       "id": "R3",
       "request": "How does this Electron app (app.asar) implement auto-update?",
-      "route_file_line": 30,
+      "route_file_line": 31,
       "anchor": "- Electron app, ASAR or JavaScript tree → `analyze_javascript_application` with `detail: \"summary\"`",
       "references": [],
       "verdict": "clear",
       "clear": true,
       "first_command": "analyze_javascript_application {input_path, detail: \"summary\"} (CLI: --detail summary --evidence_output <new file>)",
-      "top_down_lines": 24,
+      "top_down_lines": 25,
       "top_down_tokens": 400,
       "top_down_tokens_cli": 400,
       "note": "The line itself asks for the summary, and rule 1 above it gives the CLI form. Seen here: the summary of a three-file app is about 3,000 tokens against 112,519 by default."
@@ -68,13 +66,13 @@
     {
       "id": "R5",
       "request": "The service crashed; here is core.1234 and the binary. What happened?",
-      "route_file_line": 28,
+      "route_file_line": 29,
       "anchor": "- A crash (Linux core or Apple `.ips` file) → `inspect_recorded_crash` (amd64 or AArch64 core; needs pwntools), `inspect_apple_ips`",
       "references": [],
       "verdict": "clear",
       "clear": true,
       "first_command": "inspect_recorded_crash {path} (needs REA_PWNTOOLS_PYTHON)",
-      "top_down_lines": 22,
+      "top_down_lines": 23,
       "top_down_tokens": 336,
       "top_down_tokens_cli": 336,
       "note": "States amd64 or AArch64 and pwntools. Seen here: the tool refuses without REA_PWNTOOLS_PYTHON and names it."
@@ -82,13 +80,13 @@
     {
       "id": "R6",
       "request": "Here is router firmware fw-2.1.bin. What is inside, and is there a hard-coded password?",
-      "route_file_line": 29,
+      "route_file_line": 30,
       "anchor": "- Inside an archive, installer, app bundle or firmware image → `open_binary`, then `inspect_artifact`; firmware it cannot map: `inspect_firmware_regions` (needs Binwalk)",
       "references": [],
       "verdict": "clear, with a fallback",
       "clear": true,
       "first_command": "open_binary then inspect_artifact; inspect_firmware_regions (Binwalk) when it cannot map the image",
-      "top_down_lines": 23,
+      "top_down_lines": 24,
       "top_down_tokens": 375,
       "top_down_tokens_cli": 375,
       "note": "Two steps in order: inspect_artifact maps container formats (seen here on a built uImage); for an image it cannot map, inspect_firmware_regions, which needs Binwalk (its refusal names REA_BINWALK_COMMAND)."
@@ -96,13 +94,13 @@
     {
       "id": "R7",
       "request": "Here are v3.1 and v3.2 of the vendor's Linux agent binary. What changed in the update check?",
-      "route_file_line": 34,
+      "route_file_line": 35,
       "anchor": "- Two versions → native: `list_procedures` of each, `match_native_functions`; JavaScript: analyze each, `compare_application_versions`; packages: `inspect_artifact` each, `compare_artifacts`",
       "references": [],
       "verdict": "clear",
       "clear": true,
       "first_command": "open_binary and list_procedures on each build, then match_native_functions (MCP only)",
-      "top_down_lines": 28,
+      "top_down_lines": 29,
       "top_down_tokens": 501,
       "top_down_tokens_cli": 501,
       "note": "One line for native, JavaScript and packages. The native leg needs a provider and was not run here; the JavaScript leg (compare_application_versions on two analyzed trees) and the package leg (compare_artifacts on two inspected zips) ran."
@@ -110,27 +108,27 @@
     {
       "id": "R8",
       "request": "This is main.4f2a.js, minified, from the site. Recover readable source and tell me how it signs requests.",
-      "route_file_line": 31,
-      "anchor": "- One JavaScript file (a minified bundle) → `recover_javascript_sources` (needs Wakaru), or put the file alone in a directory and analyze that",
+      "route_file_line": 32,
+      "anchor": "- One JavaScript file → analyze its directory, or `recover_javascript_sources` (needs Wakaru)",
       "references": [],
       "verdict": "clear",
       "clear": true,
       "first_command": "recover_javascript_sources {path, output_directory} (needs Wakaru), or the file alone in a directory, then analyze_javascript_application",
-      "top_down_lines": 25,
+      "top_down_lines": 26,
       "top_down_tokens": 435,
       "top_down_tokens_cli": 435,
-      "note": "Was wrong (analyze_javascript_application refuses a single file). Seen here: recover_javascript_sources refuses without Wakaru and names it; analyze_javascript_application on a directory holding only the file works."
+      "note": "Was wrong (analyze_javascript_application refuses a single file). Seen here: recover_javascript_sources refuses without Wakaru and names it; analyze_javascript_application on a directory holding only the file works. Re-traced after the routing follow-up: the line now says to analyze the file's directory (analyze_javascript_application) or recover it with Wakaru; inspect_artifact on the file also names analyze-javascript-application on its directory as its first probe. Clear."
     },
     {
       "id": "R9",
       "request": "Which API endpoints does the checkout page call? I have it open in Chrome.",
-      "route_file_line": 35,
+      "route_file_line": 36,
       "anchor": "- What a page open in the user's browser calls → `list_browser_targets`, then `inspect_web_page` with `allowed_origins` listing the page and API origins",
       "references": [],
       "verdict": "clear",
       "clear": true,
       "first_command": "list_browser_targets {cdp_endpoint}, then inspect_web_page with allowed_origins naming the page and API origins",
-      "top_down_lines": 29,
+      "top_down_lines": 30,
       "top_down_tokens": 536,
       "top_down_tokens_cli": 536,
       "note": "Was ambiguous (three bullets, one naming no tool, and observe_web_session records navigation only). Seen here on a local page that calls another origin: inspect_web_page with allowed_origins lists that request; with the default scope it is excluded and completeness.excluded counts it."
@@ -138,13 +136,13 @@
     {
       "id": "R10",
       "request": "What does Acme.Licensing.dll (.NET) do with the registry?",
-      "route_file_line": 33,
+      "route_file_line": 34,
       "anchor": "- .NET assembly → `inspect_managed_artifact`",
       "references": [],
       "verdict": "clear",
       "clear": true,
       "first_command": "inspect_managed_artifact {path}",
-      "top_down_lines": 27,
+      "top_down_lines": 28,
       "top_down_tokens": 456,
       "top_down_tokens_cli": 456,
       "note": "One line."
@@ -152,13 +150,13 @@
     {
       "id": "R11",
       "request": "I recorded checkout.har on staging. Build an agent environment from it.",
-      "route_file_line": 39,
+      "route_file_line": 41,
       "anchor": "- An agent environment → from a HAR: `rea environment-build <file.har> <new dir>`; a live web app: [environments](references/environments.md); a Linux desktop app with a task: [desktop-build](references/desktop-build.md)",
       "references": [],
       "verdict": "clear",
       "clear": true,
       "first_command": "rea environment-build <checkout.har> <new dir>",
-      "top_down_lines": 33,
+      "top_down_lines": 35,
       "top_down_tokens": 659,
       "top_down_tokens_cli": 659,
       "note": "Was ambiguous (two bullets; the command only in the guide). The line gives the command. Seen here: a HAR built into an environment."
@@ -166,13 +164,13 @@
     {
       "id": "R12",
       "request": "Build me a GIMP environment where the agent crops a photo to a square.",
-      "route_file_line": 39,
+      "route_file_line": 41,
       "anchor": "- An agent environment → from a HAR: `rea environment-build <file.har> <new dir>`; a live web app: [environments](references/environments.md); a Linux desktop app with a task: [desktop-build](references/desktop-build.md)",
       "references": ["desktop-build.md"],
       "verdict": "clear, long",
       "clear": true,
       "first_command": "start_build_computer {source: {kind: \"request\", desktop_entry, install}} (desktop-build.md line 337)",
-      "top_down_lines": 370,
+      "top_down_lines": 372,
       "top_down_tokens": 5996,
       "top_down_tokens_cli": 5996,
       "note": "The line sends the agent to desktop-build.md, which a client loads whole; its first command is at its line 337, after the install and app-driving notes the build needs."
@@ -180,13 +178,13 @@
     {
       "id": "R13",
       "request": "What does the app keep in app.db?",
-      "route_file_line": 27,
-      "anchor": "- One fact about a file (hardening, imports, dependencies, signing, a database) → its inspector by path, no provider: `inspect_binary_hardening`, `inspect_elf_dependencies`, `inspect_sqlite_database`; others below",
+      "route_file_line": 28,
+      "anchor": "- One fact about a file (hardening, imports, dependencies, signing, a database) → its inspector by path, no provider: `inspect_binary_hardening`, `inspect_elf_dependencies`, `inspect_sqlite_database`",
       "references": [],
       "verdict": "clear",
       "clear": true,
       "first_command": "inspect_sqlite_database {path} (needs Node.js 24.15+)",
-      "top_down_lines": 21,
+      "top_down_lines": 22,
       "top_down_tokens": 295,
       "top_down_tokens_cli": 295,
       "note": "Was late (53rd bullet). One line. Seen here: the tool refuses on Node 22 and names Node 24.15."
@@ -194,13 +192,13 @@
     {
       "id": "R14",
       "request": "Is /usr/sbin/sshd built with PIE, RELRO and stack canaries?",
-      "route_file_line": 27,
-      "anchor": "- One fact about a file (hardening, imports, dependencies, signing, a database) → its inspector by path, no provider: `inspect_binary_hardening`, `inspect_elf_dependencies`, `inspect_sqlite_database`; others below",
+      "route_file_line": 28,
+      "anchor": "- One fact about a file (hardening, imports, dependencies, signing, a database) → its inspector by path, no provider: `inspect_binary_hardening`, `inspect_elf_dependencies`, `inspect_sqlite_database`",
       "references": [],
       "verdict": "clear",
       "clear": true,
       "first_command": "inspect_binary_hardening {path}",
-      "top_down_lines": 21,
+      "top_down_lines": 22,
       "top_down_tokens": 295,
       "top_down_tokens_cli": 295,
       "note": "Was late and overlapping. One line, the portable inspector."
@@ -208,13 +206,13 @@
     {
       "id": "R15",
       "request": "Run ./migrate --dry-run and tell me which files it touches and what it prints.",
-      "route_file_line": 37,
+      "route_file_line": 38,
       "anchor": "- What a program does when run → `capture_process_scenario`, `dry_run: true` first",
       "references": [],
       "verdict": "clear",
       "clear": true,
       "first_command": "capture_process_scenario {executable, arguments, filesystem_observation_paths, dry_run: true} (CLI: rea capture-process <file>, body lines 49-51)",
-      "top_down_lines": 31,
+      "top_down_lines": 32,
       "top_down_tokens": 573,
       "top_down_tokens_cli": 831,
       "note": "Was blocked on the CLI. Body lines 49-51 give the scenario file's fields. Seen here: rea capture-process with those fields, dry run and real run (the created file was reported)."

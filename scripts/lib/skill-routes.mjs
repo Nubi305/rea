@@ -123,6 +123,23 @@ export const FORK_CORRECTIONS = Object.freeze([
       "  `rea search`, `rea function` and `rea decompile` take the path instead.\n",
   },
   {
+    section: ROUTE_SECTION,
+    reason:
+      "upstream names no route for an API contract file or for reading native code without a provider",
+    find: "- Native executable, library, or analysis database: `open_binary`, then\n",
+    replace:
+      "- OpenAPI or GraphQL API contract file: `inspect_api_contract` with the\n" +
+      '  file\'s path; for GraphQL SDL set `contract_format: "graphql-sdl"` (CLI\n' +
+      "  `--contract-format graphql-sdl`). It reads the declared operations, paths\n" +
+      "  and types offline and calls nothing.\n" +
+      "- Native code or data with no analysis provider ready: `inspect_with_objdump`\n" +
+      "  with operation `symbols`, or `disassemble` and `symbol` for one function.\n" +
+      "  A string or constant whose address the disassembly shows is read by GDB\n" +
+      "  without running the program: `rea debug-with-gdb 'x/s 0x2008' --executable\n" +
+      "  <path>`. The provider refusal lists these for its file.\n" +
+      "- Native executable, library, or analysis database: `open_binary`, then\n",
+  },
+  {
     section: "Read only the relevant guide",
     reason:
       "version comparison is not only JavaScript; the fork's clone-run guide",
@@ -189,6 +206,18 @@ export const FORK_KEYWORDS = Object.freeze([
     reason: "agents ask for source files and optimisation, not DWARF",
     keywords:
       "debug information, source files, optimisation level, optimization, compiler flags",
+  },
+  {
+    section: "OpenAPI or GraphQL API contract file",
+    reason: "agents search for the format's names, not 'API contract'",
+    keywords: "openapi, swagger, graphql schema, api spec, endpoints of a spec",
+  },
+  {
+    section: "Native code or data with no analysis provider ready",
+    reason:
+      "agents ask to read a string literal or rodata when no provider is installed",
+    keywords:
+      "string literal, rodata, read data at an address, without provider, no provider",
   },
   {
     section: "Work summary-first",

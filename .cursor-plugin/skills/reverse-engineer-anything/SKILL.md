@@ -24,18 +24,20 @@ source repository, use ordinary repository tools, not REA.
 
 - Rebuild or clone a web app the user can run and reset → read [clone-runs](references/clone-runs.md) before touching the original; then `rea init-clone-run`
 - Explain or decompile a native program or library → `open_binary`, `search_procedures` or `search_strings`, then `analyze_function`
-- One fact about a file (hardening, imports, dependencies, signing, a database) → its inspector by path, no provider: `inspect_binary_hardening`, `inspect_elf_dependencies`, `inspect_sqlite_database`; others below
+- A file you cannot place → `inspect_artifact`, then its first next probe
+- One fact about a file (hardening, imports, dependencies, signing, a database) → its inspector by path, no provider: `inspect_binary_hardening`, `inspect_elf_dependencies`, `inspect_sqlite_database`
 - A crash (Linux core or Apple `.ips` file) → `inspect_recorded_crash` (amd64 or AArch64 core; needs pwntools), `inspect_apple_ips`
 - Inside an archive, installer, app bundle or firmware image → `open_binary`, then `inspect_artifact`; firmware it cannot map: `inspect_firmware_regions` (needs Binwalk)
 - Electron app, ASAR or JavaScript tree → `analyze_javascript_application` with `detail: "summary"`
-- One JavaScript file (a minified bundle) → `recover_javascript_sources` (needs Wakaru), or put the file alone in a directory and analyze that
+- One JavaScript file → analyze its directory, or `recover_javascript_sources` (needs Wakaru)
 - Android APK → `inspect_android_package`
 - .NET assembly → `inspect_managed_artifact`
 - Two versions → native: `list_procedures` of each, `match_native_functions`; JavaScript: analyze each, `compare_application_versions`; packages: `inspect_artifact` each, `compare_artifacts`
 - What a page open in the user's browser calls → `list_browser_targets`, then `inspect_web_page` with `allowed_origins` listing the page and API origins
 - Act on a page or Electron app → `capture_browser_scenario`
 - What a program does when run → `capture_process_scenario`, `dry_run: true` first
-- A saved HAR, SAZ, pcap or signal recording → `inspect_web_network_capture`, `inspect_pcap_capture`, `decode_signal_recording`
+- A saved HAR, SAZ, pcap or signal recording → `inspect_web_network_capture` (CLI: `rea inspect-web-network-capture <file> har`, or `saz`), `inspect_pcap_capture`, `decode_signal_recording`
+- EVM bytecode → `rea inspect-evm-interface <file> hex`
 - An agent environment → from a HAR: `rea environment-build <file.har> <new dir>`; a live web app: [environments](references/environments.md); a Linux desktop app with a task: [desktop-build](references/desktop-build.md)
 
 Any other target or format: the contents of
@@ -68,7 +70,9 @@ paging, comparing and verifying Evidence.
 
 - A provider is missing: the error names what to set. The format
   inspectors, `inspect_artifact`, JavaScript analysis and capture inspection
-  need none. Say which evidence is unavailable.
+  need none; `rea inspect-with-objdump` reads symbols and one function's
+  disassembly, `rea debug-with-gdb` reads code and data without running it.
+  Say which evidence is unavailable.
 - REA tools are absent, the client blocks a call, or the host timed out
   (the work may still be running):
   [connection and recovery](references/connection-and-recovery.md). Do not

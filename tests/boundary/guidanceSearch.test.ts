@@ -266,7 +266,16 @@ const AGENT_QUERIES: readonly (readonly [string, Accepted])[] = [
         /^Choose the remedy from the observed failure$/u,
       ],
       [/^SKILL\.md$/u, /^When a step is refused$/u],
+      [/format-inspectors/u, /^Native code or data with no analysis provider/u],
     ],
+  ],
+  [
+    "openapi",
+    [[/format-inspectors/u, /^OpenAPI or GraphQL API contract file/u]],
+  ],
+  [
+    "string literal rodata without provider",
+    [[/format-inspectors/u, /^Native code or data with no analysis provider/u]],
   ],
   [
     "dump bytes at address",
