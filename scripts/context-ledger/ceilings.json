@@ -27,7 +27,7 @@
     },
     "mcp.ten-calls.summary": {
       "metric": "o200k",
-      "ceiling": 9685,
+      "ceiling": 9611,
       "target": "at most 9,700, stretch 7,100",
       "target_value": 9700,
       "tolerance": 0.01,
@@ -41,7 +41,7 @@
     },
     "mcp.bundle.default": {
       "metric": "bytes",
-      "ceiling": 345730,
+      "ceiling": 345552,
       "raised": [
         {
           "from": 349452,
