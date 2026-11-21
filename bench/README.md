@@ -53,7 +53,7 @@ It needs about two minutes and must end with every check passed.
 # 1. prepare: one cell per run. The two ports must be free.
 node bench/harness/clone-prepare.mjs --app varnholt --workspace $RUNS/varnholt-a \
   --rea $REA --client $CLIENT --clone-name "Larkspur Desk" \
-  --original-port 5310 --clone-port 5311 --id varnholt-a $OFF
+  --original-port 5310 --clone-port 5311 --id varnholt-a --agent a1 $OFF
 
 # 2. the arguments of the workflow: labels and prompts of the prepared cells
 node bench/harness/workflow-args.mjs --cell $RUNS/varnholt-a.cell/cell.json \
@@ -69,11 +69,18 @@ node bench/harness/clone-score.mjs --workspace $RUNS/varnholt-a \
   --out bench/results/clone/2026-11-22-varnholt-a.json
 ```
 
-- `--id` names the cell; the agent's label is `bench:clone:<id>`. Give every
-  cell of one workflow run its own id.
+- `--app` is `varnholt`, `brassnook` or `seedlark` (`bench/clone/apps/`).
+- `--id` names the cell; the agent's transcript label is `bench:clone:<id>`.
+  Give every cell of one workflow run its own id.
+- `--agent` is the label every result of the cell names the agent under test
+  by (`unlabelled` if left out): letters, digits, `.`, `_`, `+` and `-`.
+  Choose one per model and client, and keep the key to it outside this
+  repository. No score file names a model: the scorers refuse to write one
+  that holds the model id its transcript carries.
 - `--clone-name` may not contain a product name of the original.
 - To run a cell on a named model, write `--cell <cell.json>=<model>` in
-  step 2. Each model needs its own cell: a workspace is used once.
+  step 2; the model only goes to the workflow tool. Each model needs its own
+  cell: a workspace is used once.
 - `--minutes` changes the time box in the prompt (80 by default, as in the
   first trial); `--spare-ports` tells the agent about more ports.
 - A cell that is never scored leaves its original running:
@@ -88,7 +95,8 @@ node bench/harness/clone-score.mjs --workspace $RUNS/varnholt-a \
 ```bash
 # 1. prepare every task into one root. One free port, for the task with a page.
 node bench/harness/task-prepare.mjs --root $RUNS/tasks-a --rea $REA \
-  --client $CLIENT --node /path/to/node-24.15-or-newer --tag a --port 5330 $OFF
+  --client $CLIENT --node /path/to/node-24.15-or-newer --tag a --port 5330 \
+  --agent a1 $OFF
 
 # 2. the arguments of the workflow
 node bench/harness/workflow-args.mjs --root $RUNS/tasks-a > $RUNS/task-args.json
@@ -105,9 +113,10 @@ node bench/harness/task-score.mjs --root $RUNS/tasks-a \
 - `--node` is the Node that runs REA for the agent. `t07-sqlite-contents`
   needs 24.15 or newer; on an older one prepare skips it and says so (exit
   status 2).
-- `--tag` goes into the labels (`bench:task:<task>.<tag>`). Use one root and
-  one tag per model and per build: `--root $RUNS/tasks-b=<model>` in step 2
-  names the model for that root, and several `--root` can go into one launch.
+- `--tag` goes into the transcript labels (`bench:task:<task>.<tag>`). Use
+  one root, one tag and one `--agent` label per model and per build:
+  `--root $RUNS/tasks-b=<model>` in step 2 names the model for that root, and
+  several `--root` can go into one launch.
 - `--task <id>` (repeatable) limits any of the steps to some tasks.
 - Unless `--task` leaves it out, the root holds `t00-floor`; its transcript
   is the floor that step 4 takes off the others (see
@@ -121,6 +130,12 @@ node bench/harness/task-proof.mjs --rea $REA --node /path/to/node-24.15-or-newer
 
 # Does an application fit the layout, and do its held-out scenarios hold?
 node bench/harness/clone-check-app.mjs --app varnholt --judge $JUDGE --ports 5300,5301
+#   ... against a copy of the source with other markup: must still agree
+node bench/harness/clone-check-app.mjs --app brassnook --judge $JUDGE --ports 5300,5301 \
+  --clone-source /path/to/a/changed/copy
+#   ... against its own mutant (hidden/selftest-mutant.json): must disagree
+#   on exactly the rules that file names
+node bench/harness/clone-check-app.mjs --app seedlark --judge $JUDGE --ports 5300,5301 --mutant
 
 # Score files as Markdown tables
 node bench/harness/results-table.mjs --tasks bench/results
@@ -288,8 +303,15 @@ reply appears several times under one message id and is counted once.
 | `output_tokens`            | everything the model wrote, including its thinking                           |
 | `tool_calls`               | tool calls of any kind                                                       |
 | `wall_minutes`             | first to last line of the transcript                                         |
-| `model`                    | the model id as the transcript gives it                                      |
 | `net_of_floor`             | the same with the harness floor taken off; null when no floor was given      |
+
+The transcript gives each reply's model id. The reader keeps it in memory to
+tell cells apart, and no score file holds it: a score names the agent by the
+cell's `--agent` label (`agent`; a task-score file has it per row and lists
+them in `agents`), and a scorer refuses to write a score in which a model id
+of its transcripts appears. The skill directory, the cell's throwaway home and
+the transcript directory are written as `<skill>`, `<home>` and
+`<transcripts>`, because their paths are the client's.
 
 `prompt_tokens_all_turns` grows with the square of a run's length, because
 every turn sends the whole conversation again; most of it is read from the
@@ -482,16 +504,19 @@ the scorers wrote them; `--note "<text>"` (repeatable) adds free text to one.
 Name a file by the date of the run, the application or `tasks`, and the build
 or tag. `results-table.mjs` prints them as tables.
 
-The baseline row is the first blind trial (2026-11-20), scored retroactively:
+The baseline row is the first blind trial (2026-11-20), scored retroactively
+by `clone-score.mjs` and printed by `results-table.mjs bench/results`:
 
-| Run        | Application | Referee                                     | Hidden rules agree | Steps unchanged | Peak context | Prompt tokens, all turns | Output tokens | Minutes | Tool calls | REA result bytes | Skill bytes | Other result bytes | Captures    |
-| ---------- | ----------- | ------------------------------------------- | ------------------ | --------------- | ------------ | ------------------------ | ------------- | ------- | ---------- | ---------------- | ----------- | ------------------ | ----------- |
-| 2026-11-20 | varnholt    | not_done (exit 1); the run recorded stalled | 23 of 23           | 77 of 79        | 475,393      | 27,111,526               | 226,499       | 50      | 100        | 170,570          | 76,652      | 196,255            | at least 28 |
+| Run        | Application | Build    | Agent       | Referee                                     | Hidden rules agree                 | Steps unchanged | Peak context | Prompt tokens, all turns | Output tokens | Minutes | Tool calls | REA result bytes | Skill bytes | Other result bytes | Captures    | Rule breaks |
+| ---------- | ----------- | -------- | ----------- | ------------------------------------------- | ---------------------------------- | --------------- | ------------ | ------------------------ | ------------- | ------- | ---------- | ---------------- | ----------- | ------------------ | ----------- | ----------- |
+| 2026-11-20 | varnholt    | 77500a50 | first-trial | not_done (exit 1); the run recorded stalled | 23 of 23 (0 disagree, 0 undecided) | 77 of 79        | 475,393      | 27,111,526               | 226,499       | 50      | 100        | 170,570          | 76,652      | 196,255            | at least 28 | 0           |
 
 Its `notes` say what differs from a prepared cell: the build it ran on
 (branch head b68840e5 at the time; the verdict was recomputed with 77500a50),
 the skill installed by the agent itself, no shim log, and the ports of the
-replay. The model is in the file.
+replay. The last note says how the file was rewritten when score files
+stopped naming models: the label `first-trial` where the model id was, and
+the client's paths by placeholder; no number changed.
 
 ### How the scorers were proven
 
@@ -508,6 +533,19 @@ On 2026-11-21, against the judge at 0e089b3:
 
 `selftest.mjs` repeats all but the two rows about the first trial's clone,
 which is not in the repository.
+
+The two applications added on 2026-11-21, through `clone-check-app.mjs`
+against the same judge:
+
+| Case                                                                       | Expected                         | Checked                                                                                              |
+| -------------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| brassnook against an unmodified copy                                       | every rule agrees                | 26 of 26 agree, 108 of 108 steps unchanged                                                           |
+| seedlark against an unmodified copy                                        | every rule agrees                | 33 of 33 agree, 143 of 143 steps unchanged                                                           |
+| brassnook against a copy with every id, class and data attribute renamed   | every rule agrees                | 26 of 26 agree, 108 of 108 steps unchanged                                                           |
+| seedlark against a copy with every id, class and data attribute renamed    | every rule agrees                | 33 of 33 agree, 143 of 143 steps unchanged                                                           |
+| the same two copies with the authors' own pages scenarios                  | (what the portable files fix)    | brassnook 25 and seedlark 30 page steps `unknown`, 9 and 10 rules undecided                          |
+| brassnook `--mutant` (its author's R10: halves rounded up)                 | the author's five changed steps  | the same five steps changed; R05, R06, R10, R23 and R26 disagree, because those steps show the price |
+| seedlark `--mutant` (its author's R09: tie-break reversed when descending) | the author's three changed steps | the same three steps changed; only R09 disagrees                                                     |
 
 ## Files
 
@@ -527,10 +565,12 @@ bench/
     selftest.mjs            the harness's own proof; selftest/ holds its cases
     workflows/              bench-cells.js, the script the workflow tool runs
     lib/                    readers and helpers; transcript.mjs is the one to
-                            change for another driver
+                            change for another driver; agent-label.mjs keeps
+                            model ids out of score files
   clone/
     README.md               the layout an application must have
-    apps/<id>/              one application: app.json, original/, hidden/
+    apps/<id>/              one application: app.json, original/, hidden/;
+                            varnholt, brassnook and seedlark
   tasks/<id>/               one task: task.json, proof.json, input sources
   results/                  score files
 ```
