@@ -100,11 +100,8 @@ it("finds a list and an object different whatever is declared volatile beneath t
       side: null,
     },
   ]);
-  // No declaration took effect beneath the container.
-  expect(keyed.volatile_fields.map(({ honoured }) => honoured)).toEqual([
-    false,
-    false,
-  ]);
+  // Nothing beneath the container is judged, so no declaration took effect there.
+  expect(keyed.volatile_fields).toEqual([]);
   // The control: the same declaration is honoured for a list on both sides.
   const listed = await compare(left, [ids(["8c9d", "0e1f"])], {
     volatile_fields: [{ step_id: "read", pointer: "/ids/*" }],
@@ -123,6 +120,27 @@ it("finds a list and an object different whatever is declared volatile beneath t
     { volatile_fields: [{ step_id: "*", pointer: "/*/id" }] },
   );
   expect(brief(root, "read")).toEqual(["changed", "body/value - "]);
+  // A list that is empty in one left capture is a list in both: an empty object is another kind.
+  const sometimesEmpty = [ids(["0a1b"]), ids([])];
+  const listKind = [
+    { step_id: "read", pointer: "/ids" },
+    { step_id: "read", pointer: "/ids/*" },
+  ];
+  expect(
+    brief(
+      await compare(sometimesEmpty, [ids({}), ids({})], {
+        volatile_fields: listKind,
+      }),
+      "read",
+    ),
+  ).toEqual(["changed", "body/value - /ids"]);
+  expect(
+    (
+      await compare(sometimesEmpty, [ids([]), ids(["2c3d"])], {
+        volatile_fields: listKind,
+      })
+    ).verdict,
+  ).toBe("unchanged");
   // A side that answers with either kind disagrees with itself: unstable, declared or not, never a match.
   const either = [
     ids(["0a1b", "2c3d"]),
@@ -725,6 +743,50 @@ it("honours a `*` declaration only at the list positions where the left's own re
       pointer: "/items/*/id",
       declared: true,
       honoured: true,
+    },
+  ]);
+});
+
+it("holds an honoured leaf to the presence, JSON type and layout the left's own values share", async () => {
+  const volatile_fields = [{ step_id: "read", pointer: "/at" }];
+  const status = async (left: JsonValue[], right: JsonValue) =>
+    stepOf(
+      await compare(
+        left.map((value) => json(value)),
+        [json(right), json(right)],
+        { volatile_fields },
+      ),
+      "read",
+    ).status;
+  // The original gives the field in one capture only: a clone may leave it out, and may not answer a number.
+  const sometimes = [{ n: 1, at: "2026-01-01" }, { n: 1 }];
+  expect(await status(sometimes, { n: 1 })).toBe("unchanged");
+  expect(await status(sometimes, { n: 1, at: "2027-12-31" })).toBe("unchanged");
+  expect(await status(sometimes, { n: 1, at: 12_345 })).toBe("changed");
+  // null or a date on the original: either on the clone, never another JSON type.
+  const nullable = [{ at: null }, { at: "2026-01-01" }];
+  expect(await status(nullable, { at: null })).toBe("unchanged");
+  expect(await status(nullable, { at: 7 })).toBe("changed");
+  // Given in every capture with layouts that differ: a clone that leaves the field out differs.
+  const free = [
+    { n: 1, at: "a b" },
+    { n: 1, at: "c-d e" },
+  ];
+  expect(await status(free, { n: 1, at: "x y z" })).toBe("unchanged");
+  const without = await compare(
+    [json(free[0]!), json(free[1]!)],
+    [json({ n: 1 })],
+    { volatile_fields },
+  );
+  expect(stepOf(without, "read").findings).toEqual([
+    {
+      dimension: "body",
+      category: "shape",
+      request: "GET /api/thing#1",
+      pointer: "/at",
+      expected: '"a b"',
+      actual: "<absent>",
+      side: null,
     },
   ]);
 });

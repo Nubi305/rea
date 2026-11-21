@@ -319,9 +319,9 @@ const nameChangedLeaves = (
 
 /**
  * Compare the reply bodies of one matched transaction: exactly by leaf, with
- * the differ naming what it sees. A container that is a list on one side and
- * an object on the other is told at the container, whatever lies beneath it
- * and whatever is declared there.
+ * the differ naming what it sees. A container that is a list in one reply and
+ * an object in another is told at the container, whatever it holds and
+ * whatever is declared there.
  */
 export const compareReplies = (
   context: StepContext,
@@ -349,28 +349,19 @@ export const compareReplies = (
       finding("body", category, { request, pointer: pattern, ...values }),
     );
   };
-  /** Containers of one kind on the left and another on the right. */
-  const recast = new Set<string>();
   for (const judgement of judgements) {
     const pattern = volatilePointerPattern(judgement.path);
     const { outcome, kinds } = judgement;
-    for (const side of judgement.varies)
-      context.volatile({
-        side,
-        pointer: pattern,
-        declared: context.declared(judgement.path),
-        honoured: outcome === "honoured" || outcome === "shape",
-      });
+    // A container that is a list in one reply and an object in another is told once, for all it holds.
     if (kinds !== undefined) {
       const held = (side: Side, kind: JsonContainerKind): string =>
         shown(containerAt(replies[side], kinds.pointer, kind));
-      if (outcome === "changed") {
-        recast.add(kinds.pointer);
+      if (outcome === "changed")
         once("value", kinds.pointer, {
           expected: held("left", kinds.expected),
           actual: held("right", kinds.actual),
         });
-      } else {
+      else {
         const side: Side = outcome === "left-unsteady" ? "left" : "right";
         once(
           "repeats-differ",
@@ -383,6 +374,13 @@ export const compareReplies = (
       }
       continue;
     }
+    for (const side of judgement.varies)
+      context.volatile({
+        side,
+        pointer: pattern,
+        declared: context.declared(judgement.path),
+        honoured: outcome === "honoured" || outcome === "shape",
+      });
     const expected = shown(judgement.expected);
     const actual = shown(judgement.actual);
     if (outcome === "shape")
@@ -414,12 +412,8 @@ export const compareReplies = (
     if (outcome === "declared-not-shown" && pattern !== judgement.pointer)
       context.steadyListPosition(pattern);
   }
-  // What lies beneath a container of another kind is told at the container.
   const changed = judgements.filter(
-    ({ outcome, kinds, pointer }) =>
-      outcome === "changed" &&
-      kinds === undefined &&
-      ![...recast].some((container) => covers(container, pointer)),
+    ({ outcome, kinds }) => outcome === "changed" && kinds === undefined,
   );
   const differences = nameChangedLeaves(context, request, replies, changed);
   const leftVaried = new Set(

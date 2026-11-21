@@ -175,6 +175,12 @@ it("compares the kinds of containers before any declaration, and tells the diffe
       judgement.outcome,
       judgement.kinds,
     ]);
+  const recast = (
+    pointer: string,
+    expected: "array" | "object",
+    actual: "array" | "object",
+    outcome = "changed",
+  ) => [[pointer, outcome, { pointer, expected, actual }]];
   // Every leaf beneath varies on the left and is declared: the list is still not an object.
   expect(
     kinds(
@@ -182,42 +188,78 @@ it("compares the kinds of containers before any declaration, and tells the diffe
       [{ ids: { "0": "e", "1": "f" } }, { ids: { "0": "g", "1": "h" } }],
       ["/ids/*"],
     ),
-  ).toEqual(
-    ["/ids/0", "/ids/1"].map((pointer) => [
-      pointer,
-      "changed",
-      { pointer: "/ids", expected: "array", actual: "object" },
-    ]),
-  );
+  ).toEqual(recast("/ids", "array", "object"));
   // The other way round, declared by its index, and at the root.
   expect(
     kinds([{ m: { "0": "a" } }, { m: { "0": "b" } }], [{ m: ["x"] }], ["/m/0"]),
-  ).toEqual([
-    ["/m/0", "changed", { pointer: "/m", expected: "object", actual: "array" }],
-  ]);
+  ).toEqual(recast("/m", "object", "array"));
   expect(
     kinds([[{ id: "a" }], [{ id: "b" }]], [{ "0": { id: "z" } }], ["/*/id"]),
+  ).toEqual(recast("", "array", "object"));
+  // The outermost container that differs stands for everything inside it.
+  expect(kinds([[["a"]]], [{ "0": { "0": "a" } }], [])).toEqual(
+    recast("", "array", "object"),
+  );
+  // A list that is empty in one left repeat is a list in both: an empty object is another kind, whatever is declared.
+  const sometimesEmpty = [{ a: ["x1"] }, { a: [] }];
+  expect(kinds(sometimesEmpty, [{ a: {} }], ["/a", "/a/*"])).toEqual(
+    recast("/a", "array", "object"),
+  );
+  expect(kinds([{ a: [] }], [{ a: { k: 1 } }], [])).toEqual(
+    recast("/a", "array", "object"),
+  );
+  // The control: an empty list on the right is covered by the same declarations.
+  expect(
+    kinds(sometimesEmpty, [{ a: [] }], ["/a", "/a/*"]).map(
+      ([pointer, outcome]) => [pointer, outcome],
+    ),
   ).toEqual([
-    ["/0/id", "changed", { pointer: "", expected: "array", actual: "object" }],
-  ]);
-  // The outermost container that differs is the one named.
-  expect(kinds([[["a"]]], [{ "0": { "0": "a" } }], [])).toEqual([
-    ["/0/0", "changed", { pointer: "", expected: "array", actual: "object" }],
+    ["/a/0", "honoured"],
+    ["/a", "honoured"],
   ]);
   // A side whose own repeats answer with either kind disagrees with itself, declared or not.
   const either = [{ items: ["x"] }, { items: { "0": "x" } }];
-  const mixed = { pointer: "/items", expected: "array", actual: "object" };
   for (const declared of [[], ["/items/0"], ["/items/*"]]) {
-    expect(kinds(either, [], declared)).toEqual([
-      ["/items/0", "left-unsteady", mixed],
-    ]);
-    expect(kinds(either, [{ items: ["y"] }], declared)).toEqual([
-      ["/items/0", "left-unsteady", mixed],
-    ]);
-    expect(kinds([either[0]!, either[0]!], either, declared)).toEqual([
-      ["/items/0", "right-unsteady", mixed],
-    ]);
+    expect(kinds(either, [], declared)).toEqual(
+      recast("/items", "array", "object", "left-unsteady"),
+    );
+    expect(kinds(either, [{ items: ["y"] }], declared)).toEqual(
+      recast("/items", "array", "object", "left-unsteady"),
+    );
+    expect(kinds([either[0]!, either[0]!], either, declared)).toEqual(
+      recast("/items", "array", "object", "right-unsteady"),
+    );
   }
+});
+
+it("compares the presence, JSON type and layout of an honoured leaf as far as the left's own values share them", () => {
+  const outcome = (
+    left: readonly JsonValue[],
+    right: JsonValue,
+    pointer: string,
+  ) => judge(left, [right], [pointer]).map((judged) => judged.outcome);
+  // Held in one left repeat only: the right may lack it, and may not hold another JSON type or layout.
+  const sometimes = [{ n: 1, at: "2026-01-01" }, { n: 1 }];
+  expect(outcome(sometimes, { n: 1 }, "/at")).toEqual(["honoured"]);
+  expect(outcome(sometimes, { n: 1, at: "2027-12-31" }, "/at")).toEqual([
+    "honoured",
+  ]);
+  expect(outcome(sometimes, { n: 1, at: 12_345 }, "/at")).toEqual(["shape"]);
+  expect(outcome(sometimes, { n: 1, at: "soon" }, "/at")).toEqual(["shape"]);
+  // null or a text on the left covers either of the two, never a number or a list.
+  const nullable = [{ at: null }, { at: "2026-01-01" }];
+  expect(outcome(nullable, { at: null }, "/at")).toEqual(["honoured"]);
+  expect(outcome(nullable, { at: "any text" }, "/at")).toEqual(["honoured"]);
+  expect(outcome(nullable, { at: 7 }, "/at")).toEqual(["shape"]);
+  expect(outcome(nullable, { at: [] }, "/at")).toEqual(["shape"]);
+  // Held in every left repeat with layouts that differ: any text is covered, a right reply without the leaf is not.
+  const free = [
+    { n: 1, note: "a b" },
+    { n: 1, note: "c-d e" },
+  ];
+  expect(outcome(free, { n: 1, note: "x y z" }, "/note")).toEqual(["honoured"]);
+  expect(outcome(free, { n: 1, note: 5 }, "/note")).toEqual(["shape"]);
+  expect(outcome(free, { n: 1 }, "/note")).toEqual(["shape"]);
 });
 
 it("reads a JSON value as leaves in document order, with the pattern a declaration would use", () => {
