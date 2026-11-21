@@ -18,8 +18,6 @@ Contents:
 
 # Clone runs: rebuild a web application with a referee
 
-<!-- keywords: clone, copy, replicate, rebuild a website, web app, does the rebuild match the original -->
-
 Use this when the user asks to rebuild ("clone") a web application they can
 run and reset on this machine, and wants to know when the rebuild matches. A
 clone run is one folder on disk, seven roles that work from it, and a referee.
@@ -55,7 +53,7 @@ choices, and say that no REA verdict backs the result.
 
 ## The loop
 
-<!-- keywords: stalled, stuck, what now, next step, exit status, referee -->
+<!-- keywords: stalled, stuck, what now -->
 
 ```sh
 rea evaluate-clone-run /abs/run --exit-code --json
@@ -378,8 +376,6 @@ name that implements the obligations.
 
 ### Verifier
 
-<!-- keywords: evidence_stale, stale evidence, verify, replay -->
-
 In a clone run the verifier replays the same scenarios against the clone so
 the referee can compare. Where a helper is available it is not the builder.
 
@@ -522,8 +518,6 @@ printed. The helper answers with the paths and ids it wrote.
 - Restart the clone after every edit and before capturing it.
 
 ## Waivers, declarations and when to stop
-
-<!-- keywords: stalled, give up, done, waiver, declared difference -->
 
 A waiver is a named person accepting a stated gap. Only the user, or a person
 the user names, grants one; the lead records the person and the reason in

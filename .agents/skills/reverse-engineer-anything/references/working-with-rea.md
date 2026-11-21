@@ -77,6 +77,8 @@ and target-execution boundaries.
 
 ## Work summary-first
 
+<!-- keywords: result too large, truncated, cut off, oversized reply -->
+
 Start with the default result and use its inline Evidence and graph context.
 For a JavaScript application or ELF layout whose size is unknown or large,
 call `analyze_javascript_application` or `inspect_binary_layout` with

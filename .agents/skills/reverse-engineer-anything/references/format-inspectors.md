@@ -244,6 +244,8 @@ the file. Each inspector is its own section.
 
 ## DWARF compile units: `inspect_dwarf_units`
 
+<!-- keywords: debug information, source files, optimisation level, optimization, compiler flags -->
+
 - DWARF compile units: `inspect_dwarf_units` with the explicit local ELF,
   Mach-O, or PE file, or the DWARF file inside a `.dSYM` bundle. This built-in
   target-free inspection requires no disassembler. It reads DWARF 2 through 5

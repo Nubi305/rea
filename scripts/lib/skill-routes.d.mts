@@ -13,6 +13,14 @@ export declare const ROUTE_REFERENCES: Readonly<{
 
 export declare const FORK_CORRECTIONS: readonly ForkCorrection[];
 
+export interface ForkKeywords {
+  readonly section: string;
+  readonly reason: string;
+  readonly keywords: string;
+}
+
+export declare const FORK_KEYWORDS: readonly ForkKeywords[];
+
 export declare const skillSections: (text: string) => {
   readonly preamble: string;
   readonly sections: { heading: string; text: string }[];

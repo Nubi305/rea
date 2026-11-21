@@ -7,6 +7,8 @@ explicit path or endpoint and do not need it.
 
 ## Asked to rebuild or clone a web application the user can run and reset locally
 
+<!-- keywords: rebuild a website, copy, replicate, check it matches the original -->
+
 - Asked to rebuild or clone a web application the user can run and reset
   locally: read [references/clone-runs.md](clone-runs.md) before
   touching the original, and take no other route here. A clone run starts
@@ -83,6 +85,8 @@ explicit path or endpoint and do not need it.
 
 ## UEFI firmware volumes and NVAR stores: `inspect_artifact`
 
+<!-- keywords: firmware image, embedded firmware, Binwalk, Unblob, extract firmware -->
+
 - UEFI firmware volumes and NVAR stores: use bundled `inspect_artifact`.
   For external firmware scanning or extraction on Linux, use
   `inspect_firmware_regions` or `extract_firmware` with caller-supplied
@@ -114,6 +118,8 @@ explicit path or endpoint and do not need it.
 - User-owned browser page already open: `list_browser_targets`.
 
 ## Passive traffic capture of a SPA (`inspect_web_page` on a target from `list_browser_targets`): `inspect_web_page`
+
+<!-- keywords: which API endpoints a page calls, page requests -->
 
 - Passive traffic capture of a SPA (`inspect_web_page` on a target from
   `list_browser_targets`): the default scope is the page's own origin,
@@ -157,6 +163,8 @@ explicit path or endpoint and do not need it.
 - User-owned Electron runtime already open: `list_electron_targets`. Before an electron-main Inspector attempt, check packaged fuses with `inspect_electron_fuses`; disabled `EnableNodeCliInspectArguments` means the app ignores `--inspect`.
 
 ## Native executable, library, or analysis database: `open_binary`
+
+<!-- keywords: decompile a function, licence check, license key, key validation -->
 
 - Native executable, library, or analysis database: `open_binary`, then
   use focused analysis tools directly; call `binary_overview` when metadata or
