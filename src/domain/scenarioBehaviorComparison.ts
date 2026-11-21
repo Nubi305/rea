@@ -518,7 +518,10 @@ const judgeContainerKinds = (
     replies: readonly ReadonlyMap<string, ReplyContainer>[],
     pointer: string,
   ): JsonContainerKind[] =>
-    replies.flatMap((reply) => reply.get(pointer)?.kind ?? []);
+    replies.flatMap((reply) => {
+      const container = reply.get(pointer);
+      return container === undefined ? [] : [container.kind];
+    });
   const order = new Map<string, ReplyContainer>();
   for (const reply of lefts)
     for (const [pointer, container] of reply)
