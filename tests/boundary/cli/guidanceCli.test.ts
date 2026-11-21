@@ -136,3 +136,22 @@ it("continues a CLI search with a query- and bundle-bound cursor", async () => {
   ]);
   expect(wrongQuery.exitCode).not.toBe(0);
 });
+
+it("answers a command's name or description word with its help, not with nothing", async () => {
+  const found = await run(["guidance", "--query", "openapi"]);
+  expect(found.exitCode, found.stdout).toBe(0);
+  expect(JSON.parse(found.stdout)).toMatchObject({
+    status: "matches",
+    matches: [],
+    commands: [
+      {
+        command: "inspect-api-contract",
+        help: "rea inspect-api-contract --help",
+      },
+    ],
+  });
+  const named = JSON.parse(
+    (await run(["guidance", "--query", "inspect-sqlite-database"])).stdout,
+  ) as { readonly status: string };
+  expect(named.status).toBe("matches");
+});

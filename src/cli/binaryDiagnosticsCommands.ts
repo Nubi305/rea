@@ -65,7 +65,8 @@ export const registerBinaryDiagnosticsCommands = (
     logger,
     contract("inspect_dwarf_units"),
     {
-      description: "Inspect DWARF compile units without executing the image",
+      description:
+        "Inspect DWARF debug information: compile units and their source files, without executing the image",
       positionals: ["path"],
       callerPaths: ["path"],
       fields: {

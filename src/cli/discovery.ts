@@ -491,7 +491,7 @@ const discoveryAnswer = (
     return answer(PRODUCT_IDENTITY.packageVersion);
   if (command.length === 0) return answer(rootPage(cli));
   if (command[0] === "help" && !isCommand(cli, "help")) {
-    const page = helpTopicPage(cli, command[1]);
+    const page = helpTopicPage(cli, command[1], command.slice(2));
     return answer(
       page.exitCode === 0
         ? page.text
