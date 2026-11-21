@@ -412,7 +412,10 @@ Each item's `command` is one of three:
   serves `start_state_unknown` and a `parity_unknown` whose finding is
   `not-recorded` or `single-observation` on that side; those items of one
   side and scenario carry the same command. A `declared-not-shown` finding
-  carries the original's capture command, whichever side it was found on. A
+  carries the original's capture command, whichever side it was found on.
+  The message names the side's reset command when `target.json` records one,
+  and says whether one more capture can supply the data: only a reply body
+  folds across captures. A
   reply body that no capture of either side recorded gets no capture command,
   because one more capture records as little.
 - A removal, `rm '<file>'…` (`rm -r` for a directory): for a rejected Evidence
@@ -600,7 +603,8 @@ remedy. The messages state the cause:
 - The item of a step that did not complete names the failed step and its
   Evidence file and quotes the first line of the failure the capture
   recorded, at most 300 characters. It adds advice about redirects only when
-  that text names one.
+  that text names one; without a recorded text it says what makes a step of
+  that action fail.
 - A body recorded by no capture of either side is a download or a reply over
   64 KiB on both sides. For a download the prober adds a `request` step for
   the file and names the click `setup-`.
@@ -842,7 +846,7 @@ the rest. The category alone decides what the finding makes of its step:
 - An honored volatile field is compared by presence, JSON type and string
   layout, as far as the left's values share them; a right value outside that
   is `shape`. A declared field the left holds steady over two or more replies
-  and that differs on the right is `declared-not-shown`, and `changed` once
+  and that differs on the right with the same shape is `declared-not-shown`, and `changed` once
   the declaration is withdrawn. A value the left recorded once is
   `single-observation`.
 - One difference in accessibility text is listed at the first step that
@@ -1039,6 +1043,9 @@ for both sides.
   precede the render it caused. A click that waits for its reply avoids this.
 - A `request` step sends a JSON body or none, so a body that is not
   well-formed JSON cannot be probed.
+- A click or press that waits for its reply fails the step when the reply is
+  not 2xx, and a role locator does not take the roles `status`, `alert` or
+  `heading`: wait for a notice by attribute.
 - An application served from more than one origin is outside a clone run.
 - A capture file runs from a few hundred kilobytes to several megabytes:
   0.22 MB for sixty small `request` steps, and 0.46 to 2.9 MB each in a
