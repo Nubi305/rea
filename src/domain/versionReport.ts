@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { FORK_IDENTITY, forkIdentitySchema } from "./forkIdentity.js";
 import {
   javaScriptRuntime,
   SUPPORTED_NODE_VERSION_RANGE,
@@ -28,6 +29,7 @@ export const versionReportSchema = z.strictObject({
     range: z.string(),
     satisfied: z.boolean(),
   }),
+  fork: forkIdentitySchema,
 });
 
 export type VersionReport = z.infer<typeof versionReportSchema>;
@@ -61,5 +63,6 @@ export const versionReport = (host: VersionReportHost): VersionReport => {
       range: SUPPORTED_NODE_VERSION_RANGE,
       satisfied: supportsJavaScriptRuntime(runtime),
     },
+    fork: FORK_IDENTITY,
   };
 };

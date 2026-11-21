@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { expect } from "vitest";
 import { z } from "zod";
 
+import { FORK_IDENTITY } from "../../../src/domain/forkIdentity.js";
 import { versionReportSchema } from "../../../src/domain/versionReport.js";
 import { SUPPORTED_NODE_VERSION_RANGE } from "../../../src/domain/runtimeVersion.js";
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
@@ -49,6 +50,7 @@ cliTest(
         range: SUPPORTED_NODE_VERSION_RANGE,
         satisfied: true,
       },
+      fork: FORK_IDENTITY,
     });
     expect(json.stdout).not.toContain(marker);
 
