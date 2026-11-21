@@ -5,6 +5,12 @@ import {
   type AnalysisErrorOptions,
 } from "./analysisErrorBase.js";
 
+/** One call that reads a target without a deep provider. */
+export interface ProviderFreeCall {
+  readonly operation: string;
+  readonly arguments: Readonly<Record<string, string>>;
+}
+
 /** Stable failure classes for target-bound deep-provider selection. */
 export type ProviderSelectionFailureReason =
   | "unknown_provider"
@@ -41,6 +47,8 @@ export interface ProviderSelectionErrorOptions extends Pick<
   readonly requestedProviderId: string;
   readonly candidateIds: readonly string[];
   readonly rejections?: readonly ProviderSelectionRejection[];
+  /** Calls that read the target without a deep provider, for a missing one. */
+  readonly withoutProvider?: readonly ProviderFreeCall[];
 }
 
 /** No configured provider can satisfy a requested operation or target binding. */
@@ -51,6 +59,7 @@ export class ProviderSelectionError extends AnalysisError {
   readonly requestedProviderId: string;
   readonly candidateIds: readonly string[];
   readonly rejections: readonly ProviderSelectionRejection[];
+  readonly withoutProvider: readonly ProviderFreeCall[];
   readonly remediationAction: string | undefined;
   override readonly userMessage: string;
 
@@ -70,8 +79,11 @@ export class ProviderSelectionError extends AnalysisError {
       ...rejection,
       diagnostics: structuredClone(rejection.diagnostics),
     }));
+    this.withoutProvider = [...(options.withoutProvider ?? [])];
     this.remediationAction =
-      options.remediationAction ?? requestedProviderRepair(options);
+      options.remediationAction ??
+      requestedProviderRepair(options) ??
+      providerFreeRepair(options);
     this.userMessage =
       options.userMessage ?? providerSelectionUserMessage(options);
   }
@@ -102,6 +114,15 @@ const requestedProviderRepair = (
       )?.remediation
     : undefined;
 
+/** With no provider ready, the fix is one rejection's repair or a provider-free read. */
+const providerFreeRepair = (
+  options: ProviderSelectionErrorOptions,
+): string | undefined =>
+  options.reason === "provider_unavailable" &&
+  (options.withoutProvider?.length ?? 0) > 0
+    ? "Apply one fix from details.rejections, or make a call from details.without_provider now (fill in SYMBOL or ADDRESS)."
+    : undefined;
+
 /** True when every recorded rejection describes availability, not target support. */
 const providerAvailabilityOnly = (
   rejections: readonly ProviderSelectionRejection[] | undefined,
@@ -120,7 +141,10 @@ const providerSelectionUserMessage = (
       return `The requested analysis provider is unknown. Choose one of: ${options.candidateIds.join(", ") || "no configured providers"}.`;
     case "provider_unavailable":
       return providerAvailabilityOnly(options.rejections)
-        ? "Provider selection failed local readiness checks. No target-support refusal was reported. Review the local provider diagnostics or run `rea doctor`, then retry."
+        ? options.requestedProviderId === "auto" &&
+          (options.withoutProvider?.length ?? 0) > 0
+          ? "No analysis provider is ready; none refused this target."
+          : "Provider selection failed local readiness checks. No target-support refusal was reported. Review the local provider diagnostics or run `rea doctor`, then retry."
         : "The selected analysis provider is unavailable. Review the reported local diagnostics or run `rea doctor`, then retry.";
     case "target_unsupported":
       return "The selected analysis provider does not support this target. Choose another provider or open a supported extracted binary.";

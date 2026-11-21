@@ -1,3 +1,4 @@
+import { providerFreeProbes } from "../../domain/pathInspectorRoutes.js";
 import { ProviderInspectionScope } from "../../ports/ProviderInspectionScope.js";
 import {
   AnalysisCleanupLease,
@@ -583,6 +584,7 @@ export class AnalysisProviderRegistry {
   unboundOperationError(
     operation: string,
     selection: AnalysisProviderSelection,
+    target?: BinaryTarget,
   ): ProviderSelectionError {
     const reason: ProviderSelectionFailureReason =
       selection.candidates.length > 0 &&
@@ -597,6 +599,7 @@ export class AnalysisProviderRegistry {
       selection.candidates,
       {
         operation,
+        ...(target === undefined ? {} : { target }),
       },
     );
   }
@@ -620,9 +623,17 @@ export class AnalysisProviderRegistry {
     if (initial.targetSupport.status === "unsupported")
       return err(selectionError("target_unsupported", providerId, baseline));
     if (initial.availability.status === "unavailable")
-      return err(selectionError("provider_unavailable", providerId, baseline));
+      return err(
+        selectionError("provider_unavailable", providerId, baseline, {
+          target,
+        }),
+      );
     if (initial.targetSupport.status === "unknown")
-      return err(selectionError("provider_unavailable", providerId, baseline));
+      return err(
+        selectionError("provider_unavailable", providerId, baseline, {
+          target,
+        }),
+      );
     const evaluation = await evaluateAnalysisProviderCandidate(
       provider,
       initial,
@@ -658,7 +669,11 @@ export class AnalysisProviderRegistry {
       );
     if (refusal !== undefined) return err(refusal);
     if (evaluated.profile === undefined)
-      return err(selectionError("provider_unavailable", providerId, statuses));
+      return err(
+        selectionError("provider_unavailable", providerId, statuses, {
+          target,
+        }),
+      );
     return ok(
       selectedResult(
         providerId,
@@ -899,6 +914,8 @@ const selectionError = (
   candidateChoices: readonly AnalysisProviderCandidateStatus[],
   options: {
     readonly operation?: string;
+    /** The target, whose provider-free reading a missing provider names. */
+    readonly target?: BinaryTarget;
     readonly rejectionCandidates?: readonly AnalysisProviderCandidateStatus[];
     readonly refusal?: Pick<
       ProviderSelectionErrorOptions,
@@ -920,6 +937,18 @@ const selectionError = (
     rejections: selectionRejections(
       options.rejectionCandidates ?? candidateChoices,
     ),
+    ...(reason === "provider_unavailable" && options.target !== undefined
+      ? {
+          withoutProvider: providerFreeProbes(
+            options.target.callerInputPath ??
+              options.target.sourcePath ??
+              options.target.path,
+            options.target.format,
+          ).flatMap(({ operation, arguments: call }) =>
+            call === undefined ? [] : [{ operation, arguments: call }],
+          ),
+        }
+      : {}),
   });
 
 const selectionRejections = (

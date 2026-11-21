@@ -13,16 +13,21 @@ const [
   { createCliShell },
   { createDirectAnalysis },
   { cliCommands },
+  { listedDescription },
 ] = await Promise.all([
   read("cli/cliCommandRegistrations.js"),
   read("cli/cliShell.js"),
   read("composition/directAnalysis.js"),
   read("cli/commandRegistry.js"),
+  read("cli/helpIndex.js"),
 ]);
 
 // Registration is independent of the host account and user configuration.
 const home = await mkdtemp(join(tmpdir(), "rea-cli-commands-"));
 const recorded = {};
+// The one-line description of each command, which `rea guidance --query`
+// searches when no guide section matches, without loading every registrar.
+const described = {};
 try {
   const registrations = await Promise.all(
     CLI_REGISTRATION_ORDER.map(async (id) => {
@@ -36,8 +41,11 @@ try {
               cliCommands(context.cli).map(({ name }) => name),
             );
             registration.register(module, context);
-            for (const { name } of cliCommands(context.cli))
-              if (!before.has(name)) recorded[name] = id;
+            for (const { name, definition } of cliCommands(context.cli))
+              if (!before.has(name)) {
+                recorded[name] = id;
+                described[name] = listedDescription(definition.description);
+              }
           },
         },
       };
@@ -62,6 +70,15 @@ if (Object.keys(recorded).length === 0)
   throw new Error("No CLI commands were registered");
 const sorted = Object.fromEntries(
   Object.entries(recorded).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+);
+await writeFile(
+  join(compiled, "recordedCliCommandDescriptions.js"),
+  `/** Recorded from the compiled CLI registration table by scripts/record-cli-commands.mjs; do not edit. */\nexport const RECORDED_CLI_COMMAND_DESCRIPTIONS = Object.freeze(${JSON.stringify(
+    Object.fromEntries(
+      Object.keys(sorted).map((name) => [name, described[name]]),
+    ),
+  )});\n`,
+  "utf8",
 );
 await writeFile(
   join(compiled, "recordedCliCommandRegistrations.js"),

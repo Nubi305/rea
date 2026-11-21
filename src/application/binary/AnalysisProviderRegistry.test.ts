@@ -1897,3 +1897,45 @@ it("does not inspect a new selection after cancellation while its retained candi
     },
   ]);
 });
+
+describe("analysis provider registry: reading without a provider", () => {
+  it("names provider-free commands for the target when no provider is ready", async () => {
+    const registry = new AnalysisProviderRegistry([
+      candidate("alpha", { available: false, unconfigured: true }).provider,
+    ]);
+    const selection = await registry.select(DATABASE_TARGET);
+    if (!selection.ok) throw selection.error;
+    const projected = projectAnalysisError(
+      registry.unboundOperationError("binary_overview", selection.value, {
+        path: "/tmp/licensed",
+        sha256: "b".repeat(64),
+        kind: "executable",
+        format: "elf",
+        architecture: "x86_64",
+        availableArchitectures: ["x86_64"],
+      } as BinaryTarget),
+    );
+    expect(projected.details).toMatchObject({
+      without_provider: expect.arrayContaining([
+        {
+          operation: "inspect_with_objdump",
+          arguments: { path: "/tmp/licensed", operation: "symbols" },
+        },
+        {
+          operation: "gdb_console",
+          arguments: { executable: "/tmp/licensed", command: "x/s ADDRESS" },
+        },
+      ]),
+    });
+    // An analysis database has no file-level reading without its provider.
+    expect(
+      projectAnalysisError(
+        registry.unboundOperationError(
+          "binary_overview",
+          selection.value,
+          DATABASE_TARGET,
+        ),
+      ).details,
+    ).not.toHaveProperty("without_provider");
+  });
+});

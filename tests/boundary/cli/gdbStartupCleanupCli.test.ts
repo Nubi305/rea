@@ -315,3 +315,63 @@ it.each(["incomplete", "interrupt", "control"] as const)(
     }
   },
 );
+
+it.each(["run", "r", "start", "attach 42", "continue", "print 1 | shell"])(
+  "refuses %s without an inferior TTY before starting GDB",
+  async (inputCommand) => {
+    const manager = {
+      start: vi.fn(),
+      closeAll: vi.fn(),
+    } as unknown as GdbSessionManager;
+    const command = registerGdbCommand(() => manager);
+    const result = await command.run({
+      formatExplicit: false,
+      args: { command: inputCommand },
+      options: {},
+    });
+    expect(result).toMatchObject({
+      code: "invalid_request",
+      details: {
+        issues: [
+          expect.objectContaining({
+            path: ["inferior_tty"],
+            message: expect.stringContaining("only a static read runs"),
+          }),
+        ],
+      },
+    });
+    expect(manager.start).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  "x/s 0x2008",
+  "disassemble verify_key",
+  "info functions",
+  "print sizeof(int)",
+  "p/x 1",
+])(
+  "starts GDB without an inferior TTY for the static read %s",
+  async (inputCommand) => {
+    const manager = {
+      start: vi.fn(async () =>
+        err(new AnalysisOutputError("start_gdb_session", "startup failed")),
+      ),
+      closeAll: vi.fn(async () => undefined),
+    } as unknown as GdbSessionManager;
+    const originalExitCode = process.exitCode;
+    const command = registerGdbCommand(() => manager);
+    try {
+      await command.run({
+        formatExplicit: false,
+        args: { command: inputCommand },
+        options: { executable: "/bin/true" },
+      });
+      expect(manager.start).toHaveBeenCalledWith(expect.anything(), {
+        executable: "/bin/true",
+      });
+    } finally {
+      process.exitCode = originalExitCode;
+    }
+  },
+);

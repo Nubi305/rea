@@ -29,7 +29,10 @@ import {
   type ContractCommandContext,
 } from "./contractCommand.js";
 import type { ReverseEngineeringService } from "../application/reverse/ReverseEngineeringService.js";
-import { gdbOneShotCommandMayInvalidateDetachProof } from "../gdb/GdbSessionManager.js";
+import {
+  gdbOneShotCommandIsStaticRead,
+  gdbOneShotCommandMayInvalidateDetachProof,
+} from "../gdb/GdbSessionManager.js";
 import {
   createGdbSessionManager,
   createRizinDebugSessionManager,
@@ -238,7 +241,7 @@ export const registerReverseEngineeringCommands = (
     CLI_COMMANDS.debugWithGdb,
     {
       description:
-        "Run one unrestricted GDB console command in an ephemeral MI session; provide an inferior TTY so a live target can be safely detached",
+        "Run one GDB console command in an ephemeral MI session; a static read (x/s, disassemble, info) needs no TTY",
       args: z.object({
         command: z
           .string()
@@ -256,8 +259,9 @@ export const registerReverseEngineeringCommands = (
         inferiorTty: z
           .string()
           .min(1)
+          .optional()
           .describe(
-            "Caller-selected durable TTY for output from a live GDB inferior.",
+            "Durable TTY for a live inferior; required to run or attach. Omit for a static read: rea debug-with-gdb 'x/s 0x2004' --executable <path>",
           ),
         ...analysisEvidenceDeliveryOptions,
       }),
@@ -285,13 +289,29 @@ export const registerReverseEngineeringCommands = (
                   },
                 ]),
               );
+            if (
+              options.inferiorTty === undefined &&
+              !gdbOneShotCommandIsStaticRead(args.command)
+            )
+              return projectAnalysisError(
+                new AnalysisInputError("gdb_console", undefined, [
+                  {
+                    path: ["inferior_tty"],
+                    reason: "invalid_value",
+                    message:
+                      "Without --inferior-tty only a static read runs: x, print, p, output, printf, echo, disassemble, info, list, ptype, whatis, show, help or apropos, with no ; or |. Pass --inferior-tty <durable tty> to run or attach.",
+                  },
+                ]),
+              );
             const manager = createGdbManager(environment);
             let sessionId: string | undefined;
             return deliverCliAnalysisEvidence({
               ...delivery,
               run: async () => {
                 const started = await manager.start(signal, {
-                  inferiorTty: options.inferiorTty,
+                  ...(options.inferiorTty === undefined
+                    ? {}
+                    : { inferiorTty: options.inferiorTty }),
                   ...(options.executable === undefined
                     ? {}
                     : { executable: options.executable }),

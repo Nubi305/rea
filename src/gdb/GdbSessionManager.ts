@@ -2343,6 +2343,42 @@ const gdbCommandWord = (command: string): string | undefined => {
     : (GDB_BUILTIN_ALIASES.get(word) ?? word);
 };
 
+// Console words that read the loaded file and cannot start, attach or resume
+// an inferior. Exact spellings only, so an abbreviation of another command
+// (such as `r` for run) is never admitted.
+const GDB_STATIC_READ_WORDS: ReadonlySet<string> = new Set([
+  "x",
+  "print",
+  "p",
+  "inspect",
+  "output",
+  "printf",
+  "echo",
+  "disassemble",
+  "disas",
+  "info",
+  "i",
+  "list",
+  "l",
+  "ptype",
+  "whatis",
+  "show",
+  "help",
+  "apropos",
+]);
+
+/**
+ * True when a one-shot console command only reads the loaded file: its first
+ * word (without a `/format` suffix) is a static read and nothing chains
+ * another command after it. Such a command needs no inferior TTY, because no
+ * live inferior can exist for close to detach.
+ */
+export const gdbOneShotCommandIsStaticRead = (command: string): boolean => {
+  if (/[\r\n;|]/u.test(command)) return false;
+  const word = /^\s*([^\s/]+)/u.exec(command)?.[1]?.toLowerCase();
+  return word !== undefined && GDB_STATIC_READ_WORDS.has(word);
+};
+
 /** @internal Classify commands that can invalidate the configured output sink. */
 export const gdbOneShotCommandMayInvalidateDetachProof = (
   command: string,

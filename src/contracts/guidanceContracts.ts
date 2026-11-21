@@ -34,7 +34,6 @@ export const searchGuidanceOutputSchema = z.discriminatedUnion("status", [
     source: z.literal("installed_rea_guidance"),
     content_kind: z.literal("documentation"),
     package: z.string(),
-    bundle_sha256: z.string().length(64),
     query: z.string(),
     matches: z.array(
       z.strictObject({
@@ -61,6 +60,18 @@ export const searchGuidanceOutputSchema = z.discriminatedUnion("status", [
     limit: z.number().int().positive(),
     has_more: z.boolean(),
     next_cursor: z.string().min(1).max(4096).optional(),
+    commands: z
+      .array(
+        z.strictObject({
+          command: z.string(),
+          description: z.string(),
+          help: z.string(),
+        }),
+      )
+      .optional()
+      .describe(
+        "When no section matches: commands whose name or one-line description covers the query, each with the command that prints its help.",
+      ),
   }),
   z.strictObject({
     status: z.literal("no_matches"),

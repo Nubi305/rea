@@ -15,8 +15,11 @@
 // return one route. The files have no first-level title: guidance would
 // treat it as the whole file and return the file for any query its sections
 // cover between them. The only changes to upstream's words are the recorded
-// fork corrections below; a correction whose text upstream has since changed
-// stops the port instead of being skipped.
+// fork corrections below, and the fork's search keywords: a `<!-- keywords: -->`
+// line under a section's heading, words an agent types that the section's own
+// text does not hold. A correction whose text upstream has since changed, or a
+// keyword line whose section upstream has renamed, stops the port instead of
+// being skipped.
 
 /** Where the generated references live, relative to the skill directory. */
 export const ROUTE_REFERENCES = Object.freeze({
@@ -120,6 +123,23 @@ export const FORK_CORRECTIONS = Object.freeze([
       "  `rea search`, `rea function` and `rea decompile` take the path instead.\n",
   },
   {
+    section: ROUTE_SECTION,
+    reason:
+      "upstream names no route for an API contract file or for reading native code without a provider",
+    find: "- Native executable, library, or analysis database: `open_binary`, then\n",
+    replace:
+      "- OpenAPI or GraphQL API contract file: `inspect_api_contract` with the\n" +
+      '  file\'s path; for GraphQL SDL set `contract_format: "graphql-sdl"` (CLI\n' +
+      "  `--contract-format graphql-sdl`). It reads the declared operations, paths\n" +
+      "  and types offline and calls nothing.\n" +
+      "- Native code or data with no analysis provider ready: `inspect_with_objdump`\n" +
+      "  with operation `symbols`, or `disassemble` and `symbol` for one function.\n" +
+      "  A string or constant whose address the disassembly shows is read by GDB\n" +
+      "  without running the program: `rea debug-with-gdb 'x/s 0x2008' --executable\n" +
+      "  <path>`. The provider refusal lists these for its file.\n" +
+      "- Native executable, library, or analysis database: `open_binary`, then\n",
+  },
+  {
     section: "Read only the relevant guide",
     reason:
       "version comparison is not only JavaScript; the fork's clone-run guide",
@@ -145,6 +165,85 @@ export const FORK_CORRECTIONS = Object.freeze([
       "Explain findings in plain language and tie them to returned evidence. A\nrebuild of a web application is finished only by the referee of its\n[clone run](references/clone-runs.md), never by an agent's own statement. For\nany other build, use normal coding tools, separate observed behavior from\ndesign choices, and say that no REA verdict backs the result. Close",
   },
 ]);
+
+/**
+ * Search keywords the fork adds to a generated section, one line under its
+ * heading. `section` is the route's lead phrase (the heading without its
+ * tool), a paragraph's recorded heading, or an upstream section's heading.
+ * Each names words agents typed into `rea guidance` that the section answers
+ * but does not spell.
+ */
+export const FORK_KEYWORDS = Object.freeze([
+  {
+    section:
+      "Asked to rebuild or clone a web application the user can run and reset locally",
+    reason:
+      "the short first landing for a rebuild; clone-runs.md is loaded whole, so its words stay out of it",
+    keywords:
+      "rebuild a website, copy, replicate, check it matches the original",
+  },
+  {
+    section: "Native executable, library, or analysis database",
+    reason:
+      "decompiling a function and reading a licence or key check start here",
+    keywords:
+      "decompile a function, licence check, license key, key validation",
+  },
+  {
+    section: "UEFI firmware volumes and NVAR stores",
+    reason: "the only route that names the firmware scanners and extractors",
+    keywords:
+      "firmware image, embedded firmware, Binwalk, Unblob, extract firmware",
+  },
+  {
+    section:
+      "Passive traffic capture of a SPA (`inspect_web_page` on a target from `list_browser_targets`)",
+    reason: "where the API origins a page calls are captured",
+    keywords: "which API endpoints a page calls, page requests",
+  },
+  {
+    section: "DWARF compile units",
+    reason: "agents ask for source files and optimisation, not DWARF",
+    keywords:
+      "debug information, source files, optimisation level, optimization, compiler flags",
+  },
+  {
+    section: "OpenAPI or GraphQL API contract file",
+    reason: "agents search for the format's names, not 'API contract'",
+    keywords: "openapi, swagger, graphql schema, api spec, endpoints of a spec",
+  },
+  {
+    section: "Native code or data with no analysis provider ready",
+    reason:
+      "agents ask to read a string literal or rodata when no provider is installed",
+    keywords:
+      "string literal, rodata, read data at an address, without provider, no provider",
+  },
+  {
+    section: "Work summary-first",
+    reason: "the recovery for a result that is too large or cut off",
+    keywords: "result too large, truncated, cut off, oversized reply",
+  },
+]);
+
+const keywordLines = () => {
+  const unused = new Map(FORK_KEYWORDS.map((entry) => [entry.section, entry]));
+  return {
+    /** The keyword line for a section, or nothing. */
+    line: (section) => {
+      const entry = unused.get(section);
+      if (entry === undefined) return "";
+      unused.delete(section);
+      return `<!-- keywords: ${entry.keywords} -->\n\n`;
+    },
+    check: () => {
+      for (const entry of unused.values())
+        fail(
+          `upstream has no section "${entry.section}" for the keywords (${entry.reason}); re-derive them`,
+        );
+    },
+  };
+};
 
 const HEADERS = {
   routes: `Target routes: the first tool for each kind of target, when the
@@ -290,6 +389,7 @@ export const portSkillRoutes = (upstreamSkill) => {
   const routeBlocks = [];
   const formatBlocks = [];
   const seen = new Set();
+  const keywords = keywordLines();
   for (const block of rest) {
     const text = block.lines.join("\n");
     if (block.kind === "bullet") {
@@ -307,7 +407,7 @@ export const portSkillRoutes = (upstreamSkill) => {
       const isFormat =
         tool !== undefined && INSPECTOR.test(tool) && !ROUTE_TOOLS.has(tool);
       (isFormat ? formatBlocks : routeBlocks).push(
-        `## ${heading}\n\n${text}\n`,
+        `## ${heading}\n\n${keywords.line(name)}${text}\n`,
       );
     } else {
       const match = PARAGRAPH_HEADINGS.find(([pattern]) => pattern.test(text));
@@ -316,7 +416,9 @@ export const portSkillRoutes = (upstreamSkill) => {
           `paragraph with no recorded heading: ${collapse(text).slice(0, 60)}`,
         );
       const heading = uniqueHeading(seen, match?.[1] ?? "Routing note");
-      routeBlocks.push(`## ${heading}\n\n${text}\n`);
+      routeBlocks.push(
+        `## ${heading}\n\n${keywords.line(match?.[1] ?? "")}${text}\n`,
+      );
     }
   }
   const introText = intro.map((block) => block.lines.join("\n")).join("\n\n");
@@ -331,8 +433,12 @@ export const portSkillRoutes = (upstreamSkill) => {
     `## When to use REA\n\n${preambleText}\n`,
     ...sections
       .filter((section) => section.heading !== ROUTE_SECTION)
-      .map((section) => `## ${section.heading}\n\n${section.text.trim()}\n`),
+      .map(
+        (section) =>
+          `## ${section.heading}\n\n${keywords.line(section.heading)}${section.text.trim()}\n`,
+      ),
   ].join("\n");
+  keywords.check();
   const files = {
     [ROUTE_REFERENCES.routes]: relink(routes) + FOOTER,
     [ROUTE_REFERENCES.formats]: relink(formats) + FOOTER,

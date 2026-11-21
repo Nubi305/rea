@@ -38,11 +38,17 @@ const SKILL_ROOT = ".agents/skills/reverse-engineer-anything";
 const CURSOR_ROOT = ".cursor-plugin/skills/reverse-engineer-anything";
 const RECORDED_UPSTREAM = "scripts/skill-routes/upstream-SKILL.md";
 
-// Decision 1 and 9 of the skill package: estimated with tokenx, the
-// estimator REA ships.
+// Decision 1 and 9 of the skill package, raised by decision 6 of the
+// routing follow-up (the lines for a file an agent cannot place, the CLI
+// spellings of two first steps and the provider-free commands): estimated
+// with tokenx, the estimator REA ships. The ledger's skill.body row holds
+// the real-token limit, 1,650 o200k tokens.
 const BODY_MAX_LINES = 150;
-const BODY_MAX_TOKENS = 1800;
-const FIRST_STEPS_MAX_TOKENS = 800;
+const BODY_MAX_TOKENS = 1950;
+// Raised from 800 by the routing follow-up's three first-step lines (a file
+// an agent cannot place, the HAR capture kind, the EVM encoding); the whole
+// body still survives a 5,000-token carry-over.
+const FIRST_STEPS_MAX_TOKENS = 850;
 const DESCRIPTION_MAX_CHARACTERS = 1024;
 // Long references with no headings, so no contents list can be generated
 // from them. Upstream writes this one as paragraphs; giving it headings is an
@@ -306,7 +312,7 @@ describe("skill router", () => {
     expect(guardIssues(mutated, known)).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/^body is \d+ lines, over 150$/u),
-        expect.stringMatching(/^body is \d+ estimated tokens, over 1800$/u),
+        expect.stringMatching(/^body is \d+ estimated tokens, over 1950$/u),
       ]),
     );
   });

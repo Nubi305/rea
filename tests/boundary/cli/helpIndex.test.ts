@@ -130,3 +130,35 @@ it("lists the first sentence of a long description", () => {
   expect(listedDescription("x".repeat(150))).toHaveLength(100);
   expect(listedDescription(undefined)).toBe("");
 });
+
+describe("rea help <words>", () => {
+  it("searches command names and one-line descriptions for words that name no page", async () => {
+    const openapi = await serve(["help", "openapi"]);
+    expect(openapi.exitCode).toBe(0);
+    expect(openapi.stdout).toContain("inspect-api-contract");
+    expect(openapi.stdout).not.toContain("open-jeb-project");
+    const dwarf = await serve([
+      "help",
+      "debug",
+      "information",
+      "source",
+      "files",
+    ]);
+    expect(dwarf.exitCode).toBe(0);
+    expect(dwarf.stdout.split("\n")).toContainEqual(
+      expect.stringMatching(/^ {2}inspect-dwarf-units /u),
+    );
+  });
+
+  it("keeps the page a first word names when the rest matches no command", async () => {
+    expect(
+      (await serve(["help", "native", "qzxv", "zzyy", "wwqq"])).stdout,
+    ).toBe((await serve(["help", "native"])).stdout);
+  });
+
+  it("answers words that match nothing with the families", async () => {
+    const { stdout, exitCode } = await serve(["help", "qzxv"]);
+    expect(exitCode).toBe(1);
+    expect(stdout).toContain("UNKNOWN_HELP_TOPIC");
+  });
+});

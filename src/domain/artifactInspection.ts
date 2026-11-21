@@ -26,6 +26,14 @@ import { offsetText } from "./firmware/espImageStructures.js";
 import { jsonValueSchema } from "./jsonValue.js";
 import { prefixedDigestSchema } from "./../domain/digests.js";
 import { nonEmptyTextSchema } from "./textSchemas.js";
+import {
+  elfRoutes,
+  MACHO_ROUTES,
+  pathProbes,
+  PE_ROUTES,
+  type ElfRouteFacts,
+  type PathRoute,
+} from "./pathInspectorRoutes.js";
 
 const evidenceIdSchema = prefixedDigestSchema("ev");
 const artifactIdSchema = prefixedDigestSchema("art");
@@ -67,6 +75,11 @@ const inspectionContradictionSchema = z.union([
 
 const nextProbeSchema = z.strictObject({
   operation: nonEmptyTextSchema,
+  /**
+   * The contract arguments that run this probe on the inspected path; absent
+   * when the probe reads a member extract_artifact must first write.
+   */
+  arguments: z.record(z.string(), z.string()).exactOptional(),
   rationale: nonEmptyTextSchema,
   authority: z.enum([
     "artifact-bytes",
@@ -133,8 +146,18 @@ export type ArtifactInspectionResult = z.infer<
 >;
 
 /** Project one successful inventory Evidence record into an inspection report. */
+/**
+ * What the caller knows about the inspected path beyond its inventory: the
+ * path its probes' commands name, and the ELF facts that order its inspectors.
+ */
+export interface ArtifactInspectionRouting {
+  readonly path: string;
+  readonly elf?: ElfRouteFacts;
+}
+
 export const createArtifactInspection = (
   inventoryInput: unknown,
+  routing?: ArtifactInspectionRouting,
 ): ArtifactInspectionResult => {
   const inventoryEvidence = parseInventoryEvidence(inventoryInput);
   const inventory = artifactInventoryResultSchema.parse(
@@ -145,7 +168,14 @@ export const createArtifactInspection = (
     inventoryEvidence.evidence_id,
   );
   const hypotheses = allHypotheses(inventory, inventoryEvidence.evidence_id);
-  const nextProbes = probesFor(inventory);
+  const routes = probesFor(inventory, routing);
+  const routed =
+    routing === undefined
+      ? { probes: routes.map(withoutRouteArguments), omitted: 0 }
+      : pathProbes(routes, routing.path);
+  const nextProbes: ArtifactInspectionResult["next_probes"] = [
+    ...routed.probes,
+  ];
   const branches = allUnexploredBranches(
     inventory,
     inventoryEvidence.evidence_id,
@@ -161,7 +191,7 @@ export const createArtifactInspection = (
     observations: 0,
     hypotheses: 0,
     branches: 0,
-    probes: 0,
+    probes: routed.omitted,
   };
   const semantic = {
     subject: {
@@ -323,12 +353,143 @@ const contradictions = (
     };
   });
 
+const withoutRouteArguments = ({
+  operation,
+  rationale,
+  authority,
+}: PathRoute): ArtifactInspectionResult["next_probes"][number] => ({
+  operation,
+  rationale,
+  authority,
+});
+
+const ROOT_FORMAT_ROUTES: Partial<
+  Record<
+    ArtifactInventoryResult["manifest"]["root_format"],
+    readonly PathRoute[]
+  >
+> = {
+  "mach-o": MACHO_ROUTES,
+  "mach-o-universal": MACHO_ROUTES,
+  pe: PE_ROUTES,
+  apk: [
+    {
+      operation: "inspect_android_package",
+      rationale: "Manifest, components and permissions, not executed.",
+      authority: "artifact-bytes",
+    },
+    {
+      operation: "inspect_apk_signature",
+      rationale: "Signing schemes, signers and digests.",
+      authority: "artifact-bytes",
+    },
+  ],
+  uefi: [
+    {
+      operation: "inspect_uefi_firmware",
+      rationale: "Firmware volumes, FFS files and sections.",
+      authority: "artifact-bytes",
+    },
+    {
+      operation: "inspect_uefi_nvram",
+      rationale: "NVRAM variable stores.",
+      authority: "artifact-bytes",
+    },
+  ],
+};
+
+/** A ZIP whose name or members say which inspector reads it. */
+const zipRoutes = (
+  inventory: ArtifactInventoryResult,
+  path: string,
+): readonly PathRoute[] => {
+  const name = path.toLowerCase();
+  const members = inventory.occurrences.map(({ logical_path }) =>
+    logical_path.toLowerCase(),
+  );
+  if (name.endsWith(".nupkg"))
+    return [
+      {
+        operation: "inspect_nuget_nupkg",
+        rationale: "Package identity and dependency groups.",
+        authority: "artifact-bytes",
+      },
+    ];
+  if (name.endsWith(".saz"))
+    return [
+      {
+        operation: "inspect_web_network_capture",
+        pathField: "capture_path",
+        fields: { format: "saz" },
+        rationale: "Recorded Fiddler sessions, offline.",
+        authority: "artifact-bytes",
+      },
+    ];
+  if (members.some((member) => /(?:^|\/)[^/]*\.trace$/u.test(member)))
+    return [
+      {
+        operation: "inspect_playwright_trace",
+        rationale: "Saved Playwright trace events, offline.",
+        authority: "artifact-bytes",
+      },
+    ];
+  return [];
+};
+
+const parentDirectory = (path: string): string => {
+  const index = path.replace(/\/+$/u, "").lastIndexOf("/");
+  return index <= 0 ? "/" : path.slice(0, index);
+};
+
 const probesFor = (
   inventory: ArtifactInventoryResult,
-): ArtifactInspectionResult["next_probes"] => {
+  routing?: ArtifactInspectionRouting,
+): readonly PathRoute[] => {
   const format = inventory.manifest.root_format;
+  if (format === "elf" && routing?.elf !== undefined)
+    return elfRoutes(routing.elf);
+  const rootRoutes = ROOT_FORMAT_ROUTES[format];
+  if (rootRoutes !== undefined) return rootRoutes;
+  if (format === "zip" && routing !== undefined) {
+    const routes = zipRoutes(inventory, routing.path);
+    if (routes.length > 0) return routes;
+  }
+  // A single JavaScript file is read in the directory that holds it; the
+  // application analyzer refuses a lone file.
+  if (format === "javascript-bundle" && routing !== undefined)
+    return [
+      {
+        operation: "analyze_javascript_application",
+        path: parentDirectory(routing.path),
+        pathField: "input_path",
+        rationale:
+          "Analyze the directory that holds the file; a lone file is refused.",
+        authority: "ast-static-analysis",
+      },
+      {
+        operation: "recover_javascript_sources",
+        fields: { output_directory: `${routing.path}.recovered` },
+        rationale: "Readable modules from a minified file (needs Wakaru).",
+        authority: "ast-static-analysis",
+      },
+    ];
   // The JavaScript analyzer selects extracted files by source suffix, so a
   // main script such as `main` has no follow-up it can read.
+  const extracted = extractedMemberProbes(inventory, format);
+  if (extracted !== undefined) return extracted.map(unbound);
+  return format === "directory"
+    ? directoryProbes(inventory)
+    : probesForFormat(format);
+};
+
+// These probes read a member that extract_artifact must first write, so
+// they name no arguments for the inspected path.
+const unbound = (route: PathRoute): PathRoute => ({ ...route, unbound: true });
+
+const extractedMemberProbes = (
+  inventory: ArtifactInventoryResult,
+  format: ArtifactInventoryResult["manifest"]["root_format"],
+): readonly PathRoute[] | undefined => {
   if (format === "node-sea")
     return inventory.occurrences.some(
       (row) =>
@@ -368,9 +529,7 @@ const probesFor = (
       : [];
   if (format === "esp-image") return espFlashDumpProbes(inventory);
   if (format === "fit") return fitProbes(inventory);
-  return format === "directory"
-    ? directoryProbes(inventory)
-    : probesForFormat(format);
+  return undefined;
 };
 
 // An ESP image that its reader found at the start of a flash dump read from
@@ -453,9 +612,16 @@ const DIRECTORY_MEMBER_FORMATS: readonly ArtifactInventoryResult["manifest"]["ro
     "plist",
   ];
 
+// A directory is the path these read; the other member probes read one file
+// inside it, which the caller chooses.
+const DIRECTORY_BOUND_OPERATIONS: ReadonlySet<string> = new Set([
+  "analyze_javascript_application",
+  "open_binary",
+]);
+
 const directoryProbes = (
   inventory: ArtifactInventoryResult,
-): ArtifactInspectionResult["next_probes"] => {
+): readonly PathRoute[] => {
   // JavaScript acquisition does not follow symlinks. Other probes retain
   // their own applicability rules; plist inspection follows readable links.
   const present = new Set(
@@ -470,20 +636,25 @@ const directoryProbes = (
     present.has(memberFormat),
   );
   const probes = members.flatMap(probesForFormat);
-  return probes.filter(
-    (probe, index) =>
-      probes.findIndex(({ operation }) => operation === probe.operation) ===
-      index,
-  );
+  return probes
+    .filter(
+      (probe, index) =>
+        probes.findIndex(({ operation }) => operation === probe.operation) ===
+        index,
+    )
+    .map((probe) =>
+      DIRECTORY_BOUND_OPERATIONS.has(probe.operation) ? probe : unbound(probe),
+    );
 };
 
 const probesForFormat = (
   format: ArtifactInventoryResult["manifest"]["root_format"],
-): ArtifactInspectionResult["next_probes"] => {
+): readonly PathRoute[] => {
   if (format === "bun-standalone")
     return [
       {
         operation: "extract_artifact",
+        pathField: null,
         authority: "artifact-bytes",
         rationale:
           "Extract the stored module regions into a fresh owned directory, then inspect compatible source separately. Bytecode and source-map regions remain stored evidence; they are not decoded or executed.",
@@ -493,6 +664,7 @@ const probesForFormat = (
     return [
       {
         operation: "extract_artifact",
+        pathField: null,
         authority: "artifact-bytes",
         rationale:
           "Extract the stored virtual files into a fresh owned directory, then inspect compatible source separately. Environment-file values and CA certificate bytes remain in local Evidence with their counts and byte lengths, the npm snapshot stays undecoded, and the executable stays unrun.",
@@ -502,6 +674,7 @@ const probesForFormat = (
     return [
       {
         operation: "extract_artifact",
+        pathField: null,
         rationale:
           "Extract members into a fresh owned directory, then inspect candidate files separately; bundle declarations do not establish their format.",
         authority: "artifact-bytes",
@@ -511,6 +684,7 @@ const probesForFormat = (
     return [
       {
         operation: "analyze_javascript_application",
+        pathField: "input_path",
         rationale:
           "Recover bounded JavaScript modules, source maps, Electron boundaries, and application relationships.",
         authority: "ast-static-analysis",

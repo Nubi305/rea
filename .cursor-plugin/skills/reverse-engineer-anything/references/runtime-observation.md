@@ -127,6 +127,8 @@ A bundle observed at runtime does not prove every contained module executed.
 
 ## Fiddler Everywhere traffic debugging
 
+<!-- keywords: HAR, saved capture records, page the records, capture view -->
+
 For large saved captures, request `detail: "summary"`, then page retained Evidence
 with `inspect_analysis_view` and `view: {kind: "capture", detail: "preview", offset: 0, limit: 20}`.
 Select complete record pages only for needed headers, metadata or payloads; views

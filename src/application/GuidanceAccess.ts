@@ -38,6 +38,7 @@ import {
   type RankedSection,
 } from "./GuidanceRanking.js";
 import { sha256Hex } from "../kernel/sha256Hex.js";
+import { searchCommands, type SearchableCommand } from "./CommandSearch.js";
 
 const SKILL_ROOT = `../../skills/${PRODUCT_IDENTITY.skillName}/`;
 const SOURCE = "installed_rea_guidance" as const;
@@ -181,9 +182,15 @@ export const searchGuidanceWithReader = (
   input: unknown,
   readGuide: GuidanceReader,
   resources: ArtifactResourceScope,
+  commands?: GuidanceCommandIndex,
 ): Promise<GuidanceResult<SearchGuidanceOutput>> =>
   runGuidanceOperation(resources, "search_guidance", (child) =>
-    searchGuidanceInScope(input, (path) => readGuide(path, child), child),
+    searchGuidanceInScope(
+      input,
+      (path) => readGuide(path, child),
+      child,
+      commands,
+    ),
   );
 
 export const readGuidanceSectionWithReader = (
@@ -202,18 +209,26 @@ const invalidInput = (
 ): Result<never, AnalysisInputError> =>
   err(analysisInputErrorFromIssues(operation, issues, input));
 
+/** The commands a search falls back to, and how each one's help is printed. */
+export interface GuidanceCommandIndex {
+  readonly commands: readonly SearchableCommand[];
+  readonly help: (name: string) => string;
+}
+
 export const searchGuidance = async (
   input: unknown,
   resources: ArtifactResourceScope,
+  commands?: GuidanceCommandIndex,
 ): Promise<
   Result<SearchGuidanceOutput, AnalysisInputError | ProviderCleanupError>
-> => searchGuidanceWithReader(input, readPackagedGuide, resources);
+> => searchGuidanceWithReader(input, readPackagedGuide, resources, commands);
 
 /** Reader seam keeps packaged-guide drift and missing-file behavior testable. */
 const searchGuidanceInScope = async (
   input: unknown,
   readGuide: (relativePath: string) => Promise<string>,
   resources: ArtifactResourceScope,
+  commands?: GuidanceCommandIndex,
 ): Promise<
   Result<SearchGuidanceOutput, AnalysisInputError | ProviderCleanupError>
 > => {
@@ -273,6 +288,32 @@ const searchGuidanceInScope = async (
     queryWords.filter((word) => !GENERIC_QUERY_WORDS.has(word)),
   );
 
+  const commandMatches =
+    ranked.length === 0 && commands !== undefined && cursor === undefined
+      ? searchCommands(commands.commands, parsed.data.query)
+      : [];
+  // A word that names a command, or is in its one-line description, is
+  // answered with that command's help rather than with nothing.
+  if (commandMatches.length > 0)
+    return ok(
+      searchGuidanceOutputSchema.parse({
+        status: "matches",
+        source: SOURCE,
+        content_kind: "documentation",
+        package: `${PRODUCT_IDENTITY.packageName}@${PRODUCT_IDENTITY.packageVersion}`,
+        query: parsed.data.query,
+        matches: [],
+        total_matches: 0,
+        offset: 0,
+        limit: parsed.data.limit,
+        has_more: false,
+        commands: commandMatches.map(({ name, description }) => ({
+          command: name,
+          description,
+          help: commands!.help(name),
+        })),
+      }),
+    );
   if (ranked.length === 0)
     return ok(
       searchGuidanceOutputSchema.parse({
@@ -304,7 +345,8 @@ const searchGuidanceInScope = async (
       source: SOURCE,
       content_kind: "documentation",
       package: `${PRODUCT_IDENTITY.packageName}@${PRODUCT_IDENTITY.packageVersion}`,
-      bundle_sha256: bundle.digest,
+      // No bundle digest here: each locator binds its section and the cursor
+      // binds the bundle; a section or contents read reports the digest.
       query: parsed.data.query,
       matches: page.map(presentMatch),
       total_matches: ranked.length,

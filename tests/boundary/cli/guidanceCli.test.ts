@@ -136,3 +136,24 @@ it("continues a CLI search with a query- and bundle-bound cursor", async () => {
   ]);
   expect(wrongQuery.exitCode).not.toBe(0);
 });
+
+it("answers a command's name or description word with its help, not with nothing", async () => {
+  // No guide section covers these words; command names and descriptions do.
+  const found = await run(["guidance", "--query", "objdump architectures"]);
+  expect(found.exitCode, found.stdout).toBe(0);
+  expect(JSON.parse(found.stdout)).toMatchObject({
+    status: "matches",
+    matches: [],
+    commands: expect.arrayContaining([
+      {
+        command: "list-objdump-architectures",
+        description: expect.any(String),
+        help: "rea list-objdump-architectures --help",
+      },
+    ]),
+  });
+  const absent = JSON.parse(
+    (await run(["guidance", "--query", "qzxv"])).stdout,
+  ) as { readonly status: string };
+  expect(absent.status).toBe("no_matches");
+});

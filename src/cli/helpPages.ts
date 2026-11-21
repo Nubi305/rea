@@ -7,6 +7,7 @@ import { suggestCommand } from "./commandSuggestion.js";
 import {
   formatCommandHelp,
   formatCommandListHelp,
+  formatHelpIndex,
   type HelpCommandRow,
 } from "./help.js";
 import {
@@ -14,7 +15,9 @@ import {
   formatRootIndex,
   helpFamilyNames,
   HELP_TOPICS,
+  listedDescription,
 } from "./helpIndex.js";
+import { searchCommands } from "../application/CommandSearch.js";
 import { MCP_SUBCOMMANDS } from "./mcpBuiltinCommands.js";
 import type { CliInstance } from "./types.js";
 
@@ -108,22 +111,67 @@ export const commandPage = (
   });
 };
 
+/** The page a single help word names, if it names one. */
+const namedPage = (cli: CliInstance, topic: string): string | undefined => {
+  if (topic === "all") return fullCommandList(cli);
+  if (topic === "options") return globalOptionsPage(cli);
+  const family = formatFamilyPage(cli, topic);
+  if (family !== undefined) return family;
+  const entry = cliCommands(cli).find(({ name }) => name === topic);
+  return entry === undefined ? undefined : commandPage(cli, entry);
+};
+
+/** Commands whose name or one-line description covers the words. */
+const commandSearchPage = (
+  cli: CliInstance,
+  query: string,
+): string | undefined => {
+  const matches = searchCommands(
+    cliCommands(cli).map(({ name, definition }) => ({
+      name,
+      description: listedDescription(definition.description),
+    })),
+    query,
+  );
+  if (matches.length === 0) return undefined;
+  return formatHelpIndex(`${cli.name} help ${query}`, {
+    description: "commands whose name or description match",
+    usage: `${cli.name} <command> [options]`,
+    sections: [{ heading: "Commands:", rows: matches }],
+    footer: [
+      `${cli.name} <command> --help shows a command's arguments and options.`,
+    ],
+  });
+};
+
 /**
  * `rea help [topic]`: the index, a family, `all`, `options` or a command's
- * page. An unknown topic names the families and the closest name.
+ * page. Words that name none of these search command names and one-line
+ * descriptions. Otherwise the error names the families and the closest name.
  */
 export const helpTopicPage = (
   cli: CliInstance,
   topic: string | undefined,
+  more: readonly string[] = [],
 ): { readonly text: string; readonly exitCode: number } => {
   if (topic === undefined) return { text: rootPage(cli), exitCode: 0 };
-  if (topic === "all") return { text: fullCommandList(cli), exitCode: 0 };
-  if (topic === "options") return { text: globalOptionsPage(cli), exitCode: 0 };
-  const family = formatFamilyPage(cli, topic);
-  if (family !== undefined) return { text: family, exitCode: 0 };
-  const entry = cliCommands(cli).find(({ name }) => name === topic);
-  if (entry !== undefined)
-    return { text: commandPage(cli, entry), exitCode: 0 };
+  const named = namedPage(cli, topic);
+  if (named !== undefined && more.length === 0)
+    return { text: named, exitCode: 0 };
+  // A single word that misspells a family or topic keeps its suggestion.
+  const misspelt =
+    named === undefined &&
+    more.length === 0 &&
+    suggestCommand(topic, [
+      ...helpFamilyNames(cli),
+      ...Object.keys(HELP_TOPICS),
+    ]) !== undefined;
+  const found = misspelt
+    ? undefined
+    : commandSearchPage(cli, [topic, ...more].join(" "));
+  if (found !== undefined) return { text: found, exitCode: 0 };
+  // More words that match no command keep the page the first one names.
+  if (named !== undefined) return { text: named, exitCode: 0 };
   const families = helpFamilyNames(cli);
   const suggestion = suggestCommand(topic, [
     ...families,

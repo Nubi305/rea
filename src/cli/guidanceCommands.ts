@@ -14,12 +14,30 @@ import { CLI_COMMANDS } from "../contracts/cliCommandNames.js";
 import { logCliCommand } from "../cliLogging.js";
 import { projectAnalysisError } from "../domain/analysisErrorProjection.js";
 import type { Logger } from "pino";
-import { registerCliCommand } from "./commandRegistry.js";
+import { cliCommands, registerCliCommand } from "./commandRegistry.js";
+import { listedDescription } from "./helpIndex.js";
+import { RECORDED_CLI_COMMAND_DESCRIPTIONS } from "../recordedCliCommandDescriptions.js";
 import type { CliInstance } from "./types.js";
 import { cliDecimalField } from "./options.js";
 import { ownCliProcessResource } from "./cliResources.js";
 
 let retainedResources: ArtifactResourceScope | undefined;
+
+/**
+ * Every command with its one-line description. A one-shot `guidance` run
+ * registers only its own family, so the build's recording supplies the rest.
+ */
+const searchableCommands = (
+  cli: CliInstance,
+): readonly { readonly name: string; readonly description: string }[] =>
+  RECORDED_CLI_COMMAND_DESCRIPTIONS === undefined
+    ? cliCommands(cli).map(({ name, definition }) => ({
+        name,
+        description: listedDescription(definition.description),
+      }))
+    : Object.entries(RECORDED_CLI_COMMAND_DESCRIPTIONS).map(
+        ([name, description]) => ({ name, description }),
+      );
 
 /** Release CLI-owned guidance descriptors, retaining failed cleanup for retry. */
 ownCliProcessResource("guidance", async () => {
@@ -140,6 +158,10 @@ export const registerGuidanceCommands = (
                       : { cursor: options.cursor }),
                   },
                   resources,
+                  {
+                    commands: searchableCommands(cli),
+                    help: (name) => `${cli.name} ${name} --help`,
+                  },
                 )
               : await readGuidanceSection(
                   {

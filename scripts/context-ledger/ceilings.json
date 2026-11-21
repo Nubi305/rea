@@ -177,7 +177,7 @@
     },
     "skill.body": {
       "metric": "o200k",
-      "ceiling": 1496,
+      "ceiling": 1572,
       "target": "at most 1,500",
       "target_value": 1500,
       "raised": [
@@ -186,6 +186,12 @@
           "to": 10879,
           "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
           "reason": "Merge of upstream release 6.10.1 and the consolidated clone-run documents: a longer version string in printed paths and help, one upstream routing bullet and one sentence about the npm fallback in the skill body."
+        },
+        {
+          "from": 1496,
+          "to": 1572,
+          "commit": "b38f8fe76d66e2881befcf003c4424b0ac05f633",
+          "reason": "Routing follow-up decisions 1, 2, 5 and 6 (/home/user/rea-design/program/decisions-routing-followup.md): the skill body gains the line for a file an agent cannot place (inspect_artifact, then its first probe), the CLI spellings of the HAR capture kind and the EVM encoding, and the two provider-free commands in its refusal rule. Decision 6 allows the body up to 1,650 o200k tokens; loaded-per-request adds the same 76 tokens to each traced request. Measured on the working tree over b38f8fe7, in the commit that changes the skill."
         }
       ]
     },
@@ -205,9 +211,17 @@
     },
     "skill.loaded-per-request": {
       "metric": "o200k",
-      "ceiling": 2876,
+      "ceiling": 2952,
       "target": "at most 2,000",
-      "target_value": 2000
+      "target_value": 2000,
+      "raised": [
+        {
+          "from": 2876,
+          "to": 2952,
+          "commit": "b38f8fe76d66e2881befcf003c4424b0ac05f633",
+          "reason": "Routing follow-up decisions 1, 2, 5 and 6 (/home/user/rea-design/program/decisions-routing-followup.md): the skill body gains the line for a file an agent cannot place (inspect_artifact, then its first probe), the CLI spellings of the HAR capture kind and the EVM encoding, and the two provider-free commands in its refusal rule. Decision 6 allows the body up to 1,650 o200k tokens; loaded-per-request adds the same 76 tokens to each traced request. Measured on the working tree over b38f8fe7, in the commit that changes the skill."
+        }
+      ]
     },
     "skill.routes-clear": {
       "metric": "count",

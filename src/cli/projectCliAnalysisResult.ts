@@ -1,3 +1,4 @@
+import { withProbeCommands } from "./probeCommands.js";
 import type { z } from "zod";
 
 import { recordedControlSchemas } from "../domain/analysisSettingDefinitions.js";
@@ -108,6 +109,30 @@ export const projectCliInputFields = <Output>(
  * references.
  */
 export const projectCliCommandOutput = <Output>(
+  output: Output,
+  context: CliCommandOutputProjectionContext,
+): Output => {
+  const projected = projectCliErrorOutput(output, context) as JsonValue;
+  // A refusal's next probes name an operation and its arguments; the CLI
+  // prints each as a command that runs as printed. Evidence is left as
+  // retained: its records are digested and validated as they were produced.
+  return isCliErrorRecord(projected)
+    ? (withProbeCommands(projected, {
+        commands: context.commands,
+        cliName: context.cliName ?? "rea",
+        recordedCommands: context.recordedCommands,
+      }) as Output)
+    : (projected as Output);
+};
+
+const isCliErrorRecord = (value: JsonValue): boolean =>
+  isObject(value) &&
+  ((typeof value.code === "string" && isObject(value.details)) ||
+    (isObject(value.error) &&
+      typeof value.error.code === "string" &&
+      isObject(value.error.details)));
+
+const projectCliErrorOutput = <Output>(
   output: Output,
   context: CliCommandOutputProjectionContext,
 ): Output => {

@@ -55,6 +55,7 @@ interface PrepareSessionExecutionInput {
   readonly unboundOperationError: (
     operation: AnalysisOperation,
     route: SessionProviderRoute,
+    target: BinaryTarget,
   ) => AnalysisError | undefined;
   readonly lookupSnapshot: (
     target: BinaryTarget,
@@ -94,7 +95,11 @@ export const prepareSessionExecution = (
   if (active === undefined) return err(new NoBinaryOpenError());
   const capability = active.route.capabilities.get(operation);
   if (capability?.available !== true) {
-    const selectionError = unboundOperationError(operation, active.route);
+    const selectionError = unboundOperationError(
+      operation,
+      active.route,
+      active.target,
+    );
     if (selectionError !== undefined) return err(selectionError);
     const entryCommentAvailable =
       active.route.binding !== null &&

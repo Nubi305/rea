@@ -96,94 +96,118 @@ it("finds focused installed guidance for switching providers with annotations", 
   }
 });
 
+type Accepted = readonly (readonly [RegExp, RegExp])[];
+
+/** The skill router's own list of first steps, which several queries rightly reach. */
+const FIRST_STEP = [/^SKILL\.md$/u, /^First step$/u] as const;
+
 /**
  * The audit's twenty queries (census-skill 05-guidance.mjs) with the sections
- * an agent should land on first; any listed section counts. The plan's bar
- * is at least 18 right first and no empty reply.
+ * an agent should land on first; any listed section counts. Each list was
+ * chosen by reading the sections after the skill became a router and its
+ * route list moved into one section per route under references/. The plan's
+ * bar is at least 18 right first and no empty reply.
  */
-const TWENTY: readonly (readonly [
-  string,
-  readonly (readonly [RegExp, RegExp])[],
-])[] = [
+const TWENTY: readonly (readonly [string, Accepted])[] = [
   [
     "clone a web application",
     [
       [/clone-runs/u, /./u],
-      [/SKILL/u, /Route the target first/u],
+      [/target-routes/u, /^Asked to rebuild or clone a web application/u],
     ],
   ],
-  ["rebuild website and check it matches", [[/clone-runs/u, /./u]]],
+  [
+    "rebuild website and check it matches",
+    [
+      [/clone-runs/u, /./u],
+      [/target-routes/u, /^Asked to rebuild or clone a web application/u],
+    ],
+  ],
   ["clone run prober", [[/clone-runs/u, /^Prober$/u]]],
   ["evidence_stale", [[/clone-runs/u, /^Verifier$/u]]],
   ["stalled what now", [[/clone-runs/u, /when to stop|The loop/u]]],
   [
     "decompile a function in a native binary",
     [
-      [/native-and-artifacts/u, /Native targets|Native, managed/u],
-      [/SKILL/u, /Route the target first/u],
+      [/target-routes/u, /^Native executable, library, or analysis database/u],
+      [/native-and-artifacts/u, /^Native targets$/u],
+      FIRST_STEP,
     ],
   ],
   [
     "android apk classes methods",
     [
       [/android-applications/u, /./u],
-      [/SKILL/u, /Route the target first/u],
+      [/target-routes/u, /^Android APK code, classes, methods/u],
+      FIRST_STEP,
     ],
   ],
   [
     "electron asar",
     [
       [/javascript-applications/u, /./u],
-      [/SKILL/u, /Route the target first/u],
+      [/target-routes/u, /^ASAR or extracted JavaScript\/Electron tree/u],
+      FIRST_STEP,
     ],
   ],
   [
     "firmware image",
     [
-      [/SKILL/u, /Route the target first/u],
-      [/native-and-artifacts/u, /ESP|Packages and extraction/u],
+      [/target-routes/u, /^UEFI firmware volumes|^ESP32-family/u],
+      [/native-and-artifacts/u, /^ESP|^Packages and extraction$/u],
+      FIRST_STEP,
     ],
   ],
   [
     "compare two versions",
     [
+      [/target-routes/u, /^Two versions of one target/u],
       [/javascript-applications/u, /./u],
-      [/native-and-artifacts/u, /Native, managed/u],
       [/evidence-workflows/u, /./u],
+      FIRST_STEP,
     ],
   ],
   [
     "core dump crash",
     [
-      [/native-and-artifacts/u, /Recorded Linux crashes/u],
-      [/SKILL/u, /Route the target first/u],
+      [/format-inspectors/u, /^Supplied Linux ELF64 amd64 or AArch64 core/u],
+      [/native-and-artifacts/u, /^Recorded Linux crashes$/u],
+      FIRST_STEP,
     ],
   ],
   ["provider_unavailable", [[/connection-and-recovery/u, /./u]]],
   [
     "ghidra startup timeout",
-    [[/native-and-artifacts/u, /Ghidra startup deadline recovery/u]],
+    [
+      [/native-and-artifacts/u, /^Ghidra startup deadline recovery$/u],
+      [/target-routes/u, /^Ghidra startup timeout$/u],
+    ],
   ],
   [
     "tools missing after setup",
     [
       [/connection-and-recovery/u, /./u],
-      [/SKILL/u, /Connect only when needed/u],
+      [/working-with-rea/u, /^Connect only when needed$/u],
     ],
   ],
   [
     "result too large truncated",
     [
-      [/SKILL/u, /Work summary-first/u],
-      [/javascript-applications/u, /oversized/u],
+      [/working-with-rea/u, /^Work summary-first$/u],
+      [/^SKILL\.md$/u, /^When a step is refused$/u],
+      [/javascript-applications/u, /^Recover an oversized display$/u],
     ],
   ],
   [
     "which api endpoints does the page call",
     [
-      [/SKILL/u, /Route the target first/u],
-      [/runtime-observation/u, /Browser/u],
+      [
+        /target-routes/u,
+        /^Passive traffic capture of a SPA|^User-owned browser page already open/u,
+      ],
+      [/runtime-observation/u, /^Browser and Electron$/u],
       [/javascript-applications/u, /route candidates/u],
+      FIRST_STEP,
     ],
   ],
   ["agent environment from a HAR", [[/environments/u, /./u]]],
@@ -192,38 +216,119 @@ const TWENTY: readonly (readonly [
     [
       [/desktop-build/u, /./u],
       [/environments/u, /desktop/iu],
+      [
+        /target-routes/u,
+        /^Environment of a Linux desktop app|^Task for a desktop/u,
+      ],
     ],
   ],
   [
     "frida instrumentation",
-    [[/runtime-observation/u, /Native runtime questions/u]],
+    [[/runtime-observation/u, /^Native runtime questions$/u]],
   ],
   [
     "recover readable source from minified bundle",
-    [[/javascript-applications/u, /./u]],
+    [
+      [
+        /javascript-applications/u,
+        /^JavaScript and Electron application artifacts$/u,
+      ],
+      [/target-routes/u, /^ASAR or extracted JavaScript\/Electron tree/u],
+      FIRST_STEP,
+    ],
   ],
 ];
+
+/**
+ * Queries agents typed in the task benchmark (runs r1 and r2) that answered
+ * `no_matches` or nothing useful, with the section that answers each. Two
+ * have no section yet and are left out until a route exists: "openapi" (no
+ * guidance names `inspect_api_contract`) and "string literal rodata without
+ * provider" (no guidance names a provider-free way to read a data address).
+ */
+const AGENT_QUERIES: readonly (readonly [string, Accepted])[] = [
+  [
+    "debug information source files optimisation",
+    [
+      [/format-inspectors/u, /^DWARF compile units/u],
+      [/native-and-artifacts/u, /^DWARF compile units$/u],
+    ],
+  ],
+  [
+    "binary licence key validation",
+    [[/target-routes/u, /^Native executable, library, or analysis database/u]],
+  ],
+  [
+    "no provider",
+    [
+      [
+        /connection-and-recovery/u,
+        /^Choose the remedy from the observed failure$/u,
+      ],
+      [/^SKILL\.md$/u, /^When a step is refused$/u],
+      [/format-inspectors/u, /^Native code or data with no analysis provider/u],
+    ],
+  ],
+  [
+    "openapi",
+    [[/format-inspectors/u, /^OpenAPI or GraphQL API contract file/u]],
+  ],
+  [
+    "string literal rodata without provider",
+    [[/format-inspectors/u, /^Native code or data with no analysis provider/u]],
+  ],
+  [
+    "dump bytes at address",
+    [[/native-and-artifacts/u, /^Static memory and original file bytes$/u]],
+  ],
+  [
+    "capture records page",
+    [[/runtime-observation/u, /^Fiddler Everywhere traffic debugging$/u]],
+  ],
+  [
+    "browser scenario click",
+    [[/target-routes/u, /^Browser action the agent must perform/u]],
+  ],
+];
+
+/** The queries whose first match is not one of their accepted sections. */
+const wrongFirst = async (
+  table: readonly (readonly [string, Accepted])[],
+  resources: ArtifactResourceScope,
+): Promise<string[]> => {
+  const wrong: string[] = [];
+  for (const [query, accepted] of table) {
+    const result = await searchGuidance({ query }, resources);
+    if (!result.ok) throw result.error;
+    expect(result.value.status, query).toBe("matches");
+    if (result.value.status !== "matches") continue;
+    expect(result.value.matches.length, query).toBeLessThanOrEqual(3);
+    const first = result.value.matches[0]!;
+    if (
+      !accepted.some(
+        ([guide, heading]) =>
+          guide.test(first.guide) && heading.test(first.heading),
+      )
+    )
+      wrong.push(`${query}: ${first.guide} > ${first.heading}`);
+  }
+  return wrong;
+};
 
 it("puts the right section first for at least 18 of the audit's twenty queries", async () => {
   const resources = new ArtifactResourceScope();
   try {
-    const wrong: string[] = [];
-    for (const [query, accepted] of TWENTY) {
-      const result = await searchGuidance({ query }, resources);
-      if (!result.ok) throw result.error;
-      expect(result.value.status, query).toBe("matches");
-      if (result.value.status !== "matches") continue;
-      expect(result.value.matches.length, query).toBeLessThanOrEqual(3);
-      const first = result.value.matches[0]!;
-      if (
-        !accepted.some(
-          ([guide, heading]) =>
-            guide.test(first.guide) && heading.test(first.heading),
-        )
-      )
-        wrong.push(`${query}: ${first.guide} > ${first.heading}`);
-    }
+    const wrong = await wrongFirst(TWENTY, resources);
     expect(wrong.length, wrong.join("\n")).toBeLessThanOrEqual(2);
+  } finally {
+    await resources.close();
+  }
+});
+
+it("puts the right section first for every query agents typed that has one", async () => {
+  const resources = new ArtifactResourceScope();
+  try {
+    expect(await wrongFirst(AGENT_QUERIES, resources)).toEqual([]);
   } finally {
     await resources.close();
   }

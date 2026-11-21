@@ -8,6 +8,8 @@ Contents:
 
 # JavaScript and Electron application artifacts
 
+<!-- keywords: minified bundle, readable source, unminify, deobfuscate -->
+
 For captured or bundled JavaScript that needs readable source recovery, use
 `recover_javascript_sources` with an absolute `path` and absent
 `output_directory`. Supply related runtime/shared/lazy files in
