@@ -49,6 +49,11 @@ import {
   rootPage,
 } from "./helpPages.js";
 import { MCP_SUBCOMMANDS } from "./mcpBuiltinCommands.js";
+import {
+  requestedSchemaKinds,
+  SCHEMA_KIND_FLAG,
+  selectSchemaKinds,
+} from "./schemaKindSelection.js";
 
 export {
   CLI_CUSTOM_GLOBAL_OPTIONS,
@@ -245,10 +250,28 @@ const schemaAnswer = (
   const { format, formatExplicit, validation } = readCliOutputArguments(global);
   if (!validation.ok)
     return renderedAnswer(renderCliOutputArgumentError(validation), 1);
-  return documentAnswer(
-    commandSchemaDocument(entry, CLI_CUSTOM_GLOBAL_OPTIONS),
-    formatExplicit ? format : "toon",
+  let document: unknown = commandSchemaDocument(
+    entry,
+    CLI_CUSTOM_GLOBAL_OPTIONS,
   );
+  const kinds = requestedSchemaKinds(global.command.slice(1));
+  if (kinds !== undefined) {
+    const selection = selectSchemaKinds(document, kinds);
+    const missing = [...kinds].filter((kind) => !selection.matched.has(kind));
+    if (kinds.size === 0 || missing.length > 0)
+      return answer(
+        redactExplicitText(
+          `Error (UNKNOWN_SCHEMA_KIND): ${missing.length === 0 ? `${SCHEMA_KIND_FLAG} needs a kind` : `No union in the schema of ${entry.name} has the kind ${missing.join(", ")}`}. ${selection.available.size === 0 ? `The schema of ${entry.name} has no kinds to select.` : `Kinds: ${[...selection.available].join(", ")}.`}`,
+          declaredSensitiveValues(global.command),
+        ),
+        1,
+      );
+    document = selection.schema;
+  }
+  // Compact JSON unless a format is chosen: TOON doubled a schema's size.
+  return formatExplicit
+    ? documentAnswer(document, format)
+    : markupAnswer(JSON.stringify(document));
 };
 
 /** Facts about one invocation's process that discovery output depends on. */

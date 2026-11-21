@@ -158,7 +158,11 @@ const globalOptionRows = ({ formats, root }: GlobalOptionsHelp): Row[] =>
       label: "--llms, --llms-full",
       description: "Print LLM-readable manifest",
     },
-    { label: "--schema", description: "Show JSON Schema for command" },
+    {
+      label: "--schema",
+      description:
+        "Show JSON Schema for command (compact JSON; --schema-kind <kind,...> keeps those kinds of its unions)",
+    },
     {
       label: "--token-count",
       description: "Print token count of output (instead of output)",

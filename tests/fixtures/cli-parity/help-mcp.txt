@@ -16,7 +16,7 @@ Global Options:
   --help                              Show help
   --json                              Shorthand for --format json
   --llms, --llms-full                 Print LLM-readable manifest
-  --schema                            Show JSON Schema for command
+  --schema                            Show JSON Schema for command (compact JSON; --schema-kind <kind,...> keeps those kinds of its unions)
   --token-count                       Print token count of output (instead of output)
   --token-limit <n>                   Limit output to n tokens
   --token-offset <n>                  Skip first n tokens of output

@@ -509,10 +509,10 @@ it("prints the nested document in the default schema format", async () => {
     "--schema",
   ]);
   expect(served.exitCode, served.stdout).toBe(0);
-  expect(served.stdout).toContain("contentMediaType: application/json");
-  expect(served.stdout).toContain("contentSchema:");
-  expect(served.stdout).toContain("seed:");
-  expect(served.stdout).toContain("application:");
+  expect(served.stdout).toContain('"contentMediaType":"application/json"');
+  expect(served.stdout).toContain('"contentSchema":');
+  expect(served.stdout).toContain('"seed":');
+  expect(served.stdout).toContain('"application":');
 });
 
 it("uses an empty schema only for unknown or any documents", () => {
