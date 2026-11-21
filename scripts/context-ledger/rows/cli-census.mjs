@@ -98,7 +98,7 @@ const brief = ({ id, exit, status, bytes, tokenx, o200k, skipped }) =>
     ? { id, exit, status, bytes, tokenx, o200k }
     : { id, skipped };
 
-const censusRows = (context, results, scope) => {
+const censusRows = (results, scope, prefix) => {
   const ran = results.filter((r) => r.skipped === undefined);
   const ok = ran.filter((r) => r.status.startsWith("ok"));
   const largest = ok.reduce(
@@ -121,7 +121,7 @@ const censusRows = (context, results, scope) => {
     o200k: realTokens ? ok.reduce((sum, r) => sum + r.o200k, 0) : null,
   };
   return [
-    measuredRow("cli.census.largest", {
+    measuredRow(`${prefix}.largest`, {
       units:
         largest === undefined
           ? undefined
@@ -135,25 +135,63 @@ const censusRows = (context, results, scope) => {
         note: `${scope} census: ${ok.length} successful of ${ran.length} calls; largest is ${largest?.id ?? "none"}`,
       },
     }),
-    measuredRow("cli.census.total", {
+    measuredRow(`${prefix}.total`, {
       units: total,
       detail: { ...detail, calls: results.map(brief) },
     }),
     realTokens
-      ? measuredRow("cli.census.over-2000", {
+      ? measuredRow(`${prefix}.over-2000`, {
           value: ok.filter((r) => r.o200k > 2000).length,
           detail: { scope, of: ok.length },
         })
-      : skippedRow("cli.census.over-2000", "needs real tokens (o200k)"),
+      : skippedRow(`${prefix}.over-2000`, "needs real tokens (o200k)"),
   ];
 };
 
-export const CENSUS_ROWS = [
+const QUICK_ROWS = [
   "cli.census.largest",
   "cli.census.total",
   "cli.census.over-2000",
+];
+const FULL_ROWS = [
+  "cli.census-full.largest",
+  "cli.census-full.total",
+  "cli.census-full.over-2000",
+];
+
+export const CENSUS_ROWS = [
+  ...QUICK_ROWS,
+  ...FULL_ROWS,
   "cli.mistakes.largest",
 ];
+
+/**
+ * The census: the quick subset by default; with --full every spec, and the
+ * quick rows are then read from the same results.
+ */
+const census = (context, root, env, wanted) => {
+  const all = readSpecs("cli-census.jsonl");
+  const specs = context.full ? all : all.filter((spec) => spec.quick === true);
+  context.progress(
+    `cli census (${context.full ? "full" : "quick"}, ${specs.length} calls)`,
+  );
+  const results = runSpecs(context, root, env, specs);
+  const quick = new Set(
+    all.filter((spec) => spec.quick === true).map((spec) => spec.id),
+  );
+  const rows = censusRows(
+    results.filter((r) => quick.has(r.id)),
+    "quick",
+    "cli.census",
+  );
+  if (context.full)
+    rows.push(...censusRows(results, "full", "cli.census-full"));
+  else
+    rows.push(
+      ...FULL_ROWS.map((id) => skippedRow(id, "runs only with --full")),
+    );
+  return rows.filter((row) => wanted(row.id));
+};
 
 /** Run the census and the mistakes the selection asks for. */
 export const censusAndMistakes = (context, wanted) => {
@@ -161,17 +199,8 @@ export const censusAndMistakes = (context, wanted) => {
   const env = reaEnvironment(root);
   const { missing } = prepare(context, root);
   const rows = [];
-  if (CENSUS_ROWS.slice(0, 3).some(wanted)) {
-    const scope = context.full ? "full" : "quick";
-    const specs = readSpecs("cli-census.jsonl").filter(
-      (spec) => context.full || spec.quick === true,
-    );
-    context.progress(`cli census (${scope}, ${specs.length} calls)`);
-    const results = runSpecs(context, root, env, specs);
-    rows.push(
-      ...censusRows(context, results, scope).filter((row) => wanted(row.id)),
-    );
-  }
+  if ([...QUICK_ROWS, ...FULL_ROWS].some(wanted))
+    rows.push(...census(context, root, env, wanted));
   if (wanted("cli.mistakes.largest")) {
     context.progress("cli mistakes");
     const specs = readSpecs("cli-mistakes.jsonl");

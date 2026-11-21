@@ -59,18 +59,35 @@ export const ROWS = {
     metric: "count",
   },
   "cli.census.largest": {
-    what: "Largest successful first answer (stdout) in the CLI census",
+    what: "Largest successful first answer (stdout) in the quick CLI census (15 calls)",
     metric: "bytes",
     plan: "CLI census, largest first answer",
   },
   "cli.census.total": {
-    what: "Total stdout of the successful first answers in the CLI census",
+    what: "Total stdout of the successful first answers in the quick CLI census",
     metric: "bytes",
     plan: "CLI census, total first-answer bytes",
   },
   "cli.census.over-2000": {
-    what: "Successful first answers over 2,000 o200k tokens in the CLI census",
+    what: "Successful first answers over 2,000 o200k tokens in the quick CLI census",
     metric: "count",
+  },
+  "cli.census-full.largest": {
+    what: "Largest successful first answer in the full in-repository CLI census",
+    metric: "bytes",
+    plan: "CLI census, largest first answer",
+    slow: true,
+  },
+  "cli.census-full.total": {
+    what: "Total stdout of the successful first answers in the full in-repository CLI census",
+    metric: "bytes",
+    plan: "CLI census, total first-answer bytes",
+    slow: true,
+  },
+  "cli.census-full.over-2000": {
+    what: "Successful first answers over 2,000 o200k tokens in the full in-repository CLI census",
+    metric: "count",
+    slow: true,
   },
   "cli.mistakes.largest": {
     what: "Largest stdout among the typical CLI mistakes",

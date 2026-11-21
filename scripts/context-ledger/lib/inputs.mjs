@@ -6,7 +6,6 @@
 import { createHash } from "node:crypto";
 import {
   cpSync,
-  existsSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -14,7 +13,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { crc32, deflateRawSync } from "node:zlib";
 
@@ -228,8 +227,4 @@ export const freshDirectory = (directory) => {
   rmSync(directory, { recursive: true, force: true });
   mkdirSync(directory, { recursive: true });
   return directory;
-};
-
-export const ensureParent = (file) => {
-  if (!existsSync(dirname(file))) mkdirSync(dirname(file), { recursive: true });
 };

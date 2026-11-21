@@ -10,7 +10,7 @@ import { meanUnits } from "../lib/units.mjs";
 import { measuredRow, skippedRow } from "../lib/rows.mjs";
 import { CENSUS_ROWS, censusAndMistakes } from "./cli-census.mjs";
 
-const textRow = (context, id, layout, args, detail = {}) => {
+const textRow = (context, id, { layout, args }) => {
   const result = runRea(context, args, { cwd: layout.root, env: layout.env });
   context.keep(`cli/${id}.out`, result.stdout);
   if (result.exit !== 0 && result.stdout === "")
@@ -20,7 +20,7 @@ const textRow = (context, id, layout, args, detail = {}) => {
     );
   return measuredRow(id, {
     units: context.count(result.stdout),
-    detail: { exit: result.exit, ...detail },
+    detail: { exit: result.exit },
   });
 };
 
@@ -118,25 +118,24 @@ export const cliRows = async (context, wanted) => {
   const layout = { root, env: reaEnvironment(root) };
   const rows = [];
   if (wanted("cli.help"))
-    rows.push(textRow(context, "cli.help", layout, ["--help"]));
+    rows.push(textRow(context, "cli.help", { layout, args: ["--help"] }));
   if (wanted("cli.help.command"))
     rows.push(
-      textRow(context, "cli.help.command", layout, [
-        "inspect-artifact",
-        "--help",
-      ]),
+      textRow(context, "cli.help.command", {
+        layout,
+        args: ["inspect-artifact", "--help"],
+      }),
     );
   if (wanted("cli.setup.one-client")) {
     // A throwaway home of its own: setup reads and plans against $HOME.
     const setupRoot = join(context.work, "setup");
     mkdirSync(setupRoot, { recursive: true });
     rows.push(
-      textRow(
-        context,
-        "cli.setup.one-client",
-        { root: setupRoot, env: reaEnvironment(setupRoot) },
-        ["setup", "--dry-run", "--json", "--client", "claude_code"],
-      ),
+      textRow(context, "cli.setup.one-client", {
+        layout: { root: setupRoot, env: reaEnvironment(setupRoot) },
+        // The client the audit measured; any one client would do.
+        args: ["setup", "--dry-run", "--json", "--client", "claude_code"],
+      }),
     );
   }
   if (wanted("cli.progress.stderr")) {

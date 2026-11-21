@@ -6,13 +6,8 @@ import { spawn } from "node:child_process";
 const PROTOCOL_VERSION = "2025-11-25";
 const CLIENT_INFO = { name: "census-client", version: "0.0.1" };
 
-/** One `rea mcp` server process and the requests sent to it. */
-export const openMcp = async ({ rea, node, cwd, env, timeoutMs = 120_000 }) => {
-  const child = spawn(node, [rea, "mcp"], {
-    cwd,
-    env,
-    stdio: ["pipe", "pipe", "pipe"],
-  });
+/** JSON-RPC over a child's stdin and stdout: requests, replies, close. */
+const channel = (child, timeoutMs) => {
   let buffer = "";
   let stderr = "";
   let exited = false;
@@ -39,13 +34,12 @@ export const openMcp = async ({ rea, node, cwd, env, timeoutMs = 120_000 }) => {
       pending.delete(message.id);
       clearTimeout(waiter.timer);
       waiter.resolve(message);
-    } else if (message.method !== undefined && message.id !== undefined) {
+    } else if (message.method !== undefined && message.id !== undefined)
       send({
         jsonrpc: "2.0",
         id: message.id,
         error: { code: -32601, message: "not supported by the ledger client" },
       });
-    }
   };
   child.stdout.on("data", (chunk) => {
     buffer += chunk.toString("utf8");
@@ -57,69 +51,83 @@ export const openMcp = async ({ rea, node, cwd, env, timeoutMs = 120_000 }) => {
     }
   });
   let nextId = 1;
-  const request = (method, params = {}) =>
-    new Promise((resolve, reject) => {
-      if (exited) {
-        reject(
-          new Error(`rea mcp is not running; stderr: ${stderr.slice(-400)}`),
-        );
-        return;
-      }
-      const id = nextId;
-      nextId += 1;
-      const timer = setTimeout(() => {
-        pending.delete(id);
-        reject(new Error(`${method} timed out after ${timeoutMs} ms`));
-      }, timeoutMs);
-      pending.set(id, { resolve, reject, timer });
-      send({ jsonrpc: "2.0", id, method, params });
-    });
-  const close = async () => {
-    if (exited) return;
-    const gone = new Promise((resolve) => child.once("exit", resolve));
-    child.stdin.end();
-    const timer = setTimeout(() => child.kill("SIGKILL"), 5_000);
-    await gone;
-    clearTimeout(timer);
+  return {
+    send,
+    request: (method, params = {}) =>
+      new Promise((resolve, reject) => {
+        if (exited) {
+          reject(
+            new Error(`rea mcp is not running; stderr: ${stderr.slice(-400)}`),
+          );
+          return;
+        }
+        const id = nextId;
+        nextId += 1;
+        const timer = setTimeout(() => {
+          pending.delete(id);
+          reject(new Error(`${method} timed out after ${timeoutMs} ms`));
+        }, timeoutMs);
+        pending.set(id, { resolve, reject, timer });
+        send({ jsonrpc: "2.0", id, method, params });
+      }),
+    close: async () => {
+      if (exited) return;
+      const gone = new Promise((resolve) => child.once("exit", resolve));
+      child.stdin.end();
+      const timer = setTimeout(() => child.kill("SIGKILL"), 5_000);
+      await gone;
+      clearTimeout(timer);
+    },
   };
+};
+
+/** The text a client forwards from a tools/call reply, joined like the audit's client. */
+const toolText = (reply) => {
+  if (reply.error !== undefined)
+    return {
+      text: String(reply.error.message ?? ""),
+      protocolError: reply.error,
+    };
+  const content = reply.result?.content ?? [];
+  return {
+    text: content
+      .filter((block) => block.type === "text")
+      .map((block) => block.text)
+      .join("\n"),
+    isError: reply.result?.isError === true,
+    structured: reply.result?.structuredContent,
+  };
+};
+
+/** One `rea mcp` server process and the requests sent to it. */
+export const openMcp = async ({ rea, node, cwd, env, timeoutMs = 120_000 }) => {
+  const child = spawn(node, [rea, "mcp"], {
+    cwd,
+    env,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const rpc = channel(child, timeoutMs);
   let initialize;
   try {
-    initialize = await request("initialize", {
+    initialize = await rpc.request("initialize", {
       protocolVersion: PROTOCOL_VERSION,
       capabilities: {},
       clientInfo: CLIENT_INFO,
     });
   } catch (cause) {
-    await close();
+    await rpc.close();
     throw cause;
   }
   if (initialize.error !== undefined) {
-    await close();
+    await rpc.close();
     throw new Error(`initialize failed: ${JSON.stringify(initialize.error)}`);
   }
-  send({ jsonrpc: "2.0", method: "notifications/initialized" });
+  rpc.send({ jsonrpc: "2.0", method: "notifications/initialized" });
   return {
     initialize: initialize.result,
-    request,
-    close,
-    /** Call a tool; returns the text the client forwards and the raw reply. */
-    call: async (name, args = {}) => {
-      const reply = await request("tools/call", { name, arguments: args });
-      if (reply.error !== undefined)
-        return {
-          text: String(reply.error.message ?? ""),
-          protocolError: reply.error,
-        };
-      const content = reply.result?.content ?? [];
-      const text = content
-        .filter((block) => block.type === "text")
-        .map((block) => block.text)
-        .join("\n");
-      return {
-        text,
-        isError: reply.result?.isError === true,
-        structured: reply.result?.structuredContent,
-      };
-    },
+    request: rpc.request,
+    close: rpc.close,
+    call: async (name, args = {}) =>
+      toolText(await rpc.request("tools/call", { name, arguments: args })),
   };
 };

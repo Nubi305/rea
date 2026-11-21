@@ -3,7 +3,7 @@
 // status and evidence-bundle calls, and a one-row page. A port of the audit's
 // census-mcp 01-census.mjs, 07-task.mjs, 14-bundle-default.mjs and
 // 15-paging.mjs.
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { buildMcpInputs } from "../lib/inputs.mjs";
