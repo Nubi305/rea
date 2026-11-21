@@ -146,3 +146,65 @@ export const judgeAnswer = (task, answer) => {
     right: right === facts.length,
   };
 };
+
+/** Whether a version such as "v24.22.3" is at least a minimum such as "24.15.0". */
+export const versionAtLeast = (version, minimum) => {
+  const parts = (text) => text.replace(/^v/u, "").split(".").map(Number);
+  const [have, need] = [parts(version), parts(minimum)];
+  for (let index = 0; index < need.length; index++) {
+    if ((have[index] ?? 0) > need[index]) return true;
+    if ((have[index] ?? 0) < need[index]) return false;
+  }
+  return true;
+};
+
+// Commands an agent runs to find its way, not to answer the request.
+const DISCOVERY = new Set([
+  "guidance",
+  "setup",
+  "doctor",
+  "capabilities",
+  "providers",
+  "guided-workflows",
+  "mcp",
+]);
+
+/**
+ * The first REA command an agent ran to work on the request, against the one
+ * the task expects. Help, schema and guidance calls before it are counted,
+ * not judged. `result` is "expected", "accepted" (a first step the task also
+ * allows), "other" or "none" (the agent ran no working REA command).
+ */
+export const firstCommandOf = (task, invocations) => {
+  const working = (item) =>
+    item.mode === "run" &&
+    item.command !== null &&
+    !DISCOVERY.has(item.command);
+  const index = invocations.findIndex(working);
+  const first = index === -1 ? null : invocations[index];
+  const { expected, also_accepted: accepted = [] } = task.first_command;
+  const flags = task.first_command.economical_flags;
+  const result =
+    first === null
+      ? expected === "(none)"
+        ? "expected"
+        : "none"
+      : first.command === expected
+        ? "expected"
+        : accepted.includes(first.command)
+          ? "accepted"
+          : "other";
+  return {
+    expected,
+    also_accepted: accepted,
+    first_invocation: invocations[0]?.key ?? null,
+    first_working_command: first?.command ?? null,
+    first_working_text: first?.text ?? null,
+    result,
+    economical:
+      flags === undefined || first === null
+        ? null
+        : flags.some((flag) => first.text.includes(flag)),
+    rea_calls_before_it: index === -1 ? invocations.length : index,
+  };
+};

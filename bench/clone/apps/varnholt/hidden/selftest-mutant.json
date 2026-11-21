@@ -1,0 +1,7 @@
+{
+  "file": "server.mjs",
+  "find": "\"weight_over_limit\"",
+  "replace": "\"weight_too_heavy\"",
+  "breaks": ["R09-weight-limit"],
+  "why": "One error code of one refusal. Only the step that asks for a parcel over the weight limit sees it, so exactly one rule must disagree."
+}

@@ -10,6 +10,9 @@ import { parseJson, runRea } from "./proc.mjs";
 const CAPTURES_PER_SIDE = 2;
 const CAPTURE_TIMEOUT_MS = 150_000;
 const SIDES = ["original", "clone"];
+// The throwaway folder needs a clone name that holds no product name; the
+// name the comparison renames to is the cell's, not this one.
+const THROWAWAY_CLONE_NAME = "Held-out replay";
 
 const judgeEnvironment = (browser) => ({
   REA_BROWSER_EXECUTABLE: browser,
@@ -19,7 +22,7 @@ const judgeEnvironment = (browser) => ({
 // A throwaway run folder is the judge's own way to turn an address-free
 // scenario into a capture input for each side.
 const renderInputs = (replay) => {
-  const { app, judge, sides, cloneName, workDir, browser } = replay;
+  const { app, judge, sides, workDir, browser } = replay;
   const run = join(workDir, "heldout-run");
   const emptyClone = join(workDir, "empty-clone-root");
   mkdirSync(emptyClone, { recursive: true });
@@ -36,7 +39,7 @@ const renderInputs = (replay) => {
       "--clone-root",
       emptyClone,
       "--clone-name",
-      cloneName,
+      THROWAWAY_CLONE_NAME,
       ...app.product_names.flatMap((name) => ["--original-name", name]),
       "--authorization",
       "Benchmark scoring: held-out scenarios replayed against both applications.",

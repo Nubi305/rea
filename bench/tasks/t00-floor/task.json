@@ -1,0 +1,24 @@
+{
+  "id": "t00-floor",
+  "title": "The floor: an agent that only writes a trivial answer",
+  "audit_request": null,
+  "floor": true,
+  "question": "Write the answer file described below; that is the whole request.",
+  "inputs": [],
+  "answer": {
+    "fields": {
+      "ready": "boolean: true"
+    }
+  },
+  "facts": [
+    { "id": "ready", "field": "ready", "check": "equals", "value": true }
+  ],
+  "first_command": {
+    "expected": "(none)",
+    "also_accepted": []
+  },
+  "proof": {
+    "steps": []
+  },
+  "notes": "Not a reverse-engineering task. Its transcript is what the harness itself costs: the client's system text and tool list, the hub's instructions and this prompt. task-score.mjs takes it off every other cell of the same root; floor.mjs prints it for use elsewhere. Its prompt does not mention REA or the skill."
+}

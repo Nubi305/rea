@@ -1,7 +1,7 @@
 // Running a REA checkout and plain shell commands with a deadline. Nothing
 // here interprets REA's output: callers do.
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const MAX_OUTPUT_BYTES = 256 * 1024 * 1024;
@@ -103,5 +103,28 @@ export const parseJson = (text) => {
     return JSON.parse(text);
   } catch {
     return null;
+  }
+};
+
+/**
+ * Run a control command (start, stop or reset of an application) with its
+ * output sent to a log file. A command that leaves a server behind returns
+ * when the shell does, because no pipe is left open to wait on.
+ */
+export const runControl = (command, logFile, timeoutMs = 90_000) => {
+  const log = openSync(logFile, "a");
+  try {
+    const result = spawnSync("bash", ["-c", command], {
+      stdio: ["ignore", log, log],
+      timeout: timeoutMs,
+      killSignal: "SIGKILL",
+    });
+    return {
+      command,
+      status: result.status,
+      timed_out: result.error?.code === "ETIMEDOUT",
+    };
+  } finally {
+    closeSync(log);
   }
 };

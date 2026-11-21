@@ -55,8 +55,24 @@ const answerFields = (fields) =>
     .map(([name, meaning]) => `- \`${name}\`: ${meaning}`)
     .join("\n");
 
+// The floor cell: the same first line and the same way of answering, and
+// nothing about REA, so that its transcript holds the harness and no more.
+const floorPrompt = (
+  cell,
+) => `You are an AI coding agent on a developer's machine. The developer has this request:
+
+"${cell.question}"
+
+## Your answer
+Write your answer as one JSON object to ${cell.answer_file}, with these fields and nothing else:
+${answerFields(cell.answer_fields)}
+
+Then stop.
+`;
+
 /** The prompt of a task cell. */
 export const taskPrompt = (cell) => {
+  if (cell.floor === true) return floorPrompt(cell);
   const { workspace } = cell;
   const inputs =
     cell.input_files.length === 0
@@ -75,7 +91,7 @@ ${environment({ workspace, skillDir: cell.skill_dir, browser: cell.browser }).jo
 ## The rules of this trial
 This is a test of whether REA and its guidance are enough for an agent that knows nothing else. So:
 1. ${sourcesRule(cell.off_limits)}
-2. Answer with REA. Other tools are for running REA and for reading what REA wrote: do not get the answer by opening the files or the address with anything else (no cat, strings, hex dump, unzip, sqlite3, curl, interpreter or debugger of your own on them). Where REA cannot tell you part of the answer, leave that part out; do not fill it in another way.
+2. Answer with REA. Other tools are for running REA and for reading what REA wrote. Do not get the answer any other way: do not open, run, unpack or request the files or the address with anything else (no cat, strings, hex dump, unzip, sqlite3, curl, interpreter or debugger of your own). Where REA cannot tell you part of the answer, leave that part out; do not fill it in another way. Nothing under ${cell.cell_dir} is yours to read.
 3. Do not fake anything. A field you could not establish is left out of the answer, not guessed. Stop after about ${cell.minutes} minutes of work.
 
 ## Your answer

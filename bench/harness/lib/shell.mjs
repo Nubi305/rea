@@ -260,7 +260,8 @@ const scriptInvocations = (word, state) =>
     via_script: baseName(word.text),
   }));
 
-const commandInvocations = (words, state) => {
+/** The REA invocations of one simple command, as simpleCommands() gives it. */
+export const commandInvocations = (words, state) => {
   const start = commandStart(words, state);
   if (start >= words.length) return [];
   const head = words[start];

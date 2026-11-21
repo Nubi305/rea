@@ -253,3 +253,23 @@ export const invocationCounts = (context, shimLog) => {
           },
   };
 };
+
+/**
+ * Everything the scorers take from a transcript's cost side: token cost (net
+ * of the floor when one is given), the context breakdown and the REA
+ * invocations, with `invocations` as the ordered list the context reader
+ * found.
+ */
+export const transcriptReport = (transcript, { skillDir, shimLog, floor }) => {
+  const cost = costOf(transcript);
+  const { invocations, ...context } = contextOf(transcript, { skillDir });
+  return {
+    cost: {
+      ...cost,
+      net_of_floor: floor === null ? null : netOfFloor(cost, floor),
+    },
+    context,
+    rea_invocations: invocationCounts({ invocations }, readShimLog(shimLog)),
+    invocations,
+  };
+};

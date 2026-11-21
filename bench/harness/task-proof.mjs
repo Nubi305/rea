@@ -15,7 +15,12 @@ import { parseArgs } from "node:util";
 import { buildInputs, missingInputTools } from "./lib/inputs.mjs";
 import { checkoutFacts, runRea } from "./lib/proc.mjs";
 import { startNodeService, stopRecordedService } from "./lib/service.mjs";
-import { fillPlaceholders, listTaskIds, loadTask } from "./lib/tasks.mjs";
+import {
+  fillPlaceholders,
+  listTaskIds,
+  loadTask,
+  versionAtLeast,
+} from "./lib/tasks.mjs";
 
 const USAGE =
   "usage: task-proof.mjs --rea <checkout> [--node <node>] [--task <id>]... [--port <n>] [--write] [--keep]";
@@ -155,8 +160,18 @@ const main = async () => {
   for (const id of values.task ?? listTaskIds()) {
     const task = loadTask(id);
     const missing = missingInputTools(task.inputs);
-    if (missing.length > 0) {
-      console.error(`${id}: skipped, needs ${missing.join(", ")}`);
+    const minimum = task.requires?.rea_node;
+    const blocked =
+      task.floor === true
+        ? "the floor has no route"
+        : missing.length > 0
+          ? `needs ${missing.join(", ")}`
+          : minimum !== undefined &&
+              !versionAtLeast(facts.node_version, minimum)
+            ? `REA answers it only on Node ${minimum} or newer`
+            : null;
+    if (blocked !== null) {
+      console.error(`${id}: skipped, ${blocked}`);
       continue;
     }
     const entry = record(task, await proveTask(task, settings), facts);

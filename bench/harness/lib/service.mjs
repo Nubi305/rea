@@ -1,7 +1,7 @@
 // Local servers the harness starts and must stop: the page a task observes,
 // and addresses it waits for. A process is stopped only when it is the one
 // this harness recorded: same pid and same start time.
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import {
   existsSync,
   openSync,
@@ -115,4 +115,42 @@ export const stopRecordedService = async (recordFile) => {
   await waitForPortFree(record.port);
   rmSync(recordFile, { force: true });
   return "stopped";
+};
+
+/** The pids that listen on 127.0.0.1:port, as lsof reports them. */
+const listenersOn = (port) => {
+  try {
+    return execFileSync("lsof", ["-t", `-iTCP:${port}`, "-sTCP:LISTEN"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .split("\n")
+      .filter((line) => line !== "")
+      .map(Number);
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * End whatever still listens on a port. Only for a port the caller saw free
+ * before it started something there: then the listener is the caller's.
+ */
+export const endListeners = async (port) => {
+  for (const pid of listenersOn(port)) {
+    try {
+      process.kill(pid, "SIGTERM");
+    } catch {
+      // The process ended between the listing and the signal.
+    }
+  }
+  if (await waitForPortFree(port, 5000)) return true;
+  for (const pid of listenersOn(port)) {
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      // As above.
+    }
+  }
+  return waitForPortFree(port, 5000);
 };
