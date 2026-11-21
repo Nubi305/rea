@@ -1,5 +1,11 @@
 import type { RetainedBrowserScenarioCapture } from "../browserScenarioCapture.js";
-import { summaryFinding, type SummaryFinding } from "./summaryFindings.js";
+import { boundedList } from "../boundedList.js";
+import {
+  sharedOrigin,
+  summaryFinding,
+  withoutOrigin,
+  type SummaryFinding,
+} from "./summaryFindings.js";
 
 /** Requests a step line names before it counts the rest. */
 const REQUESTS_PER_STEP = 8;
@@ -44,21 +50,23 @@ export const browserScenarioSummaryFindings = (
     list.push(exchange);
     byStep.set(exchange.step, list);
   }
+  const origin = sharedOrigin(
+    [...exchanges.values()].map((exchange) => exchange.url),
+  );
   const rows = capture.steps.map((step) => {
     const requests = byStep.get(step.step_index) ?? [];
-    const named = requests
-      .slice(0, REQUESTS_PER_STEP)
-      .map(
-        (exchange) =>
-          `${exchange.method} ${exchange.url} ${
-            exchange.status !== null
-              ? String(exchange.status)
-              : exchange.failed
-                ? "failed"
-                : "no-response"
-          }`,
-      );
-    const more = requests.length - named.length;
+    const shown = boundedList(requests, REQUESTS_PER_STEP);
+    const named = shown.items.map(
+      (exchange) =>
+        `${exchange.method} ${withoutOrigin(exchange.url, origin)} ${
+          exchange.status !== null
+            ? String(exchange.status)
+            : exchange.failed
+              ? "failed"
+              : "no-response"
+        }`,
+    );
+    const more = shown.omitted;
     const outcome =
       step.status === "completed"
         ? "completed"
@@ -69,11 +77,10 @@ export const browserScenarioSummaryFindings = (
         : `; ${named.join("; ")}${more > 0 ? `; +${String(more)} more` : ""}`
     }`;
   });
-  return [
-    summaryFinding("steps", rows, {
-      kind: "browser-scenario",
-      collection: "transactions",
-      limit: 20,
-    }),
-  ];
+  const finding = summaryFinding("steps", rows, {
+    kind: "browser-scenario",
+    collection: "transactions",
+    limit: 20,
+  });
+  return [origin === undefined ? finding : { ...finding, origin }];
 };

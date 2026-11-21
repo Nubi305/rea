@@ -79,7 +79,9 @@ export const captureViewItemsSchema = z.array(
 /** Count/identity overview; bodies and the archive member inventory stay in the parent. */
 export const captureSummarySchema = z.strictObject({
   protobuf_coverage: protobufCaptureCoverageSchema.exactOptional(),
-  artifact: webNetworkCaptureArtifactSchema,
+  /** Earlier summaries repeated the view's artifact here, with its size. */
+  artifact: webNetworkCaptureArtifactSchema.exactOptional(),
+  artifact_bytes: webNetworkCaptureArtifactSchema.shape.bytes.exactOptional(),
   decoder: webNetworkCaptureDecoderSchema,
   format: z.enum(WEB_NETWORK_CAPTURE_FORMATS),
   total_records: z.int().nonnegative(),
@@ -571,8 +573,9 @@ export const projectWebNetworkCaptureView = (
         ),
       ),
       ...shared,
+      // The path and digest are the view's artifact; the size is stated here.
       summary: {
-        artifact: report.artifact,
+        artifact_bytes: report.artifact.bytes,
         decoder: report.decoder,
         format: report.format,
         total_records: report.total_records,

@@ -86,11 +86,13 @@ describe("summary findings", () => {
       record(2, 200, 90),
       record(3, 0, 1),
     ]);
+    // Every address shares one origin: it is stated once.
+    expect(finding?.origin).toBe("https://a.test");
     expect(finding?.rows).toEqual([
-      "#1 GET https://a.test/1 500 5ms",
-      "#3 GET https://a.test/3 no-response 1ms",
-      "#2 GET https://a.test/2 200 90ms",
-      "#0 GET https://a.test/0 200 10ms",
+      "#1 GET /1 500 5ms",
+      "#3 GET /3 no-response 1ms",
+      "#2 GET /2 200 90ms",
+      "#0 GET /0 200 10ms",
     ]);
   });
 
@@ -131,7 +133,7 @@ describe("summary findings", () => {
     const [finding] = findingsOf(scenarioCaptureEvidence());
     expect(finding?.name).toBe("steps");
     expect(finding?.rows[0]).toMatch(/^step 0 \S+ \S+ completed/u);
-    expect(finding?.rows.join("\n")).toMatch(/(GET|POST) http\S+ \d{3}/u);
+    expect(finding?.rows.join("\n")).toMatch(/(GET|POST) \/\S* \d{3}/u);
   });
 
   it("lists the endpoints an application requests, observed before inferred", () => {

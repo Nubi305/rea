@@ -1,5 +1,10 @@
 import type { JsonValue } from "../jsonValue.js";
-import { summaryFinding, type SummaryFinding } from "./summaryFindings.js";
+import {
+  sharedOrigin,
+  summaryFinding,
+  withoutOrigin,
+  type SummaryFinding,
+} from "./summaryFindings.js";
 
 type Fields = Readonly<Record<string, JsonValue>>;
 
@@ -61,8 +66,8 @@ const recordLine = (
 const failed = (line: RecordLine): boolean =>
   line.status === undefined || line.status >= 400;
 
-const format = (line: RecordLine): string =>
-  `#${String(line.ordinal)} ${line.method} ${line.address} ${
+const format = (line: RecordLine, origin: string | undefined): string =>
+  `#${String(line.ordinal)} ${line.method} ${withoutOrigin(line.address, origin)} ${
     line.status === undefined ? "no-response" : String(line.status)
   }${line.time === undefined ? "" : ` ${String(Math.round(line.time))}ms`}`;
 
@@ -88,11 +93,12 @@ export const captureSummaryFindings = (
       (left, right) =>
         (right.time ?? -1) - (left.time ?? -1) || left.ordinal - right.ordinal,
     );
-  return [
-    summaryFinding(
-      "requests_failed_first_then_slowest",
-      [...failures, ...rest].map(format),
-      { kind: "capture", limit: 20 },
-    ),
-  ];
+  const ordered = [...failures, ...rest];
+  const origin = sharedOrigin(ordered.map((line) => line.address));
+  const finding = summaryFinding(
+    "requests_failed_first_then_slowest",
+    ordered.map((line) => format(line, origin)),
+    { kind: "capture", limit: 20 },
+  );
+  return [origin === undefined ? finding : { ...finding, origin }];
 };

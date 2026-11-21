@@ -243,6 +243,7 @@ export const publishCliAnalysisEvidence = async (
   const views = namedViewCommands(
     published.value.delivered,
     published.value.receipt,
+    evidenceOutput,
   );
   return {
     summary: published.value.delivered,
@@ -258,8 +259,14 @@ export const publishCliAnalysisEvidence = async (
 const namedViewCommands = (
   delivered: Evidence,
   receipt: JsonValue,
+  evidenceOutput: string,
 ): string[] => {
-  const path = isObject(receipt) ? receipt.path : undefined;
+  // The caller's own spelling of the saved file, when the receipt names it:
+  // the command runs as printed from where the caller ran this one.
+  const path =
+    isObject(receipt) && typeof receipt.path === "string"
+      ? evidenceOutput
+      : undefined;
   const result = delivered.normalized_result;
   if (typeof path !== "string" || !isObject(result)) return [];
   const named = result.views;

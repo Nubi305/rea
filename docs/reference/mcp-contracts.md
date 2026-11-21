@@ -754,7 +754,8 @@ Summaries of the commands agents call first lead with
 `normalized_result.findings`: for each kind of finding, its `name`, at most
 20 `rows` of one line each, the `total`, the number `omitted`, and `view`:
 the index in `views` of the view that pages all of them (or that view's input
-when it is not among the named views).
+when it is not among the named views). When every address in a finding shares one origin, the
+finding states it once as `origin` and its rows give the rest of each address.
 `analyze_javascript_application` states its `endpoints` (mechanism and
 address, observed before inferred), `ipc_channels` and `entry_points`;
 `inspect_web_network_capture` one line per HTTP record (ordinal, method,

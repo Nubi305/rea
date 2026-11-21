@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { browserScenarioEventSchema } from "../browserScenarioCaptureValues.js";
 import { browserNetworkHeadersSchema } from "../browserNetworkEvidence.js";
+import { decodeStrictUtf8, isStrictUtf8 } from "../strictUtf8.js";
 import { isJson, mediaTypeEssence } from "./recordedMediaType.js";
 
 type Event = z.output<typeof browserScenarioEventSchema>;
@@ -27,18 +28,11 @@ export const isTextualMediaType = (reported: string | null): boolean => {
   );
 };
 
-const STRICT_UTF8 = new TextDecoder("utf-8", {
-  fatal: true,
-  ignoreBOM: true,
-});
-
 /** The body's bytes as text, when they are valid UTF-8; undefined otherwise. */
 const decodeText = (contentBase64: string): string | undefined => {
-  try {
-    return STRICT_UTF8.decode(Buffer.from(contentBase64, "base64"));
-  } catch {
-    return undefined;
-  }
+  const bytes = Buffer.from(contentBase64, "base64");
+  // The recorded bytes are kept exactly, a leading BOM included.
+  return isStrictUtf8(bytes) ? decodeStrictUtf8(bytes, "preserve") : undefined;
 };
 
 /**

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { boundedList } from "../boundedList.js";
 import { jsonObjectSchema, type JsonValue } from "../jsonValue.js";
 
 /** Rows of one finding a summary states inline; the rest are paged by its view. */
@@ -10,6 +11,8 @@ export const SUMMARY_FINDING_ROWS = 20;
  */
 export const summaryFindingSchema = z.strictObject({
   name: z.string().min(1),
+  /** Every address in the rows starts with this origin, which they leave out. */
+  origin: z.string().exactOptional(),
   rows: z.array(z.string()),
   total: z.int().nonnegative(),
   omitted: z.int().nonnegative(),
@@ -26,13 +29,42 @@ export const summaryFinding = (
   name: string,
   rows: readonly string[],
   view: Readonly<Record<string, JsonValue>> | null,
-): SummaryFinding => ({
-  name,
-  rows: rows.slice(0, SUMMARY_FINDING_ROWS),
-  total: rows.length,
-  omitted: Math.max(0, rows.length - SUMMARY_FINDING_ROWS),
-  view: view === null ? null : { ...view },
-});
+): SummaryFinding => {
+  const stated = boundedList(rows, SUMMARY_FINDING_ROWS);
+  return {
+    name,
+    rows: [...stated.items],
+    total: rows.length,
+    omitted: stated.omitted,
+    view: view === null ? null : { ...view },
+  };
+};
+
+/**
+ * The origin (scheme://host[:port]) every one of `addresses` shares, if any,
+ * so rows can state the rest of each address.
+ */
+export const sharedOrigin = (
+  addresses: readonly string[],
+): string | undefined => {
+  let shared: string | undefined;
+  for (const address of addresses) {
+    const origin = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]+/iu.exec(address)?.[0];
+    if (origin === undefined) return undefined;
+    if (shared === undefined) shared = origin;
+    else if (shared !== origin) return undefined;
+  }
+  return shared;
+};
+
+/** An address without the origin its finding states once. */
+export const withoutOrigin = (
+  address: string,
+  origin: string | undefined,
+): string =>
+  origin === undefined || !address.startsWith(origin)
+    ? address
+    : address.slice(origin.length) || "/";
 
 /** Findings with no rows say nothing a count would not; leave them out. */
 export const presentFindings = (
