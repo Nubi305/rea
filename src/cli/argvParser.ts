@@ -1,6 +1,12 @@
 import { z } from "zod";
 
+import {
+  CLI_BUILTIN_FLAGS,
+  OUTPUT_SWITCHES,
+  VALUED_OUTPUT_FLAGS,
+} from "../cliBuiltinArguments.js";
 import { err, ok, type Result } from "../domain/result.js";
+import { editDistance } from "./commandSuggestion.js";
 import {
   declaredOptionType,
   isCountOption,
@@ -11,13 +17,16 @@ import {
  * REA's argv parser for one command: binds tokens to the command's
  * positionals and options, then validates them with the command's schemas.
  * Option keys are camelCase; each is spelled `--kebab-case` on the command
- * line and also accepted as `--camelCase`. A boolean option is set by its
+ * line and also accepted as `--camelCase`; a snake_case key is also accepted
+ * in its kebab spelling (`--evidence-output` for `--evidence_output`), and
+ * giving both spellings different values is refused. A boolean option is set by its
  * bare flag and cleared by `--no-<flag>`; `--flag=value` and `--flag value`
  * both bind a value; an array option collects every occurrence; a short
  * alias may be stacked (`-ab`) when all but the last are booleans or
  * counts; a count option adds one per occurrence (`-vvv`). `--` is
- * not a separator here: after the command it is an unknown flag. The
- * messages and field errors match what REA has always printed (#11654).
+ * not a separator here: after the command it is an unknown flag. An unknown
+ * long flag near a declared or global one names it (`Did you mean --detail?`).
+ * The messages and field errors match what REA has always printed (#11654).
  */
 
 /** One field that failed validation, as REA prints it. */
@@ -37,7 +46,20 @@ export interface CliFieldError {
  * missing value), or bound positionals or options their schema refused.
  */
 export type CliArgvFailure =
-  | { readonly kind: "parse"; readonly message: string }
+  | {
+      readonly kind: "parse";
+      readonly message: string;
+      /**
+       * For an unknown long flag: the flag as typed and, when one is near, the
+       * declared or global flag it most likely meant. The message does not
+       * name the suggestion; the caller adds it once redaction has been
+       * checked against the typed flag.
+       */
+      readonly unknownFlag?: {
+        readonly typed: string;
+        readonly suggestion?: string | undefined;
+      };
+    }
   | { readonly kind: "surplus"; readonly message: string }
   | { readonly kind: "boolean_literal"; readonly message: string }
   | {
@@ -50,6 +72,46 @@ export type CliArgvFailure =
 
 const parseFailure = (message: string): Result<never, CliArgvFailure> =>
   err({ kind: "parse", message });
+
+/**
+ * Global flags an unknown command flag may have meant. The update check's own
+ * flag and the short help alias are internal or too short to suggest.
+ */
+const SUGGESTED_GLOBAL_FLAGS: readonly string[] = [
+  ...new Set([
+    ...VALUED_OUTPUT_FLAGS,
+    ...OUTPUT_SWITCHES,
+    ...CLI_BUILTIN_FLAGS,
+  ]),
+].filter((flag) => flag.startsWith("--") && flag !== "--incur-update-check");
+
+/**
+ * The flag nearest to `typed` (both spelled with their dashes), or undefined.
+ * Near means an edit distance of at most 2, and at most half the typed name's
+ * length so a two-letter typo is not read as some other short flag. The
+ * smallest distance wins; the first candidate wins a tie. Case is ignored,
+ * and so is the difference between `_` and `-`.
+ */
+const nearestFlag = (
+  typed: string,
+  candidates: readonly string[],
+): string | undefined => {
+  const name = typed.slice(2).toLowerCase();
+  const threshold = Math.min(2, Math.floor(name.length / 2));
+  let best: string | undefined;
+  let bestDistance = Infinity;
+  for (const candidate of candidates) {
+    const distance = editDistance(
+      name.replaceAll("_", "-"),
+      candidate.slice(2).toLowerCase().replaceAll("_", "-"),
+    );
+    if (distance <= threshold && distance < bestDistance) {
+      best = candidate;
+      bestDistance = distance;
+    }
+  }
+  return best;
+};
 
 export interface CliArgvSchemas {
   /** Positionals in argv order; a final array field takes the rest. */
@@ -166,17 +228,59 @@ export const parseCliArgv = (
         : [[optionFlagName(name), name] as const],
     ),
   );
+  // A snake_case key also answers to its kebab spelling.
+  const kebabOf = new Map(
+    [...known].flatMap((name) => {
+      const flag = optionFlagName(name);
+      const kebab = flag.replaceAll("_", "-");
+      return kebab === flag || known.has(kebab) || camelOf.has(kebab)
+        ? []
+        : [[kebab, name] as const];
+    }),
+  );
+  /** Each option given in its kebab spelling, with the value it was given. */
+  const kebabValues = new Map<string, unknown>();
+  /** Each snake_case option given in its declared spelling, likewise. */
+  const declaredValues = new Map<string, unknown>();
+  let conflict: string | undefined;
+  const record = (raw: string, name: string, value: unknown): void => {
+    if (!name.includes("_") || isArray(optionsSchema, name)) return;
+    const kebab = kebabOf.get(raw) === name;
+    (kebab ? kebabValues : declaredValues).set(name, value);
+    const other = (kebab ? declaredValues : kebabValues).get(name);
+    if (other !== undefined && other !== value)
+      conflict ??= `Conflicting values for --${optionFlagName(name)} and its spelling --${optionFlagName(name).replaceAll("_", "-")}; give the option once.`;
+  };
   const optionName = (raw: string): string | undefined => {
-    const name = camelOf.get(raw) ?? raw;
+    const name = camelOf.get(raw) ?? kebabOf.get(raw) ?? raw;
     return known.has(name) ? name : undefined;
   };
+  const suggestionCandidates = (): readonly string[] => [
+    ...[...known].flatMap((name) => [
+      `--${optionFlagName(name)}`,
+      ...(isBoolean(optionsSchema, name)
+        ? [`--no-${optionFlagName(name)}`]
+        : []),
+    ]),
+    ...SUGGESTED_GLOBAL_FLAGS,
+  ];
+  const unknownFlag = (typed: string): Result<never, CliArgvFailure> =>
+    err({
+      kind: "parse",
+      message: `Unknown flag: ${typed}`,
+      unknownFlag: {
+        typed,
+        suggestion: nearestFlag(typed, suggestionCandidates()),
+      },
+    });
   const aliasName = new Map(
     Object.entries(alias ?? {}).map(([name, short]) => [short, name] as const),
   );
   const positionals: string[] = [];
   const options: Record<string, unknown> = {};
   let invalidBooleanFlag: string | undefined;
-  const set = (name: string, value: string): void => {
+  const set = (raw: string, name: string, value: string): void => {
+    record(raw, name, value);
     if (value !== "true" && value !== "false" && isBoolean(optionsSchema, name))
       invalidBooleanFlag ??= STRICT_BOOLEAN_FLAGS.get(name);
     if (!isArray(optionsSchema, name)) {
@@ -191,31 +295,37 @@ export const parseCliArgv = (
     const token = argv[index]!;
     if (token.startsWith("--no-") && token.length > 5) {
       const name = optionName(token.slice(5));
-      if (name === undefined) return parseFailure(`Unknown flag: ${token}`);
+      if (name === undefined) return unknownFlag(token);
+      record(token.slice(5), name, false);
       options[name] = false;
     } else if (token.startsWith("--")) {
       const equals = token.indexOf("=");
       if (equals !== -1) {
         const raw = token.slice(2, equals);
         const name = optionName(raw);
-        if (name === undefined) return parseFailure(`Unknown flag: --${raw}`);
-        set(name, token.slice(equals + 1));
+        if (name === undefined) return unknownFlag(`--${raw}`);
+        set(raw, name, token.slice(equals + 1));
         continue;
       }
-      const name = optionName(token.slice(2));
-      if (name === undefined) return parseFailure(`Unknown flag: ${token}`);
+      const raw = token.slice(2);
+      const name = optionName(raw);
+      if (name === undefined)
+        return token === "--"
+          ? parseFailure(`Unknown flag: ${token}`)
+          : unknownFlag(token);
       if (isCount(optionsSchema, name)) {
         options[name] = ((options[name] as number | undefined) ?? 0) + 1;
         continue;
       }
       if (isBoolean(optionsSchema, name)) {
+        record(raw, name, true);
         options[name] = true;
         continue;
       }
       const value = argv[index + 1];
       if (value === undefined)
         return parseFailure(`Missing value for flag: ${token}`);
-      set(name, value);
+      set(raw, name, value);
       index += 1;
     } else if (token.startsWith("-") && token.length >= 2) {
       const shorts = token.slice(1);
@@ -237,13 +347,14 @@ export const parseCliArgv = (
         const value = argv[index + 1];
         if (value === undefined)
           return parseFailure(`Missing value for flag: -${short}`);
-        set(name, value);
+        set(short, name, value);
         index += 1;
       }
     } else {
       positionals.push(token);
     }
   }
+  if (conflict !== undefined) return parseFailure(conflict);
   // Check retained token facts before defaults or transforms can run. A later
   // valid occurrence must not hide an earlier invalid literal.
   if (invalidBooleanFlag !== undefined)
