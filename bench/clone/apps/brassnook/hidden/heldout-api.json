@@ -1,0 +1,825 @@
+{
+  "start_path": "/",
+  "actions": [
+    {
+      "step_id": "fp-rooms",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/rooms",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "fp-bookings",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "fp-summary",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/summary",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "day-sheet-blue",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/rooms/1/day?date=2026-12-08",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "day-sheet-sunday",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/rooms/1/day?date=2026-12-13",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "day-sheet-bad-date",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/rooms/1/day?date=2026-02-29",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-limit-clamped",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings?limit=99",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-limit-zero",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings?limit=0",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-page-two",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings?limit=3&offset=3",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-status-filter",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings?status=cancelled",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-status-bad",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings?status=done",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-band-filter",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings?band=LOW",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-room-missing",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings?roomId=42",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-create-normalised",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/rooms",
+      "json": {
+        "name": "  Écho   Chamber! ",
+        "capacity": 5,
+        "rateCents": 1250
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-name-taken-slug",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/rooms",
+      "json": {
+        "name": "blue-ROOM"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-name-taken-accent",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/rooms",
+      "json": {
+        "name": "CAFE stage"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-name-short",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/rooms",
+      "json": {
+        "name": " Ab "
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-name-missing",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/rooms",
+      "json": {},
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-capacity-over",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/rooms",
+      "json": {
+        "name": "Loft",
+        "capacity": 13
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-rate-step",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/rooms",
+      "json": {
+        "name": "Loft",
+        "rateCents": 1275
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-create-defaults",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/rooms",
+      "json": {
+        "name": "Loft"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "rooms-order-after",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/rooms",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-create-normalised",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 6,
+        "band": "  north   Wind ",
+        "players": 3,
+        "date": "2026-12-08",
+        "start": "12:00",
+        "minutes": 45
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-half-even-down",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 5,
+        "band": "Glass Harbour",
+        "players": 2,
+        "date": "2026-12-08",
+        "start": "12:00",
+        "minutes": 45
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-evening-split",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Fen Lights",
+        "players": 4,
+        "date": "2026-12-08",
+        "start": "17:30",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-start-off-grid",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Probe Band",
+        "players": 2,
+        "date": "2026-12-09",
+        "start": "10:10",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-start-format",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Probe Band",
+        "players": 2,
+        "date": "2026-12-09",
+        "start": "9:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-minutes-short",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Probe Band",
+        "players": 2,
+        "date": "2026-12-09",
+        "start": "10:00",
+        "minutes": 20
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-minutes-step",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Probe Band",
+        "players": 2,
+        "date": "2026-12-09",
+        "start": "10:00",
+        "minutes": 50
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-too-late",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Probe Band",
+        "players": 2,
+        "date": "2026-12-09",
+        "start": "22:00",
+        "minutes": 90
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-too-early",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Probe Band",
+        "players": 2,
+        "date": "2026-12-09",
+        "start": "07:45",
+        "minutes": 30
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-last-slot",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Late Owls",
+        "players": 2,
+        "date": "2026-12-09",
+        "start": "21:30",
+        "minutes": 90
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-bad-date",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Probe Band",
+        "players": 2,
+        "date": "2026-02-29",
+        "start": "10:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-sunday",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Probe Band",
+        "players": 2,
+        "date": "2026-12-13",
+        "start": "10:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-players-zero",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Probe Band",
+        "players": 0,
+        "date": "2026-12-09",
+        "start": "10:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-room-missing",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 42,
+        "band": "Probe Band",
+        "players": 2,
+        "date": "2026-12-09",
+        "start": "nope",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-band-short",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "  X  ",
+        "players": 2,
+        "date": "2026-12-09",
+        "start": "10:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-inactive-room",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 4,
+        "band": "Probe Band",
+        "players": 5,
+        "date": "2026-12-09",
+        "start": "10:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-too-many-players",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 1,
+        "band": "Probe Band",
+        "players": 7,
+        "date": "2026-12-08",
+        "start": "18:30",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-overlap",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 1,
+        "band": "Moss",
+        "players": 2,
+        "date": "2026-12-08",
+        "start": "19:30",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-touching",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 1,
+        "band": "Moss",
+        "players": 2,
+        "date": "2026-12-08",
+        "start": "20:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-cancelled-frees-slot",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Velvet Static",
+        "players": 4,
+        "date": "2026-12-10",
+        "start": "09:00",
+        "minutes": 45
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "band-second-booking",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 5,
+        "band": " the  LOW tides",
+        "players": 3,
+        "date": "2026-12-08",
+        "start": "14:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "band-third-refused",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "THE LOW TIDES",
+        "players": 3,
+        "date": "2026-12-08",
+        "start": "08:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-skip-refused",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/14/status",
+      "json": {
+        "status": "checked_in"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-unknown",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/14/status",
+      "json": {
+        "status": "done"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-cancel-tentative",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/14/status",
+      "json": {
+        "status": "cancelled"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "band-limit-after-cancel",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "THE LOW TIDES",
+        "players": 3,
+        "date": "2026-12-08",
+        "start": "08:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-cancelled-final",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/14/status",
+      "json": {
+        "status": "confirmed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-confirm",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/5/status",
+      "json": {
+        "status": "confirmed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-rate-change",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/rooms/5",
+      "json": {
+        "rateCents": 2000
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-repriced",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings/9",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-price-locked",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings/5",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-edit-confirmed",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/5",
+      "json": {
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-edit-own-slot",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/9",
+      "json": {
+        "start": "12:15",
+        "minutes": 30
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-edit-overlap",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/9",
+      "json": {
+        "start": "11:00"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-edit-status-field",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/9",
+      "json": {
+        "status": "confirmed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-delete-confirmed",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/bookings/5",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-cancel-confirmed",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/5/status",
+      "json": {
+        "status": "cancelled"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "summary-after-fee",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/summary",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-delete-cancelled",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/bookings/5",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "day-sheet-atrium-after",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/rooms/5/day?date=2026-12-08",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-check-in",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/1/status",
+      "json": {
+        "status": "checked_in"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-back-refused",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/1/status",
+      "json": {
+        "status": "confirmed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-capacity-below-booking",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/rooms/1",
+      "json": {
+        "capacity": 4
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-rename-taken",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/rooms/2",
+      "json": {
+        "name": "ATRIUM"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-deactivate",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/rooms/2",
+      "json": {
+        "active": false
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "confirm-in-inactive-room",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/bookings/10/status",
+      "json": {
+        "status": "confirmed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-in-deactivated-room",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 2,
+        "band": "Late Owls",
+        "players": 2,
+        "date": "2026-12-11",
+        "start": "10:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-delete-busy",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/rooms/1",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-delete-cascade",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/rooms/6",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-gone-after-cascade",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings/8",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "room-name-free-again",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/rooms",
+      "json": {
+        "name": "Echo chamber"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "booking-id-not-reused",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/bookings",
+      "json": {
+        "roomId": 3,
+        "band": "Tin Choir",
+        "players": 8,
+        "date": "2026-12-09",
+        "start": "08:00",
+        "minutes": 60
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "summary-final",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/summary",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "bookings-final",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings?limit=25",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "rooms-final",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/rooms",
+      "timeout_ms": 15000
+    }
+  ]
+}

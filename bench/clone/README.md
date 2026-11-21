@@ -16,6 +16,7 @@ apps/<id>/
     <scenario>.json         one file per held-out scenario
     heldout-differences.json
     HIDDEN.md               the rules in prose, for people
+    selftest-mutant.json    optional: one rule broken by one replacement
 ```
 
 `node bench/harness/clone-check-app.mjs --app <id> --judge <checkout>
@@ -23,6 +24,14 @@ apps/<id>/
 held-out scenarios on two instances of the original: every step must come out
 `unchanged`. It lists what breaks the layout as `layout_problems`. With
 `--apps <directory>` it checks an application that is not under `apps/` yet.
+Two more ways to run the second instance:
+
+- `--clone-source <directory>` runs it from another copy of the source, such
+  as one whose ids, classes and data attributes were renamed. It must still
+  agree on every rule: that is how to show the scenarios are portable.
+- `--mutant` runs the original with `hidden/selftest-mutant.json` applied
+  (`file`, `find`, `replace`, and `breaks`, the rules that must then
+  disagree). It must disagree on exactly those rules and agree on every other.
 
 ## app.json
 
@@ -45,7 +54,9 @@ held-out scenarios on two instances of the original: every step must come out
   the application answers. It must work from wherever the directory is copied
   to: the harness never runs the copy in the repository.
 - Stays inside what clone runs support: every reply under 64 KiB, no
-  `Cache-Control: no-store`, no redirect to another origin, no cookies.
+  `Cache-Control: no-store`, no redirect to another origin, no cookies. A
+  reply a held-out step requests must keep to this; with `no-store` the
+  capture loses reply bodies at random and the step comes out `unknown`.
 
 ## hidden/
 
@@ -84,10 +95,17 @@ Held-out scenarios are in the address-free format of a clone run
 (`start_path`, `actions`, `{origin}` in a `goto` address), with the `fp-`
 steps first. Three things keep them usable on a clone nobody has seen:
 
-- Find elements by role and name or by a role attribute, never by an id, a
-  class or a data attribute of the original's markup. A clean-room clone
-  cannot be asked to reproduce those, a step that waits for one fails on the
-  clone, and no step after a failed step runs.
+- Find elements by role and name, by a role or ARIA attribute, or by the text
+  they show (the browser's text selector, `text="exact text"` or
+  `text=/pattern/`, as a `css` locator), never by an id, a class or a data
+  attribute of the original's markup. A clean-room clone cannot be asked to
+  reproduce those, a step that waits for one fails on the clone, and no step
+  after a failed step runs.
+- Make a wait independent of what a rule decides: wait for the shape of a
+  message (`text=/^Requested /`) or for an element the rules do not move, not
+  for the value a rule computes. A clone that breaks the rule then gets past
+  the wait, and the step shows the difference; otherwise the step fails and
+  every later step goes undecided.
 - A click whose effect arrives after a request waits for it (`save_response`,
   or a `wait_for` on what appears).
 - Two instances of the original must compare `unchanged` on every step with
@@ -120,3 +138,35 @@ in `HIDDEN.md` only) and `hidden/heldout-pages-portable.json`. The last is
 to `[role=status]`: the element id made the step fail on every clone that did
 not copy the original's markup, and left the eight steps after it unrun.
 `rules.json` replays the portable file under the scenario id `heldout-pages`.
+
+## brassnook
+
+The second blind-trial application (2026-11-21): a rehearsal studio's room
+bookings, five pages built in the browser from a JSON API, 26 rules.
+`original/` is its author's copy byte for byte except one line: `GET
+/api/summary` no longer sends `Cache-Control: no-store`, which made the
+capture lose that reply's body at random on two unmodified instances. Its
+author's `heldout-pages.json` waits ten times on `body[data-ready]` and once on
+`#notice:not(:empty)`; `heldout-pages-portable.json` waits on the text or the
+link the built page shows instead, and `rules.json` replays it.
+`make-scenarios.mjs` writes both. The author's capture and compare scripts
+and their results (`proof/`) were not brought in. `hidden/HIDDEN.md` says all
+of this under "In the benchmark".
+
+It keeps two departures from the layout that no held-out step meets: `GET
+/api/export` answers 191,273 bytes, and `/activity` shows a clock.
+
+## seedlark
+
+The third blind-trial application (2026-11-21): a seed-packet shop rendered on
+the server, with forms, a basket per browser in a cookie, an order book and a
+JSON API, 33 rules. `original/` is its author's copy byte for byte. Its
+author's `heldout-pages.json` waits nine times on `[data-alert=...]` or
+`[data-notice=...]`; `heldout-pages-portable.json` waits on `[role=alert]` or
+`[role=status]` instead, and `rules.json` replays it. `tools/gen.mjs` writes
+both and, like `tools/rules.mjs`, now finds the folder from where it is. The
+author's capture script and the script that built the differences file from
+results kept outside the repository were not brought in.
+
+It keeps one departure from the layout that the scenarios rely on: the basket
+is held in a cookie.

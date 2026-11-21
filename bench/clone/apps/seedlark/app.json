@@ -1,0 +1,8 @@
+{
+  "schema": "rea.bench.clone-app/1",
+  "id": "seedlark",
+  "product_names": ["Seedlark"],
+  "public_description": "Seedlark is a small seed-packet shop: a catalogue of varieties you can search, sort and page through and edit with plain HTML forms, plus a basket for each browser and an order book, with a small JSON API beside the pages. It runs locally as one Node process on {address} with in-memory data. Please rebuild it so it behaves the same, pages, forms and API alike.",
+  "health_path": "/api/health",
+  "origin": "The third blind-trial application (2026-11-21), written for the benchmark. original/ is its author's copy byte for byte; hidden/ is its author's with the changes bench/clone/README.md lists."
+}

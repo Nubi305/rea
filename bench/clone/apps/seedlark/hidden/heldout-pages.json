@@ -1,0 +1,480 @@
+{
+  "start_path": "/",
+  "actions": [
+    {
+      "step_id": "fp-varieties",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "fp-home",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-catalogue",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/varieties"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-catalogue-sorted",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/varieties?sort=price&dir=desc&page=2"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-catalogue-search",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/varieties?q=%20KALE%20"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-catalogue-clamped",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/varieties?page=7"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-new-form",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/varieties/new"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-fill-sku",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "SKU"
+      },
+      "value": {
+        "source": "literal",
+        "value": "bee-1"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-fill-name",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Name"
+      },
+      "value": {
+        "source": "literal",
+        "value": "  Borage   Blue "
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-pick-kind",
+      "action": "select_option",
+      "locator": {
+        "kind": "role",
+        "role": "combobox",
+        "name": "Kind"
+      },
+      "value": {
+        "source": "literal",
+        "value": "herb"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-fill-price",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Price in euros"
+      },
+      "value": {
+        "source": "literal",
+        "value": "0.47"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-fill-stock",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Stock"
+      },
+      "value": {
+        "source": "literal",
+        "value": "lots"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-submit-invalid",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Create variety"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "form-errors-kept-values",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "[data-alert=form]"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-fix-sku",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "SKU"
+      },
+      "value": {
+        "source": "literal",
+        "value": "bee-0042"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-fix-price",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Price in euros"
+      },
+      "value": {
+        "source": "literal",
+        "value": "2.425"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-fix-stock",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Stock"
+      },
+      "value": {
+        "source": "literal",
+        "value": "7"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-submit-valid",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Create variety"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "form-created-redirect",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "[data-notice=created]"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-qty-too-many",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Quantity"
+      },
+      "value": {
+        "source": "literal",
+        "value": "13"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-add-too-many",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Add to basket"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-add-refused-kept",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "[data-alert=add]"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-qty-six",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Quantity"
+      },
+      "value": {
+        "source": "literal",
+        "value": "6"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-add-six",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Add to basket"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-added-notice",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "[data-notice=added]"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-basket-bulk",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/basket"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-code-spring",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Promotion code"
+      },
+      "value": {
+        "source": "literal",
+        "value": "spring5"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-apply-spring",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Apply code"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-promo-minimum",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "[data-alert=basket]"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-code-herbs",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Promotion code"
+      },
+      "value": {
+        "source": "literal",
+        "value": "herbs20"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-apply-herbs",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Apply code"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-promo-applied",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "[data-notice=applied]"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-place-order",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Place order"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-order-placed",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "[data-notice=placed]"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-mark-packed",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Mark packed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-order-packed",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "[data-notice=changed]"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-orders",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/orders"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-variety-after-order",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/varieties/13"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-edit-form",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/varieties/2/edit"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-edit-sku",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "SKU"
+      },
+      "value": {
+        "source": "literal",
+        "value": "chv-0815"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-edit-save",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Save changes"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-edit-sku-taken",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "[data-alert=form]"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-missing",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/varieties/99"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "api-orders-after-pages",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/orders",
+      "timeout_ms": 15000
+    }
+  ]
+}

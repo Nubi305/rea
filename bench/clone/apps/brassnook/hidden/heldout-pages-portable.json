@@ -1,0 +1,305 @@
+{
+  "start_path": "/bookings",
+  "actions": [
+    {
+      "step_id": "fp-rooms",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/rooms",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "fp-bookings",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-open-rooms",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-rooms",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "text=/^\\d+ rooms\\.$/"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-open-room",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/room?id=1"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-room-day",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "text=/^\\d+ minutes booked, \\d+\\.\\d% of opening hours\\.$/"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-open-room-sunday",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/room?id=3&date=2026-12-13"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-room-sunday",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "text=\"Café Stage\""
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-open-booking",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/booking?id=1"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-booking-confirmed",
+      "action": "wait_for",
+      "locator": {
+        "kind": "role",
+        "role": "link",
+        "name": "Blue Room"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-open-booking-cancelled",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/booking?id=7"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-booking-cancelled",
+      "action": "wait_for",
+      "locator": {
+        "kind": "role",
+        "role": "link",
+        "name": "Blue Room"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-open-bookings",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/bookings?status=tentative"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-bookings-filtered",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "text=/^Showing \\d+ to \\d+ of \\d+\\.$/"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-open-booking-missing",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/booking?id=99"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-booking-missing",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "text=\"Booking not found\""
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-open-room-form",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/room?id=5"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-room-form-ready",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "text=/^\\d+ minutes booked, \\d+\\.\\d% of opening hours\\.$/"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-type-band",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Band"
+      },
+      "value": {
+        "source": "literal",
+        "value": "  Quiet   Harbour "
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-type-players",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Players"
+      },
+      "value": {
+        "source": "literal",
+        "value": "2"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-type-start",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Start"
+      },
+      "value": {
+        "source": "literal",
+        "value": "12:00"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-type-minutes",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Minutes"
+      },
+      "value": {
+        "source": "literal",
+        "value": "45"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-request-booking",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Request booking"
+      },
+      "save_response": {
+        "method": "POST",
+        "path": "/api/bookings",
+        "save": [
+          {
+            "name": "booking",
+            "json_pointer": "/id"
+          }
+        ]
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-request-notice",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "text=/^Requested /"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "api-booking-created",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/bookings/8",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-open-new-booking",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/booking?id=8"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-new-booking",
+      "action": "wait_for",
+      "locator": {
+        "kind": "role",
+        "role": "link",
+        "name": "atrium"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-open-bookings-after",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/bookings?band=harbour"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-bookings-after",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "text=/^Showing \\d+ to \\d+ of \\d+\\.$/"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    }
+  ]
+}

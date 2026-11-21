@@ -1,0 +1,9 @@
+{
+  "file": "server.mjs",
+  "find": "    if (primary) return sign * primary;\n    return cmpText(a.name, b.name) || a.id - b.id;",
+  "replace": "    return sign * (primary || cmpText(a.name, b.name) || a.id - b.id);",
+  "breaks": [
+    "R09-sort-tie-break"
+  ],
+  "why": "Its author's mutant: a descending sort also reverses the tie-break. Only the steps that sort by price descending over a tie see it."
+}

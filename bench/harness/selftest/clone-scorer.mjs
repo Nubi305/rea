@@ -1,9 +1,9 @@
 // The clone scorer on an application against an exact copy of itself, which
 // must agree on every hidden rule, and against the copy with one rule broken
 // (hidden/selftest-mutant.json), which must disagree on exactly that rule.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { copyOriginal } from "../lib/clone-app.mjs";
+import { applyMutant, copyOriginal } from "../lib/clone-app.mjs";
 import { runRea } from "../lib/proc.mjs";
 import { CELL_SCHEMA } from "../lib/workspace.mjs";
 import {
@@ -13,18 +13,6 @@ import {
   turn,
   writeTranscript,
 } from "./kit.mjs";
-
-const applyMutant = (app, directory) => {
-  const mutant = JSON.parse(
-    readFileSync(join(app.hidden_dir, "selftest-mutant.json"), "utf8"),
-  );
-  const file = join(directory, mutant.file);
-  const source = readFileSync(file, "utf8");
-  if (!source.includes(mutant.find))
-    throw new Error(`${mutant.file} does not hold ${mutant.find}`);
-  writeFileSync(file, source.replaceAll(mutant.find, mutant.replace));
-  return mutant.breaks;
-};
 
 // The run folder is a real one, so that the scorer finds the commands that
 // restart the clone where a run records them: in target.json.

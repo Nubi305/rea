@@ -1,0 +1,488 @@
+{
+  "application": "Brassnook",
+  "scenarios": {
+    "heldout-api": "heldout-api.json",
+    "heldout-pages": "heldout-pages-portable.json"
+  },
+  "rules": [
+    {
+      "id": "R01-room-name-slug",
+      "difficulty": "visible",
+      "rule": "A room name is trimmed with inner whitespace collapsed, and its slug is the name without accents, lower-cased, with every run of other characters turned into one dash and no dash at either end.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "room-create-normalised",
+            "room-create-defaults",
+            "room-name-free-again"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R02-room-name-unique",
+      "difficulty": "edge",
+      "rule": "Two rooms may not share a slug, so names that differ only in case, accents or punctuation collide: 409 name_taken with existingId, on create and on rename; a deleted room's name is free again.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "room-name-taken-slug",
+            "room-name-taken-accent",
+            "room-rename-taken",
+            "room-name-free-again"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R03-room-fields",
+      "difficulty": "edge",
+      "rule": "A room name has 3 to 40 characters after collapsing (name_required when missing), capacity is a whole number 1 to 12 (default 4), rateCents 500 to 20000 in steps of 50 (default 1500), active defaults to true.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "room-name-short",
+            "room-name-missing",
+            "room-capacity-over",
+            "room-rate-step",
+            "room-create-defaults"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R04-room-order",
+      "difficulty": "edge",
+      "rule": "Rooms list active rooms first, then by capacity descending, then by name ignoring letter case.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "fp-rooms",
+            "rooms-order-after",
+            "rooms-final"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "setup-open-rooms",
+            "page-rooms"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R05-booking-record",
+      "difficulty": "visible",
+      "rule": "A new booking starts tentative, gets a reference BK- plus its id padded to four digits, and reports its end time and room name.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "booking-create-normalised",
+            "booking-last-slot"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-request-booking",
+            "api-booking-created"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R06-band-normalised",
+      "difficulty": "visible",
+      "rule": "A band name is trimmed with inner whitespace collapsed and its case kept; it has 2 to 40 characters.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "booking-create-normalised",
+            "band-second-booking",
+            "booking-band-short"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-request-booking"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R07-time-grid",
+      "difficulty": "edge",
+      "rule": "A start is HH:MM on a quarter hour (start_invalid otherwise) and a booking lasts 30 to 240 minutes in steps of 15 (minutes_invalid).",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "booking-start-off-grid",
+            "booking-start-format",
+            "booking-minutes-short",
+            "booking-minutes-step"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R08-opening-hours",
+      "difficulty": "edge",
+      "rule": "A booking must start at or after 08:00 and end at or before 23:00 (outside_hours); ending exactly at 23:00 is allowed.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "booking-too-late",
+            "booking-too-early",
+            "booking-last-slot"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R09-calendar",
+      "difficulty": "edge",
+      "rule": "A date must be a real calendar day written YYYY-MM-DD (date_invalid), and the studio is closed on Sundays (closed_day; the day sheet reports closed).",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "booking-bad-date",
+            "booking-sunday",
+            "day-sheet-sunday",
+            "day-sheet-bad-date"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "setup-open-room-sunday",
+            "page-room-sunday"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R10-price",
+      "difficulty": "edge",
+      "rule": "The price is the room's hourly rate pro rata, minutes from 18:00 on cost a quarter more, and the total is rounded to the cent with halves going to the even cent.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "booking-create-normalised",
+            "booking-half-even-down",
+            "booking-evening-split",
+            "booking-last-slot",
+            "booking-touching",
+            "booking-edit-own-slot"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-request-booking",
+            "api-booking-created",
+            "setup-open-new-booking",
+            "page-new-booking",
+            "setup-open-bookings-after",
+            "page-bookings-after"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R11-no-overlap",
+      "difficulty": "multi-step",
+      "rule": "Active bookings of one room may not overlap (409 slot_taken with conflictId); touching is allowed, cancelled bookings do not block, and an edit is not blocked by the booking's own slot.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "booking-overlap",
+            "booking-touching",
+            "booking-cancelled-frees-slot",
+            "booking-edit-own-slot",
+            "booking-edit-overlap"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R12-players",
+      "difficulty": "edge",
+      "rule": "Players is a whole number from 1 (players_invalid); more players than the room's capacity is 409 room_too_small.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "booking-players-zero",
+            "booking-too-many-players"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R13-inactive-room",
+      "difficulty": "multi-step",
+      "rule": "A room that is not active refuses new bookings and confirmations with 409 room_inactive.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "booking-inactive-room",
+            "room-deactivate",
+            "confirm-in-inactive-room",
+            "booking-in-deactivated-room"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R14-band-daily-limit",
+      "difficulty": "multi-step",
+      "rule": "A band, compared without case and with whitespace collapsed, holds at most two active bookings on one date across all rooms (409 band_daily_limit with existingIds); a cancelled booking frees its place.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "band-second-booking",
+            "band-third-refused",
+            "band-limit-after-cancel"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R15-check-order",
+      "difficulty": "edge",
+      "rule": "Checks run in the order: room exists (404), fields (422), then room inactive, room too small, slot taken, band limit (409).",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "booking-room-missing",
+            "booking-inactive-room",
+            "booking-too-many-players"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R16-state-machine",
+      "difficulty": "multi-step",
+      "rule": "Status moves tentative to confirmed or cancelled, confirmed to checked_in or cancelled, checked_in to completed, and never out of completed or cancelled; other moves are 409 invalid_transition with from, to and allowed, an unknown status is 422 status_invalid, and an edit cannot set the status.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "status-skip-refused",
+            "status-unknown",
+            "status-cancel-tentative",
+            "status-cancelled-final",
+            "status-confirm",
+            "status-check-in",
+            "status-back-refused",
+            "booking-edit-status-field"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R17-price-locked",
+      "difficulty": "multi-step",
+      "rule": "A tentative booking's price follows its room's current rate; confirming captures the price, so a later rate change leaves confirmed bookings as they were.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "status-confirm",
+            "room-rate-change",
+            "booking-repriced",
+            "booking-price-locked"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R18-cancellation-fee",
+      "difficulty": "multi-step",
+      "rule": "Cancelling a confirmed booking charges half its price rounded down to the cent as feeCents; cancelling a tentative booking charges nothing.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "status-cancel-tentative",
+            "status-cancel-confirmed",
+            "summary-after-fee",
+            "fp-bookings"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "setup-open-booking-cancelled",
+            "page-booking-cancelled"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R19-booking-lock",
+      "difficulty": "multi-step",
+      "rule": "Only a tentative booking can be edited and only a tentative or cancelled booking deleted; otherwise 409 booking_locked with its status.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "booking-edit-confirmed",
+            "booking-delete-confirmed",
+            "booking-delete-cancelled"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R20-capacity-floor",
+      "difficulty": "multi-step",
+      "rule": "A room's capacity cannot drop below the players of its largest active booking (409 capacity_below_booking).",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "room-capacity-below-booking"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R21-room-delete",
+      "difficulty": "multi-step",
+      "rule": "A room holding confirmed or checked-in bookings cannot be deleted (409 room_busy); otherwise it is deleted with all its bookings, the reply counts them, and ids are never reused.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "room-delete-busy",
+            "room-delete-cascade",
+            "booking-gone-after-cascade",
+            "room-name-free-again",
+            "booking-id-not-reused"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R22-booking-order-paging",
+      "difficulty": "edge",
+      "rule": "Bookings list by date, then start, then room name ignoring case, then id; limit defaults to 10, is clamped to 25, must be at least 1, and replies carry total, limit and offset.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "fp-bookings",
+            "list-limit-clamped",
+            "list-limit-zero",
+            "list-page-two",
+            "bookings-final"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "setup-open-bookings",
+            "page-bookings-filtered"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R23-list-filters",
+      "difficulty": "edge",
+      "rule": "status filters exactly and refuses an unknown value, band matches a substring without case, and an unknown roomId is 404.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "list-status-filter",
+            "list-status-bad",
+            "list-band-filter",
+            "list-room-missing"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "setup-open-bookings-after",
+            "page-bookings-after"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R24-day-sheet",
+      "difficulty": "multi-step",
+      "rule": "A room's day sheet lists its non-cancelled bookings in time order, the booked minutes, utilisation of the 900 opening minutes to one decimal, and the free gaps of at least 30 minutes.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "day-sheet-blue",
+            "day-sheet-atrium-after"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "setup-open-room",
+            "page-room-day"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R25-summary",
+      "difficulty": "multi-step",
+      "rule": "The summary counts rooms, active rooms and bookings per status; revenue is the price of confirmed, checked-in and completed bookings plus cancellation fees; the pipeline is the price of tentative bookings; the busiest room has the most non-cancelled minutes.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "fp-summary",
+            "summary-after-fee",
+            "summary-final"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R26-pages",
+      "difficulty": "visible",
+      "rule": "The pages show prices as pounds from pence, statuses in words, only the status buttons the state machine allows, and a not-found message for an unknown booking.",
+      "cases": [
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "setup-open-booking",
+            "page-booking-confirmed",
+            "setup-open-booking-cancelled",
+            "page-booking-cancelled",
+            "setup-open-booking-missing",
+            "page-booking-missing",
+            "setup-open-new-booking",
+            "page-new-booking"
+          ]
+        }
+      ]
+    }
+  ]
+}

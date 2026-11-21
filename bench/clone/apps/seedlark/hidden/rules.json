@@ -1,0 +1,605 @@
+{
+  "schema": "seedlark.hidden-rules/1",
+  "application": "Seedlark",
+  "scoring": "A rule agrees when every step it cites is unchanged in a comparison of the original's captures (left) with the clone's (right), using heldout-differences.json plus the clone's name rename; it disagrees when any cited step is changed, and is undecided when a cited step is unknown or unstable.",
+  "scenarios": {
+    "heldout-api": "heldout-api.json",
+    "heldout-pages": "heldout-pages-portable.json"
+  },
+  "differences": "heldout-differences.json",
+  "rules": [
+    {
+      "id": "R01-sku-normalised",
+      "difficulty": "visible",
+      "rule": "A SKU is trimmed and upper-cased, then must be three letters, a dash and four digits (422 sku_format), and the SKU is the first field checked.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "variety-create-normalised",
+            "variety-sku-format",
+            "variety-first-error-wins"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "form-errors-kept-values",
+            "form-created-redirect"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R02-sku-unique-ignoring-case",
+      "difficulty": "edge",
+      "rule": "A SKU already held by another variety is refused whatever its case, on create and on edit (409 sku_taken with existingId); a variety may keep its own SKU.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "variety-sku-taken-case",
+            "variety-edit-sku-taken",
+            "variety-edit-no-change"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-edit-sku-taken"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R03-name-collapsed-3-to-32",
+      "difficulty": "edge",
+      "rule": "A name is trimmed with inner whitespace collapsed to one space, and must then have 3 to 32 characters (422 name_length).",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "variety-create-normalised",
+            "variety-name-short",
+            "variety-name-long",
+            "variety-name-max"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R04-kind-normalised",
+      "difficulty": "edge",
+      "rule": "A kind is trimmed and lower-cased and must be vegetable, herb or flower, both on records (422 kind_invalid) and in the list filter.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "variety-create-normalised",
+            "variety-kind-invalid",
+            "list-kind-all-statuses",
+            "list-kind-invalid"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R05-price-to-nearest-5-cents",
+      "difficulty": "edge",
+      "rule": "A price in euros (string or number, at most three decimals, no comma) is rounded to the nearest 5 cents, halves up.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "variety-create-normalised",
+            "variety-price-round-down",
+            "variety-price-format"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R06-price-range-after-rounding",
+      "difficulty": "edge",
+      "rule": "The rounded price must be from 0.50 to 50.00 euros (422 price_range), so 0.47 is refused, 0.48 becomes 0.50 and 50.024 becomes 50.00 while 50.025 is refused.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "variety-price-below-range",
+            "variety-price-range-edge-stock-default",
+            "variety-price-upper-edge",
+            "variety-price-above-range"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R07-stock-field",
+      "difficulty": "edge",
+      "rule": "Stock is a whole number from 0 to 999 and defaults to 0; status defaults to active.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "variety-price-range-edge-stock-default",
+            "variety-stock-invalid"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R08-catalogue-default-order",
+      "difficulty": "visible",
+      "rule": "The catalogue lists active varieties by name without letter case (then id), four to a page.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "fp-varieties",
+            "fp-varieties-page-2",
+            "fp-varieties-page-3"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-catalogue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R09-sort-tie-break",
+      "difficulty": "edge",
+      "rule": "Sorting by price, stock or SKU orders the primary key in the asked direction but always breaks ties by name ascending without case, then id.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "list-price-asc-tie",
+            "list-price-desc-tie",
+            "list-price-desc-last-page"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-catalogue-sorted"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R10-page-clamped",
+      "difficulty": "edge",
+      "rule": "A page past the end shows the last page and a page that is not a positive whole number shows page 1, never an error.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "list-page-clamp-high",
+            "list-page-clamp-junk"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-catalogue-clamped"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R11-sort-fallback",
+      "difficulty": "edge",
+      "rule": "Sort and direction are read without case; an unknown sort means name and an unknown direction means ascending, never an error.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "list-sort-unknown",
+            "list-sku-desc"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R12-search",
+      "difficulty": "visible",
+      "rule": "The search text is trimmed and matched without case against name or SKU.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "list-search-name",
+            "list-search-sku"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-catalogue-search"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R13-retired-hidden",
+      "difficulty": "edge",
+      "rule": "Retired varieties are left out of the list unless status=retired or status=all is asked; another status is 422 status_invalid.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "list-search-retired-hidden",
+            "list-status-retired",
+            "list-kind-all-statuses",
+            "list-status-invalid"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R14-basket-quantity-and-merge",
+      "difficulty": "edge",
+      "rule": "A basket quantity is a whole number from 1 to 12 (422 qty_invalid); adding a variety already in the basket adds to its line, and a line may not pass 12 packets (409 line_limit with inBasket).",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "basket-add-qty-zero",
+            "basket-add-qty-over",
+            "basket-add-basil",
+            "basket-merge-bulk-discount",
+            "basket-line-limit"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-add-refused-kept"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R15-basket-retired-or-unknown",
+      "difficulty": "visible",
+      "rule": "A retired variety cannot be added (409 variety_retired) and an unknown one is 404 variety_not_found.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "basket-add-retired",
+            "basket-add-unknown"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R16-basket-stock",
+      "difficulty": "edge",
+      "rule": "A basket line may not hold more packets than the variety's stock, on add (judged on the merged total) and on a quantity change (409 out_of_stock with available and requested).",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "basket-add-sold-out",
+            "basket-over-stock",
+            "basket-set-over-stock"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R17-basket-five-lines",
+      "difficulty": "multi-step",
+      "rule": "A basket holds at most five varieties (409 basket_full), but adding to a variety already in a full basket is allowed.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "basket-full",
+            "basket-merge-when-full"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R18-bulk-discount",
+      "difficulty": "edge",
+      "rule": "A line of six or more packets gets 10% off that line, rounded down to the cent.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "basket-merge-bulk-discount",
+            "promo-minimum-again"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-basket-bulk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R19-basket-line-order",
+      "difficulty": "edge",
+      "rule": "Basket lines are listed by line total descending, ties by SKU ascending, not in the order they were added.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "basket-line-order-tie",
+            "basket-merge-when-full",
+            "promo-minimum-again"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R20-promo-codes",
+      "difficulty": "multi-step",
+      "rule": "Codes are trimmed and read without case; HERBS20 takes 20% of the herb lines (half up), SPRING5 takes 5.00 euros and is refused below 15.00 of goods (409 promo_minimum); a new code replaces the old one; unknown is 422 promo_unknown.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "promo-unknown",
+            "promo-herbs",
+            "promo-spring-replaces"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-promo-minimum",
+            "page-promo-applied"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R21-promo-kept-when-below-minimum",
+      "difficulty": "multi-step",
+      "rule": "A SPRING5 code stays on the basket when its goods drop below 15.00 but gives nothing (applied false) until they reach it again.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "promo-below-minimum-kept",
+            "promo-minimum-again"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R22-shipping",
+      "difficulty": "multi-step",
+      "rule": "Shipping is 3.50 euros when goods after the code are under 25.00 and free from 25.00; an empty basket pays nothing.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "basket-add-basil",
+            "promo-herbs",
+            "basket-live-price-free-shipping",
+            "checkout-empties-basket"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-promo-applied"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R23-live-price-snapshot-order",
+      "difficulty": "multi-step",
+      "rule": "A basket prices its lines at the variety's current price, while an order keeps the prices it was placed at.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "basket-live-price-free-shipping",
+            "order-prices-snapshot"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R24-checkout",
+      "difficulty": "visible",
+      "rule": "Checkout turns the basket into an order SL-(1000+id) in status placed, takes its packets from stock, empties the basket and drops its code; an empty basket is 409 basket_empty.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "checkout-places-order",
+            "checkout-empties-basket",
+            "checkout-empty-refused",
+            "stock-taken-at-checkout"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-order-placed",
+            "page-variety-after-order"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R25-checkout-rechecks",
+      "difficulty": "multi-step",
+      "rule": "Checkout checks each line again in basket order, refusing a retired variety (variety_retired) or a line above current stock (out_of_stock), and changes nothing when it refuses.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "checkout-stock-rechecked",
+            "checkout-retired-first-line"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R26-order-state-machine",
+      "difficulty": "multi-step",
+      "rule": "Orders go placed to packed or cancelled, packed to shipped or cancelled; shipped and cancelled are final; anything else is 409 invalid_transition with from, to and allowed, and a non-status is 422.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "order-skip-refused",
+            "order-status-unknown",
+            "order-pack",
+            "order-back-refused",
+            "order-same-refused",
+            "order-cancelled-final",
+            "order-shipped-final"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-order-packed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R27-cancel-restores-stock",
+      "difficulty": "multi-step",
+      "rule": "Cancelling an order puts its packets back into stock.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "order-cancel-packed",
+            "cancel-restores-stock"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R28-delete-variety",
+      "difficulty": "multi-step",
+      "rule": "A variety on any order cannot be deleted (409 variety_in_use with the order count); deleting another removes it from every basket and reports how many lines went.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "variety-delete-in-use",
+            "variety-delete-in-use-placed",
+            "variety-delete-cascades-basket",
+            "basket-after-cascade"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R29-revision-and-etag",
+      "difficulty": "multi-step",
+      "rule": "A variety's rev and ETag \"v<id>.<rev>\" change only when a stored value changes (stock taken at checkout included); a matching If-None-Match gets 304.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "etag-not-modified",
+            "variety-edit-no-change",
+            "etag-unchanged-after-no-op",
+            "variety-edit-price",
+            "etag-changed-after-edit",
+            "stock-taken-at-checkout",
+            "cancel-restores-stock"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R30-orders-list",
+      "difficulty": "visible",
+      "rule": "Orders list newest first, filter by status without case (422 for an unknown status), and an unknown order is 404.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "fp-orders",
+            "orders-newest-first",
+            "orders-filter-status",
+            "orders-filter-invalid",
+            "order-missing"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-orders"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R31-protocol",
+      "difficulty": "visible",
+      "rule": "Unknown routes answer 404 (JSON under /api, a page elsewhere) and a known route with a wrong method answers 405 listing the allowed methods.",
+      "cases": [
+        {
+          "scenario": "heldout-api",
+          "step_ids": [
+            "route-unknown",
+            "method-not-allowed",
+            "method-not-allowed-collection"
+          ]
+        },
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-missing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R32-forms-keep-values",
+      "difficulty": "visible",
+      "rule": "A refused form is shown again with every problem listed, the fields marked and the typed values kept.",
+      "cases": [
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "form-errors-kept-values",
+            "page-edit-sku-taken",
+            "page-add-refused-kept",
+            "page-promo-minimum"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R33-post-redirect-get",
+      "difficulty": "visible",
+      "rule": "A successful form post redirects to a page that shows a notice: the new variety, the variety with its basket count, the basket, the order.",
+      "cases": [
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "form-created-redirect",
+            "page-added-notice",
+            "page-promo-applied",
+            "page-order-placed",
+            "page-order-packed"
+          ]
+        }
+      ]
+    }
+  ]
+}

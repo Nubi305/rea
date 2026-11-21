@@ -1,7 +1,13 @@
 // A clone-benchmark application: bench/clone/apps/<id>/ with its public
 // facts (app.json), its source (original/) and its author's secrets
 // (hidden/). bench/clone/README.md is the layout this file reads.
-import { cpSync, existsSync, readFileSync, readdirSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { runShell } from "./proc.mjs";
 import { BENCH_ROOT } from "./tasks.mjs";
@@ -13,11 +19,13 @@ const readJson = (file) => {
   return JSON.parse(readFileSync(file, "utf8"));
 };
 
-// The one kind of CSS selector a held-out scenario may use: role and ARIA
-// attributes, which are behaviour a clone can be asked to match. An id, a
-// class, a tag or a data attribute is the original's markup.
+// The selectors a held-out scenario may use besides a role locator: role and
+// ARIA attributes, and the browser's text selector (`text="exact text"` or
+// `text=/pattern/`), which finds an element by what it shows on screen. All
+// are behaviour a clone can be asked to match. An id, a class, a tag or a
+// data attribute is the original's markup.
 const PORTABLE_SELECTOR =
-  /^(?:\s*\[(?:role|aria-[a-z]+)(?:[~|^$*]?=[^\]]*)?\])+\s*$/u;
+  /^(?:(?:\s*\[(?:role|aria-[a-z]+)(?:[~|^$*]?=[^\]]*)?\])+\s*|text="(?:[^"\\]|\\.)+"|text=\/(?:(?!>>).)+\/[imsu]*)$/u;
 
 // rules.json names its scenarios as a list of ids (the file is <id>.json) or
 // as a map from id to file name.
@@ -136,12 +144,30 @@ export const listAppIds = (root = APPS_ROOT) =>
     .sort();
 
 /** A private copy of an application's source, without what an earlier run left. */
-export const copyOriginal = (app, target) => {
-  cpSync(app.original_dir, target, {
+export const copySource = (source, target) => {
+  cpSync(source, target, {
     recursive: true,
-    filter: (source) => !source.split("/").includes(".run"),
+    filter: (path) => !path.slice(source.length).split("/").includes(".run"),
   });
   return join(target, "ctl.sh");
+};
+
+export const copyOriginal = (app, target) =>
+  copySource(app.original_dir, target);
+
+/**
+ * Break one rule in a copy of the original: `hidden/selftest-mutant.json`
+ * names a file, a text to find and its replacement, and the rules that must
+ * then disagree. Returns those rules.
+ */
+export const applyMutant = (app, directory) => {
+  const mutant = readJson(join(app.hidden_dir, "selftest-mutant.json"));
+  const file = join(directory, mutant.file);
+  const source = readFileSync(file, "utf8");
+  if (!source.includes(mutant.find))
+    throw new Error(`${mutant.file} does not hold ${mutant.find}`);
+  writeFileSync(file, source.replaceAll(mutant.find, mutant.replace));
+  return mutant.breaks;
 };
 
 /**

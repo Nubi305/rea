@@ -1,0 +1,281 @@
+{
+  "renames": [],
+  "volatile_fields": [
+    {
+      "scenario": "heldout-api",
+      "step_id": "room-create-normalised",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "room-create-normalised",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "room-create-defaults",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "room-create-defaults",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "rooms-order-after",
+      "pointer": "/items/*/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "rooms-order-after",
+      "pointer": "/items/*/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-create-normalised",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-create-normalised",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-half-even-down",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-half-even-down",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-evening-split",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-evening-split",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-last-slot",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-last-slot",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-touching",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-touching",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-cancelled-frees-slot",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-cancelled-frees-slot",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "band-second-booking",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "band-second-booking",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "status-cancel-tentative",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "status-cancel-tentative",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "band-limit-after-cancel",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "band-limit-after-cancel",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-repriced",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-repriced",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-edit-own-slot",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-edit-own-slot",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "day-sheet-atrium-after",
+      "pointer": "/bookings/*/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "day-sheet-atrium-after",
+      "pointer": "/bookings/*/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "room-name-free-again",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "room-name-free-again",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-id-not-reused",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "booking-id-not-reused",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "bookings-final",
+      "pointer": "/items/*/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "bookings-final",
+      "pointer": "/items/*/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "rooms-final",
+      "pointer": "/items/*/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "rooms-final",
+      "pointer": "/items/*/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "page-request-booking",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "page-request-booking",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "api-booking-created",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "api-booking-created",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "setup-open-new-booking",
+      "pointer": "/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "setup-open-new-booking",
+      "pointer": "/createdAt",
+      "reason": "server creation time"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "setup-open-bookings-after",
+      "pointer": "/items/*/uid",
+      "reason": "generated id"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "setup-open-bookings-after",
+      "pointer": "/items/*/createdAt",
+      "reason": "server creation time"
+    }
+  ]
+}

@@ -1,0 +1,1833 @@
+# heldout-pages as the original showed it: each step, the page address afterwards (origin removed) and its accessibility text.
+# From capture run-1 of the original (clean start); run-2 and both clone captures agree on every step.
+
+== scenario_start (goto_start) -> /
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Seedlark" [level=1]
+    - paragraph: Seed packets for small gardens.
+    - list:
+      - listitem: 11 varieties in the catalogue, 10 in stock
+      - listitem: 2 orders waiting to ship
+    - paragraph:
+      - link "Browse the catalogue":
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== fp-varieties (request) -> /
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Seedlark" [level=1]
+    - paragraph: Seed packets for small gardens.
+    - list:
+      - listitem: 11 varieties in the catalogue, 10 in stock
+      - listitem: 2 orders waiting to ship
+    - paragraph:
+      - link "Browse the catalogue":
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== fp-home (goto) -> /
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Seedlark" [level=1]
+    - paragraph: Seed packets for small gardens.
+    - list:
+      - listitem: 11 varieties in the catalogue, 10 in stock
+      - listitem: 2 orders waiting to ship
+    - paragraph:
+      - link "Browse the catalogue":
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-catalogue (goto) -> /varieties
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Catalogue" [level=1]
+    - search:
+      - text: Search
+      - textbox "Search"
+      - text: Kind
+      - combobox "Kind":
+        - option "Any kind" [selected]
+        - option "vegetable"
+        - option "herb"
+        - option "flower"
+      - button "Search"
+    - paragraph: 11 varieties found.
+    - table:
+      - rowgroup:
+        - row "Name (ascending) SKU Kind Price Stock":
+          - columnheader "Name (ascending)":
+            - link "Name":
+            - text: (ascending)
+          - columnheader "SKU":
+            - link "SKU":
+          - columnheader "Kind"
+          - columnheader "Price":
+            - link "Price":
+          - columnheader "Stock":
+            - link "Stock":
+      - rowgroup:
+        - row "Alderman Pea PEA-1002 vegetable €3.45 22":
+          - cell "Alderman Pea":
+            - link "Alderman Pea":
+          - cell "PEA-1002"
+          - cell "vegetable"
+          - cell "€3.45"
+          - cell "22"
+        - row "Bouquet Dill DIL-0505 herb €1.95 Sold out":
+          - cell "Bouquet Dill":
+            - link "Bouquet Dill":
+          - cell "DIL-0505"
+          - cell "herb"
+          - cell "€1.95"
+          - cell "Sold out"
+        - row "Brandywine Tomato TOM-0101 vegetable €3.45 38":
+          - cell "Brandywine Tomato":
+            - link "Brandywine Tomato":
+          - cell "TOM-0101"
+          - cell "vegetable"
+          - cell "€3.45"
+          - cell "38"
+        - row "calendula Pacific CAL-0310 flower €2.10 12":
+          - cell "calendula Pacific":
+            - link "calendula Pacific":
+          - cell "CAL-0310"
+          - cell "flower"
+          - cell "€2.10"
+          - cell "12"
+    - navigation "Pages":
+      - text: Page 1 of 3
+      - link "Next page":
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-catalogue-sorted (goto) -> /varieties?sort=price&dir=desc&page=2
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Catalogue" [level=1]
+    - search:
+      - text: Search
+      - textbox "Search"
+      - text: Kind
+      - combobox "Kind":
+        - option "Any kind" [selected]
+        - option "vegetable"
+        - option "herb"
+        - option "flower"
+      - button "Search"
+    - paragraph: 11 varieties found.
+    - table:
+      - rowgroup:
+        - row "Name SKU Kind Price (descending) Stock":
+          - columnheader "Name":
+            - link "Name":
+          - columnheader "SKU":
+            - link "SKU":
+          - columnheader "Kind"
+          - columnheader "Price (descending)":
+            - link "Price":
+            - text: (descending)
+          - columnheader "Stock":
+            - link "Stock":
+      - rowgroup:
+        - row "Nasturtium Empress NAS-1212 flower €2.50 9":
+          - cell "Nasturtium Empress":
+            - link "Nasturtium Empress":
+          - cell "NAS-1212"
+          - cell "flower"
+          - cell "€2.50"
+          - cell "9"
+        - row "Genovese Basil BAS-0204 herb €2.45 22":
+          - cell "Genovese Basil":
+            - link "Genovese Basil":
+          - cell "BAS-0204"
+          - cell "herb"
+          - cell "€2.45"
+          - cell "22"
+        - row "Coriander Calypso COR-1110 herb €2.30 14":
+          - cell "Coriander Calypso":
+            - link "Coriander Calypso":
+          - cell "COR-1110"
+          - cell "herb"
+          - cell "€2.30"
+          - cell "14"
+        - row "calendula Pacific CAL-0310 flower €2.10 12":
+          - cell "calendula Pacific":
+            - link "calendula Pacific":
+          - cell "CAL-0310"
+          - cell "flower"
+          - cell "€2.10"
+          - cell "12"
+    - navigation "Pages":
+      - link "Previous page":
+      - text: Page 2 of 3
+      - link "Next page":
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-catalogue-search (goto) -> /varieties?q=%20KALE%20
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Catalogue" [level=1]
+    - search:
+      - text: Search
+      - textbox "Search": kale
+      - text: Kind
+      - combobox "Kind":
+        - option "Any kind" [selected]
+        - option "vegetable"
+        - option "herb"
+        - option "flower"
+      - button "Search"
+    - paragraph: 1 variety found.
+    - table:
+      - rowgroup:
+        - row "Name (ascending) SKU Kind Price Stock":
+          - columnheader "Name (ascending)":
+            - link "Name":
+            - text: (ascending)
+          - columnheader "SKU":
+            - link "SKU":
+          - columnheader "Kind"
+          - columnheader "Price":
+            - link "Price":
+          - columnheader "Stock":
+            - link "Stock":
+      - rowgroup:
+        - row "Cavolo Nero Kale KAL-0720 vegetable €2.85 30":
+          - cell "Cavolo Nero Kale":
+            - link "Cavolo Nero Kale":
+          - cell "KAL-0720"
+          - cell "vegetable"
+          - cell "€2.85"
+          - cell "30"
+    - navigation "Pages": Page 1 of 1
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-catalogue-clamped (goto) -> /varieties?page=7
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Catalogue" [level=1]
+    - search:
+      - text: Search
+      - textbox "Search"
+      - text: Kind
+      - combobox "Kind":
+        - option "Any kind" [selected]
+        - option "vegetable"
+        - option "herb"
+        - option "flower"
+      - button "Search"
+    - paragraph: 11 varieties found.
+    - table:
+      - rowgroup:
+        - row "Name (ascending) SKU Kind Price Stock":
+          - columnheader "Name (ascending)":
+            - link "Name":
+            - text: (ascending)
+          - columnheader "SKU":
+            - link "SKU":
+          - columnheader "Kind"
+          - columnheader "Price":
+            - link "Price":
+          - columnheader "Stock":
+            - link "Stock":
+      - rowgroup:
+        - row "Genovese Basil BAS-0204 herb €2.45 22":
+          - cell "Genovese Basil":
+            - link "Genovese Basil":
+          - cell "BAS-0204"
+          - cell "herb"
+          - cell "€2.45"
+          - cell "22"
+        - row "Nasturtium Empress NAS-1212 flower €2.50 9":
+          - cell "Nasturtium Empress":
+            - link "Nasturtium Empress":
+          - cell "NAS-1212"
+          - cell "flower"
+          - cell "€2.50"
+          - cell "9"
+        - row "Sweet Pea Cupani SWP-0611 flower €3.95 8":
+          - cell "Sweet Pea Cupani":
+            - link "Sweet Pea Cupani":
+          - cell "SWP-0611"
+          - cell "flower"
+          - cell "€3.95"
+          - cell "8"
+    - navigation "Pages":
+      - link "Previous page":
+      - text: Page 3 of 3
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-new-form (goto) -> /varieties/new
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "New variety" [level=1]
+    - paragraph:
+      - text: SKU
+      - textbox "SKU"
+    - paragraph:
+      - text: Name
+      - textbox "Name"
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…" [selected]
+        - option "vegetable"
+        - option "herb"
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros"
+    - paragraph:
+      - text: Stock
+      - textbox "Stock"
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Create variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-fill-sku (fill) -> /varieties/new
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "New variety" [level=1]
+    - paragraph:
+      - text: SKU
+      - textbox "SKU": bee-1
+    - paragraph:
+      - text: Name
+      - textbox "Name"
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…" [selected]
+        - option "vegetable"
+        - option "herb"
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros"
+    - paragraph:
+      - text: Stock
+      - textbox "Stock"
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Create variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-fill-name (fill) -> /varieties/new
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "New variety" [level=1]
+    - paragraph:
+      - text: SKU
+      - textbox "SKU": bee-1
+    - paragraph:
+      - text: Name
+      - textbox "Name": Borage Blue
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…" [selected]
+        - option "vegetable"
+        - option "herb"
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros"
+    - paragraph:
+      - text: Stock
+      - textbox "Stock"
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Create variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-pick-kind (select_option) -> /varieties/new
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "New variety" [level=1]
+    - paragraph:
+      - text: SKU
+      - textbox "SKU": bee-1
+    - paragraph:
+      - text: Name
+      - textbox "Name": Borage Blue
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros"
+    - paragraph:
+      - text: Stock
+      - textbox "Stock"
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Create variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-fill-price (fill) -> /varieties/new
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "New variety" [level=1]
+    - paragraph:
+      - text: SKU
+      - textbox "SKU": bee-1
+    - paragraph:
+      - text: Name
+      - textbox "Name": Borage Blue
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros": "0.47"
+    - paragraph:
+      - text: Stock
+      - textbox "Stock"
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Create variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-fill-stock (fill) -> /varieties/new
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "New variety" [level=1]
+    - paragraph:
+      - text: SKU
+      - textbox "SKU": bee-1
+    - paragraph:
+      - text: Name
+      - textbox "Name": Borage Blue
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros": "0.47"
+    - paragraph:
+      - text: Stock
+      - textbox "Stock": lots
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Create variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-submit-invalid (click) -> /varieties
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "New variety" [level=1]
+    - alert:
+      - paragraph: "3 problems to fix:"
+      - list:
+        - listitem: A SKU is three letters, a dash and four digits.
+        - listitem: A price is from 0.50 to 50.00 euros.
+        - listitem: Stock is a whole number from 0 to 999.
+    - paragraph:
+      - text: SKU
+      - textbox "SKU" [invalid]: bee-1
+      - text: A SKU is three letters, a dash and four digits.
+    - paragraph:
+      - text: Name
+      - textbox "Name": Borage Blue
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros" [invalid]: "0.47"
+      - text: A price is from 0.50 to 50.00 euros.
+    - paragraph:
+      - text: Stock
+      - textbox "Stock" [invalid]: lots
+      - text: Stock is a whole number from 0 to 999.
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Create variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== form-errors-kept-values (wait_for) -> /varieties
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "New variety" [level=1]
+    - alert:
+      - paragraph: "3 problems to fix:"
+      - list:
+        - listitem: A SKU is three letters, a dash and four digits.
+        - listitem: A price is from 0.50 to 50.00 euros.
+        - listitem: Stock is a whole number from 0 to 999.
+    - paragraph:
+      - text: SKU
+      - textbox "SKU" [invalid]: bee-1
+      - text: A SKU is three letters, a dash and four digits.
+    - paragraph:
+      - text: Name
+      - textbox "Name": Borage Blue
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros" [invalid]: "0.47"
+      - text: A price is from 0.50 to 50.00 euros.
+    - paragraph:
+      - text: Stock
+      - textbox "Stock" [invalid]: lots
+      - text: Stock is a whole number from 0 to 999.
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Create variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-fix-sku (fill) -> /varieties
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "New variety" [level=1]
+    - alert:
+      - paragraph: "3 problems to fix:"
+      - list:
+        - listitem: A SKU is three letters, a dash and four digits.
+        - listitem: A price is from 0.50 to 50.00 euros.
+        - listitem: Stock is a whole number from 0 to 999.
+    - paragraph:
+      - text: SKU
+      - textbox "SKU" [invalid]: bee-0042
+      - text: A SKU is three letters, a dash and four digits.
+    - paragraph:
+      - text: Name
+      - textbox "Name": Borage Blue
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros" [invalid]: "0.47"
+      - text: A price is from 0.50 to 50.00 euros.
+    - paragraph:
+      - text: Stock
+      - textbox "Stock" [invalid]: lots
+      - text: Stock is a whole number from 0 to 999.
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Create variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-fix-price (fill) -> /varieties
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "New variety" [level=1]
+    - alert:
+      - paragraph: "3 problems to fix:"
+      - list:
+        - listitem: A SKU is three letters, a dash and four digits.
+        - listitem: A price is from 0.50 to 50.00 euros.
+        - listitem: Stock is a whole number from 0 to 999.
+    - paragraph:
+      - text: SKU
+      - textbox "SKU" [invalid]: bee-0042
+      - text: A SKU is three letters, a dash and four digits.
+    - paragraph:
+      - text: Name
+      - textbox "Name": Borage Blue
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros" [invalid]: "2.425"
+      - text: A price is from 0.50 to 50.00 euros.
+    - paragraph:
+      - text: Stock
+      - textbox "Stock" [invalid]: lots
+      - text: Stock is a whole number from 0 to 999.
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Create variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-fix-stock (fill) -> /varieties
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "New variety" [level=1]
+    - alert:
+      - paragraph: "3 problems to fix:"
+      - list:
+        - listitem: A SKU is three letters, a dash and four digits.
+        - listitem: A price is from 0.50 to 50.00 euros.
+        - listitem: Stock is a whole number from 0 to 999.
+    - paragraph:
+      - text: SKU
+      - textbox "SKU" [invalid]: bee-0042
+      - text: A SKU is three letters, a dash and four digits.
+    - paragraph:
+      - text: Name
+      - textbox "Name": Borage Blue
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros" [invalid]: "2.425"
+      - text: A price is from 0.50 to 50.00 euros.
+    - paragraph:
+      - text: Stock
+      - textbox "Stock" [invalid]: "7"
+      - text: Stock is a whole number from 0 to 999.
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Create variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-submit-valid (click) -> /varieties/13?created=1
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - status: Variety created.
+    - heading "Borage Blue" [level=1]
+    - term: SKU
+    - definition: BEE-0042
+    - term: Kind
+    - definition: herb
+    - term: Price
+    - definition: €2.45 a packet
+    - term: Stock
+    - definition: 7 packets
+    - term: Status
+    - definition: active
+    - text: Quantity
+    - textbox "Quantity": "1"
+    - button "Add to basket"
+    - paragraph: Not in your basket.
+    - paragraph:
+      - link "Edit this variety":
+    - button "Delete variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== form-created-redirect (wait_for) -> /varieties/13?created=1
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - status: Variety created.
+    - heading "Borage Blue" [level=1]
+    - term: SKU
+    - definition: BEE-0042
+    - term: Kind
+    - definition: herb
+    - term: Price
+    - definition: €2.45 a packet
+    - term: Stock
+    - definition: 7 packets
+    - term: Status
+    - definition: active
+    - text: Quantity
+    - textbox "Quantity": "1"
+    - button "Add to basket"
+    - paragraph: Not in your basket.
+    - paragraph:
+      - link "Edit this variety":
+    - button "Delete variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-qty-too-many (fill) -> /varieties/13?created=1
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - status: Variety created.
+    - heading "Borage Blue" [level=1]
+    - term: SKU
+    - definition: BEE-0042
+    - term: Kind
+    - definition: herb
+    - term: Price
+    - definition: €2.45 a packet
+    - term: Stock
+    - definition: 7 packets
+    - term: Status
+    - definition: active
+    - text: Quantity
+    - textbox "Quantity": "13"
+    - button "Add to basket"
+    - paragraph: Not in your basket.
+    - paragraph:
+      - link "Edit this variety":
+    - button "Delete variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-add-too-many (click) -> /basket/lines
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Borage Blue" [level=1]
+    - term: SKU
+    - definition: BEE-0042
+    - term: Kind
+    - definition: herb
+    - term: Price
+    - definition: €2.45 a packet
+    - term: Stock
+    - definition: 7 packets
+    - term: Status
+    - definition: active
+    - alert: A quantity is a whole number from 1 to 12.
+    - text: Quantity
+    - textbox "Quantity": "13"
+    - button "Add to basket"
+    - paragraph: Not in your basket.
+    - paragraph:
+      - link "Edit this variety":
+    - button "Delete variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-add-refused-kept (wait_for) -> /basket/lines
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Borage Blue" [level=1]
+    - term: SKU
+    - definition: BEE-0042
+    - term: Kind
+    - definition: herb
+    - term: Price
+    - definition: €2.45 a packet
+    - term: Stock
+    - definition: 7 packets
+    - term: Status
+    - definition: active
+    - alert: A quantity is a whole number from 1 to 12.
+    - text: Quantity
+    - textbox "Quantity": "13"
+    - button "Add to basket"
+    - paragraph: Not in your basket.
+    - paragraph:
+      - link "Edit this variety":
+    - button "Delete variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-qty-six (fill) -> /basket/lines
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Borage Blue" [level=1]
+    - term: SKU
+    - definition: BEE-0042
+    - term: Kind
+    - definition: herb
+    - term: Price
+    - definition: €2.45 a packet
+    - term: Stock
+    - definition: 7 packets
+    - term: Status
+    - definition: active
+    - alert: A quantity is a whole number from 1 to 12.
+    - text: Quantity
+    - textbox "Quantity": "6"
+    - button "Add to basket"
+    - paragraph: Not in your basket.
+    - paragraph:
+      - link "Edit this variety":
+    - button "Delete variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-add-six (click) -> /varieties/13?added=1
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (6)":
+      - link "Orders":
+  - main:
+    - status: Added to your basket.
+    - heading "Borage Blue" [level=1]
+    - term: SKU
+    - definition: BEE-0042
+    - term: Kind
+    - definition: herb
+    - term: Price
+    - definition: €2.45 a packet
+    - term: Stock
+    - definition: 7 packets
+    - term: Status
+    - definition: active
+    - text: Quantity
+    - textbox "Quantity": "1"
+    - button "Add to basket"
+    - paragraph: 6 in your basket.
+    - paragraph:
+      - link "Edit this variety":
+    - button "Delete variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-added-notice (wait_for) -> /varieties/13?added=1
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (6)":
+      - link "Orders":
+  - main:
+    - status: Added to your basket.
+    - heading "Borage Blue" [level=1]
+    - term: SKU
+    - definition: BEE-0042
+    - term: Kind
+    - definition: herb
+    - term: Price
+    - definition: €2.45 a packet
+    - term: Stock
+    - definition: 7 packets
+    - term: Status
+    - definition: active
+    - text: Quantity
+    - textbox "Quantity": "1"
+    - button "Add to basket"
+    - paragraph: 6 in your basket.
+    - paragraph:
+      - link "Edit this variety":
+    - button "Delete variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-basket-bulk (goto) -> /basket
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (6)":
+      - link "Orders":
+  - main:
+    - heading "Your basket" [level=1]
+    - table:
+      - rowgroup:
+        - row "Variety Packets Each Discount Line":
+          - columnheader "Variety"
+          - columnheader "Packets"
+          - columnheader "Each"
+          - columnheader "Discount"
+          - columnheader "Line"
+      - rowgroup:
+        - row "Borage Blue 6 €2.45 -€1.47 €13.23":
+          - cell "Borage Blue":
+            - link "Borage Blue":
+          - cell "6"
+          - cell "€2.45"
+          - cell "-€1.47"
+          - cell "€13.23"
+    - table:
+      - rowgroup:
+        - row "Packets 6":
+          - rowheader "Packets"
+          - cell "6"
+        - row "Subtotal €13.23":
+          - rowheader "Subtotal"
+          - cell "€13.23"
+        - row "Shipping €3.50":
+          - rowheader "Shipping"
+          - cell "€3.50"
+        - row "Total €16.73":
+          - rowheader "Total"
+          - cell "€16.73"
+    - text: Promotion code
+    - textbox "Promotion code"
+    - button "Apply code"
+    - button "Place order"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-code-spring (fill) -> /basket
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (6)":
+      - link "Orders":
+  - main:
+    - heading "Your basket" [level=1]
+    - table:
+      - rowgroup:
+        - row "Variety Packets Each Discount Line":
+          - columnheader "Variety"
+          - columnheader "Packets"
+          - columnheader "Each"
+          - columnheader "Discount"
+          - columnheader "Line"
+      - rowgroup:
+        - row "Borage Blue 6 €2.45 -€1.47 €13.23":
+          - cell "Borage Blue":
+            - link "Borage Blue":
+          - cell "6"
+          - cell "€2.45"
+          - cell "-€1.47"
+          - cell "€13.23"
+    - table:
+      - rowgroup:
+        - row "Packets 6":
+          - rowheader "Packets"
+          - cell "6"
+        - row "Subtotal €13.23":
+          - rowheader "Subtotal"
+          - cell "€13.23"
+        - row "Shipping €3.50":
+          - rowheader "Shipping"
+          - cell "€3.50"
+        - row "Total €16.73":
+          - rowheader "Total"
+          - cell "€16.73"
+    - text: Promotion code
+    - textbox "Promotion code": spring5
+    - button "Apply code"
+    - button "Place order"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-apply-spring (click) -> /basket/promo
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (6)":
+      - link "Orders":
+  - main:
+    - heading "Your basket" [level=1]
+    - alert: This code needs goods worth 15.00 euros.
+    - table:
+      - rowgroup:
+        - row "Variety Packets Each Discount Line":
+          - columnheader "Variety"
+          - columnheader "Packets"
+          - columnheader "Each"
+          - columnheader "Discount"
+          - columnheader "Line"
+      - rowgroup:
+        - row "Borage Blue 6 €2.45 -€1.47 €13.23":
+          - cell "Borage Blue":
+            - link "Borage Blue":
+          - cell "6"
+          - cell "€2.45"
+          - cell "-€1.47"
+          - cell "€13.23"
+    - table:
+      - rowgroup:
+        - row "Packets 6":
+          - rowheader "Packets"
+          - cell "6"
+        - row "Subtotal €13.23":
+          - rowheader "Subtotal"
+          - cell "€13.23"
+        - row "Shipping €3.50":
+          - rowheader "Shipping"
+          - cell "€3.50"
+        - row "Total €16.73":
+          - rowheader "Total"
+          - cell "€16.73"
+    - text: Promotion code
+    - textbox "Promotion code": spring5
+    - button "Apply code"
+    - button "Place order"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-promo-minimum (wait_for) -> /basket/promo
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (6)":
+      - link "Orders":
+  - main:
+    - heading "Your basket" [level=1]
+    - alert: This code needs goods worth 15.00 euros.
+    - table:
+      - rowgroup:
+        - row "Variety Packets Each Discount Line":
+          - columnheader "Variety"
+          - columnheader "Packets"
+          - columnheader "Each"
+          - columnheader "Discount"
+          - columnheader "Line"
+      - rowgroup:
+        - row "Borage Blue 6 €2.45 -€1.47 €13.23":
+          - cell "Borage Blue":
+            - link "Borage Blue":
+          - cell "6"
+          - cell "€2.45"
+          - cell "-€1.47"
+          - cell "€13.23"
+    - table:
+      - rowgroup:
+        - row "Packets 6":
+          - rowheader "Packets"
+          - cell "6"
+        - row "Subtotal €13.23":
+          - rowheader "Subtotal"
+          - cell "€13.23"
+        - row "Shipping €3.50":
+          - rowheader "Shipping"
+          - cell "€3.50"
+        - row "Total €16.73":
+          - rowheader "Total"
+          - cell "€16.73"
+    - text: Promotion code
+    - textbox "Promotion code": spring5
+    - button "Apply code"
+    - button "Place order"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-code-herbs (fill) -> /basket/promo
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (6)":
+      - link "Orders":
+  - main:
+    - heading "Your basket" [level=1]
+    - alert: This code needs goods worth 15.00 euros.
+    - table:
+      - rowgroup:
+        - row "Variety Packets Each Discount Line":
+          - columnheader "Variety"
+          - columnheader "Packets"
+          - columnheader "Each"
+          - columnheader "Discount"
+          - columnheader "Line"
+      - rowgroup:
+        - row "Borage Blue 6 €2.45 -€1.47 €13.23":
+          - cell "Borage Blue":
+            - link "Borage Blue":
+          - cell "6"
+          - cell "€2.45"
+          - cell "-€1.47"
+          - cell "€13.23"
+    - table:
+      - rowgroup:
+        - row "Packets 6":
+          - rowheader "Packets"
+          - cell "6"
+        - row "Subtotal €13.23":
+          - rowheader "Subtotal"
+          - cell "€13.23"
+        - row "Shipping €3.50":
+          - rowheader "Shipping"
+          - cell "€3.50"
+        - row "Total €16.73":
+          - rowheader "Total"
+          - cell "€16.73"
+    - text: Promotion code
+    - textbox "Promotion code": herbs20
+    - button "Apply code"
+    - button "Place order"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-apply-herbs (click) -> /basket?applied=1
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (6)":
+      - link "Orders":
+  - main:
+    - status: Code applied.
+    - heading "Your basket" [level=1]
+    - table:
+      - rowgroup:
+        - row "Variety Packets Each Discount Line":
+          - columnheader "Variety"
+          - columnheader "Packets"
+          - columnheader "Each"
+          - columnheader "Discount"
+          - columnheader "Line"
+      - rowgroup:
+        - row "Borage Blue 6 €2.45 -€1.47 €13.23":
+          - cell "Borage Blue":
+            - link "Borage Blue":
+          - cell "6"
+          - cell "€2.45"
+          - cell "-€1.47"
+          - cell "€13.23"
+    - table:
+      - rowgroup:
+        - row "Packets 6":
+          - rowheader "Packets"
+          - cell "6"
+        - row "Subtotal €13.23":
+          - rowheader "Subtotal"
+          - cell "€13.23"
+        - row "Code HERBS20 -€2.65":
+          - rowheader "Code HERBS20"
+          - cell "-€2.65"
+        - row "Shipping €3.50":
+          - rowheader "Shipping"
+          - cell "€3.50"
+        - row "Total €14.08":
+          - rowheader "Total"
+          - cell "€14.08"
+    - text: Promotion code
+    - textbox "Promotion code"
+    - button "Apply code"
+    - button "Place order"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-promo-applied (wait_for) -> /basket?applied=1
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (6)":
+      - link "Orders":
+  - main:
+    - status: Code applied.
+    - heading "Your basket" [level=1]
+    - table:
+      - rowgroup:
+        - row "Variety Packets Each Discount Line":
+          - columnheader "Variety"
+          - columnheader "Packets"
+          - columnheader "Each"
+          - columnheader "Discount"
+          - columnheader "Line"
+      - rowgroup:
+        - row "Borage Blue 6 €2.45 -€1.47 €13.23":
+          - cell "Borage Blue":
+            - link "Borage Blue":
+          - cell "6"
+          - cell "€2.45"
+          - cell "-€1.47"
+          - cell "€13.23"
+    - table:
+      - rowgroup:
+        - row "Packets 6":
+          - rowheader "Packets"
+          - cell "6"
+        - row "Subtotal €13.23":
+          - rowheader "Subtotal"
+          - cell "€13.23"
+        - row "Code HERBS20 -€2.65":
+          - rowheader "Code HERBS20"
+          - cell "-€2.65"
+        - row "Shipping €3.50":
+          - rowheader "Shipping"
+          - cell "€3.50"
+        - row "Total €14.08":
+          - rowheader "Total"
+          - cell "€14.08"
+    - text: Promotion code
+    - textbox "Promotion code"
+    - button "Apply code"
+    - button "Place order"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-place-order (click) -> /orders/4?placed=1
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - status: Order placed. Thank you.
+    - heading "Order SL-1004" [level=1]
+    - paragraph:
+      - text: "Status:"
+      - strong: placed
+    - table:
+      - rowgroup:
+        - row "Variety Packets Each Discount Line":
+          - columnheader "Variety"
+          - columnheader "Packets"
+          - columnheader "Each"
+          - columnheader "Discount"
+          - columnheader "Line"
+      - rowgroup:
+        - row "Borage Blue 6 €2.45 -€1.47 €13.23":
+          - cell "Borage Blue"
+          - cell "6"
+          - cell "€2.45"
+          - cell "-€1.47"
+          - cell "€13.23"
+    - table:
+      - rowgroup:
+        - row "Subtotal €13.23":
+          - rowheader "Subtotal"
+          - cell "€13.23"
+        - row "Code HERBS20 -€2.65":
+          - rowheader "Code HERBS20"
+          - cell "-€2.65"
+        - row "Shipping €3.50":
+          - rowheader "Shipping"
+          - cell "€3.50"
+        - row "Total €14.08":
+          - rowheader "Total"
+          - cell "€14.08"
+    - button "Mark packed"
+    - button "Cancel order"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-order-placed (wait_for) -> /orders/4?placed=1
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - status: Order placed. Thank you.
+    - heading "Order SL-1004" [level=1]
+    - paragraph:
+      - text: "Status:"
+      - strong: placed
+    - table:
+      - rowgroup:
+        - row "Variety Packets Each Discount Line":
+          - columnheader "Variety"
+          - columnheader "Packets"
+          - columnheader "Each"
+          - columnheader "Discount"
+          - columnheader "Line"
+      - rowgroup:
+        - row "Borage Blue 6 €2.45 -€1.47 €13.23":
+          - cell "Borage Blue"
+          - cell "6"
+          - cell "€2.45"
+          - cell "-€1.47"
+          - cell "€13.23"
+    - table:
+      - rowgroup:
+        - row "Subtotal €13.23":
+          - rowheader "Subtotal"
+          - cell "€13.23"
+        - row "Code HERBS20 -€2.65":
+          - rowheader "Code HERBS20"
+          - cell "-€2.65"
+        - row "Shipping €3.50":
+          - rowheader "Shipping"
+          - cell "€3.50"
+        - row "Total €14.08":
+          - rowheader "Total"
+          - cell "€14.08"
+    - button "Mark packed"
+    - button "Cancel order"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-mark-packed (click) -> /orders/4?changed=1
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - status: Order updated.
+    - heading "Order SL-1004" [level=1]
+    - paragraph:
+      - text: "Status:"
+      - strong: packed
+    - table:
+      - rowgroup:
+        - row "Variety Packets Each Discount Line":
+          - columnheader "Variety"
+          - columnheader "Packets"
+          - columnheader "Each"
+          - columnheader "Discount"
+          - columnheader "Line"
+      - rowgroup:
+        - row "Borage Blue 6 €2.45 -€1.47 €13.23":
+          - cell "Borage Blue"
+          - cell "6"
+          - cell "€2.45"
+          - cell "-€1.47"
+          - cell "€13.23"
+    - table:
+      - rowgroup:
+        - row "Subtotal €13.23":
+          - rowheader "Subtotal"
+          - cell "€13.23"
+        - row "Code HERBS20 -€2.65":
+          - rowheader "Code HERBS20"
+          - cell "-€2.65"
+        - row "Shipping €3.50":
+          - rowheader "Shipping"
+          - cell "€3.50"
+        - row "Total €14.08":
+          - rowheader "Total"
+          - cell "€14.08"
+    - button "Mark shipped"
+    - button "Cancel order"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-order-packed (wait_for) -> /orders/4?changed=1
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - status: Order updated.
+    - heading "Order SL-1004" [level=1]
+    - paragraph:
+      - text: "Status:"
+      - strong: packed
+    - table:
+      - rowgroup:
+        - row "Variety Packets Each Discount Line":
+          - columnheader "Variety"
+          - columnheader "Packets"
+          - columnheader "Each"
+          - columnheader "Discount"
+          - columnheader "Line"
+      - rowgroup:
+        - row "Borage Blue 6 €2.45 -€1.47 €13.23":
+          - cell "Borage Blue"
+          - cell "6"
+          - cell "€2.45"
+          - cell "-€1.47"
+          - cell "€13.23"
+    - table:
+      - rowgroup:
+        - row "Subtotal €13.23":
+          - rowheader "Subtotal"
+          - cell "€13.23"
+        - row "Code HERBS20 -€2.65":
+          - rowheader "Code HERBS20"
+          - cell "-€2.65"
+        - row "Shipping €3.50":
+          - rowheader "Shipping"
+          - cell "€3.50"
+        - row "Total €14.08":
+          - rowheader "Total"
+          - cell "€14.08"
+    - button "Mark shipped"
+    - button "Cancel order"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-orders (goto) -> /orders
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Orders" [level=1]
+    - table:
+      - rowgroup:
+        - row "Order Status Packets Total":
+          - columnheader "Order"
+          - columnheader "Status"
+          - columnheader "Packets"
+          - columnheader "Total"
+      - rowgroup:
+        - row "SL-1004 packed 6 €14.08":
+          - cell "SL-1004":
+            - link "SL-1004":
+          - cell "packed"
+          - cell "6"
+          - cell "€14.08"
+        - row "SL-1003 placed 6 €14.84":
+          - cell "SL-1003":
+            - link "SL-1003":
+          - cell "placed"
+          - cell "6"
+          - cell "€14.84"
+        - row "SL-1002 packed 4 €12.80":
+          - cell "SL-1002":
+            - link "SL-1002":
+          - cell "packed"
+          - cell "4"
+          - cell "€12.80"
+        - row "SL-1001 shipped 2 €10.40":
+          - cell "SL-1001":
+            - link "SL-1001":
+          - cell "shipped"
+          - cell "2"
+          - cell "€10.40"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-variety-after-order (goto) -> /varieties/13
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Borage Blue" [level=1]
+    - term: SKU
+    - definition: BEE-0042
+    - term: Kind
+    - definition: herb
+    - term: Price
+    - definition: €2.45 a packet
+    - term: Stock
+    - definition: 1 packets
+    - term: Status
+    - definition: active
+    - text: Quantity
+    - textbox "Quantity": "1"
+    - button "Add to basket"
+    - paragraph: Not in your basket.
+    - paragraph:
+      - link "Edit this variety":
+    - button "Delete variety"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-edit-form (goto) -> /varieties/2/edit
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Edit Genovese Basil" [level=1]
+    - paragraph:
+      - text: SKU
+      - textbox "SKU": BAS-0204
+    - paragraph:
+      - text: Name
+      - textbox "Name": Genovese Basil
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros": "2.45"
+    - paragraph:
+      - text: Stock
+      - textbox "Stock": "22"
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Save changes"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-edit-sku (fill) -> /varieties/2/edit
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Edit Genovese Basil" [level=1]
+    - paragraph:
+      - text: SKU
+      - textbox "SKU": chv-0815
+    - paragraph:
+      - text: Name
+      - textbox "Name": Genovese Basil
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros": "2.45"
+    - paragraph:
+      - text: Stock
+      - textbox "Stock": "22"
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Save changes"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== setup-edit-save (click) -> /varieties/2
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Edit Genovese Basil" [level=1]
+    - alert:
+      - paragraph: "1 problem to fix:"
+      - list:
+        - listitem: Another variety uses that SKU.
+    - paragraph:
+      - text: SKU
+      - textbox "SKU" [invalid]: chv-0815
+      - text: Another variety uses that SKU.
+    - paragraph:
+      - text: Name
+      - textbox "Name": Genovese Basil
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros": "2.45"
+    - paragraph:
+      - text: Stock
+      - textbox "Stock": "22"
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Save changes"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-edit-sku-taken (wait_for) -> /varieties/2
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Edit Genovese Basil" [level=1]
+    - alert:
+      - paragraph: "1 problem to fix:"
+      - list:
+        - listitem: Another variety uses that SKU.
+    - paragraph:
+      - text: SKU
+      - textbox "SKU" [invalid]: chv-0815
+      - text: Another variety uses that SKU.
+    - paragraph:
+      - text: Name
+      - textbox "Name": Genovese Basil
+    - paragraph:
+      - text: Kind
+      - combobox "Kind":
+        - option "Choose…"
+        - option "vegetable"
+        - option "herb" [selected]
+        - option "flower"
+    - paragraph:
+      - text: Price in euros
+      - textbox "Price in euros": "2.45"
+    - paragraph:
+      - text: Stock
+      - textbox "Stock": "22"
+    - paragraph:
+      - text: Status
+      - combobox "Status":
+        - option "active" [selected]
+        - option "retired"
+    - paragraph:
+      - button "Save changes"
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== page-missing (goto) -> /varieties/99
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Page not found" [level=1]
+    - paragraph: Seedlark has no page at this address.
+    - paragraph:
+      - link "Back to the catalogue":
+  - contentinfo: Seedlark seed packets, sown in small batches.
+
+== api-orders-after-pages (request) -> /varieties/99
+- document:
+  - banner:
+    - link "Seedlark":
+    - navigation "Main":
+      - link "Catalogue":
+      - link "New variety":
+      - link "Basket (0)":
+      - link "Orders":
+  - main:
+    - heading "Page not found" [level=1]
+    - paragraph: Seedlark has no page at this address.
+    - paragraph:
+      - link "Back to the catalogue":
+  - contentinfo: Seedlark seed packets, sown in small batches.

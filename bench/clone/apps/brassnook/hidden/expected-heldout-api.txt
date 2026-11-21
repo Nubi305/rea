@@ -1,0 +1,154 @@
+fp-rooms	GET /api/rooms
+  -> 200 {"items":[{"id":3,"uid":"rm_2a9e7c40","name":"Café Stage","slug":"cafe-stage","capacity":10,"rateCents":2400,"active":true,"openBookings":1,"createdAt":"2026-11-02T09:10:00.000Z"},{"id":5,"uid":"rm_6e7a19c2","name":"atrium","slug":"atrium","capacity":6,"rateCents":1350,"active":true,"openBookings":1,"createdAt":"2026-11-03T10:00:00.000Z"},{"id":1,"uid":"rm_51c0e2a7","name":"Blue Room","slug":"blue-room","capacity":6,"rateCents":1500,"active":true,"openBookings":2,"createdAt":"2026-11-02T09:00:00.000Z"},{"id":2,"uid":"rm_8d14f6b3","name":"Annexe","slug":"annexe","capacity":4,"rateCents":1250,"active":true,"openBookings":0,"createdAt":"2026-11-02T09:05:00.000Z"},{"id":4,"uid":"rm_f3b605d9","name":"Drum Booth","slug":"drum-booth","capacity":2,"rateCents":900,"active":false,"openBookings":0,"createdAt":"2026-11-02T09:15:00.000Z"}],"total":5}
+fp-bookings	GET /api/bookings
+  -> 200 {"items":[{"id":5,"uid":"bk_a3f6c054","ref":"BK-0005","roomId":5,"roomName":"atrium","band":"Paper Lanterns","players":2,"date":"2026-12-08","start":"10:00","end":"11:30","minutes":90,"status":"tentative","totalCents":2025,"feeCents":0,"createdAt":"2026-11-12T16:20:00.000Z"},{"id":2,"uid":"bk_7b21d3a8","ref":"BK-0002","roomId":1,"roomName":"Blue Room","band":"Marrow Quartet","players":4,"date":"2026-12-08","start":"10:00","end":"11:30","minutes":90,"status":"tentative","totalCents":2250,"feeCents":0,"createdAt":"2026-11-10T12:30:00.000Z"},{"id":4,"uid":"bk_19c8b7e2","ref":"BK-0004","roomId":2,"roomName":"Annexe","band":"Kiln","players":3,"date":"2026-12-08","start":"14:00","end":"15:00","minutes":60,"status":"completed","totalCents":1250,"feeCents":0,"createdAt":"2026-11-11T09:40:00.000Z"},{"id":1,"uid":"bk_0c4f2e91","ref":"BK-0001","roomId":1,"roomName":"Blue Room","band":"The Low Tides","players":5,"date":"2026-12-08","start":"18:00","end":"20:00","minutes":120,"status":"confirmed","totalCents":3750,"feeCents":0,"createdAt":"2026-11-10T12:00:00.000Z"},{"id":3,"uid":"bk_e5a90f16","ref":"BK-0003","roomId":3,"roomName":"Café Stage","band":"Saltmarsh Choir","players":10,"date":"2026-12-09","start":"19:00","end":"21:00","minutes":120,"status":"checked_in","totalCents":6000,"feeCents":0,"createdAt":"2026-11-11T08:15:00.000Z"},{"id":6,"uid":"bk_5d02e7bb","ref":"BK-0006","roomId":2,"roomName":"Annexe","band":"Velvet Static","players":4,"date":"2026-12-10","start":"09:00","end":"09:45","minutes":45,"status":"cancelled","totalCents":938,"feeCents":0,"createdAt":"2026-11-12T17:05:00.000Z"},{"id":7,"uid":"bk_c87e3d1f","ref":"BK-0007","roomId":1,"roomName":"Blue Room","band":"Opal Fern","players":3,"date":"2026-12-11","start":"08:00","end":"09:00","minutes":60,"status":"cancelled","totalCents":1500,"feeCents":750,"createdAt":"2026-11-13T07:55:00.000Z"}],"total":7,"limit":10,"offset":0}
+fp-summary	GET /api/summary
+  -> 200 {"rooms":5,"activeRooms":4,"bookings":{"tentative":2,"confirmed":1,"checked_in":1,"completed":1,"cancelled":2,"total":7},"revenueCents":11750,"pipelineCents":4275,"busiestRoom":{"id":1,"name":"Blue Room","bookedMinutes":210}}
+day-sheet-blue	GET /api/rooms/1/day?date=2026-12-08
+  -> 200 {"roomId":1,"date":"2026-12-08","closed":false,"bookings":[{"id":2,"uid":"bk_7b21d3a8","ref":"BK-0002","roomId":1,"roomName":"Blue Room","band":"Marrow Quartet","players":4,"date":"2026-12-08","start":"10:00","end":"11:30","minutes":90,"status":"tentative","totalCents":2250,"feeCents":0,"createdAt":"2026-11-10T12:30:00.000Z"},{"id":1,"uid":"bk_0c4f2e91","ref":"BK-0001","roomId":1,"roomName":"Blue Room","band":"The Low Tides","players":5,"date":"2026-12-08","start":"18:00","end":"20:00","minutes":120,"status":"confirmed","totalCents":3750,"feeCents":0,"createdAt":"2026-11-10T12:00:00.000Z"}],"bookedMinutes":210,"utilisationPct":23.3,"freeSlots":[{"start":"08:00","end":"10:00"},{"start":"11:30","end":"18:00"},{"start":"20:00","end":"23:00"}]}
+day-sheet-sunday	GET /api/rooms/1/day?date=2026-12-13
+  -> 200 {"roomId":1,"date":"2026-12-13","closed":true,"bookings":[],"bookedMinutes":0,"utilisationPct":0,"freeSlots":[]}
+day-sheet-bad-date	GET /api/rooms/1/day?date=2026-02-29
+  -> 422 {"error":"date_invalid","message":"A date is a real day written YYYY-MM-DD."}
+list-limit-clamped	GET /api/bookings?limit=99
+  -> 200 {"items":[{"id":5,"uid":"bk_a3f6c054","ref":"BK-0005","roomId":5,"roomName":"atrium","band":"Paper Lanterns","players":2,"date":"2026-12-08","start":"10:00","end":"11:30","minutes":90,"status":"tentative","totalCents":2025,"feeCents":0,"createdAt":"2026-11-12T16:20:00.000Z"},{"id":2,"uid":"bk_7b21d3a8","ref":"BK-0002","roomId":1,"roomName":"Blue Room","band":"Marrow Quartet","players":4,"date":"2026-12-08","start":"10:00","end":"11:30","minutes":90,"status":"tentative","totalCents":2250,"feeCents":0,"createdAt":"2026-11-10T12:30:00.000Z"},{"id":4,"uid":"bk_19c8b7e2","ref":"BK-0004","roomId":2,"roomName":"Annexe","band":"Kiln","players":3,"date":"2026-12-08","start":"14:00","end":"15:00","minutes":60,"status":"completed","totalCents":1250,"feeCents":0,"createdAt":"2026-11-11T09:40:00.000Z"},{"id":1,"uid":"bk_0c4f2e91","ref":"BK-0001","roomId":1,"roomName":"Blue Room","band":"The Low Tides","players":5,"date":"2026-12-08","start":"18:00","end":"20:00","minutes":120,"status":"confirmed","totalCents":3750,"feeCents":0,"createdAt":"2026-11-10T12:00:00.000Z"},{"id":3,"uid":"bk_e5a90f16","ref":"BK-0003","roomId":3,"roomName":"Café Stage","band":"Saltmarsh Choir","players":10,"date":"2026-12-09","start":"19:00","end":"21:00","minutes":120,"status":"checked_in","totalCents":6000,"feeCents":0,"createdAt":"2026-11-11T08:15:00.000Z"},{"id":6,"uid":"bk_5d02e7bb","ref":"BK-0006","roomId":2,"roomName":"Annexe","band":"Velvet Static","players":4,"date":"2026-12-10","start":"09:00","end":"09:45","minutes":45,"status":"cancelled","totalCents":938,"feeCents":0,"createdAt":"2026-11-12T17:05:00.000Z"},{"id":7,"uid":"bk_c87e3d1f","ref":"BK-0007","roomId":1,"roomName":"Blue Room","band":"Opal Fern","players":3,"date":"2026-12-11","start":"08:00","end":"09:00","minutes":60,"status":"cancelled","totalCents":1500,"feeCents":750,"createdAt":"2026-11-13T07:55:00.000Z"}],"total":7,"limit":25,"offset":0}
+list-limit-zero	GET /api/bookings?limit=0
+  -> 422 {"error":"limit_invalid","message":"limit is a whole number from 1.","max":25}
+list-page-two	GET /api/bookings?limit=3&offset=3
+  -> 200 {"items":[{"id":1,"uid":"bk_0c4f2e91","ref":"BK-0001","roomId":1,"roomName":"Blue Room","band":"The Low Tides","players":5,"date":"2026-12-08","start":"18:00","end":"20:00","minutes":120,"status":"confirmed","totalCents":3750,"feeCents":0,"createdAt":"2026-11-10T12:00:00.000Z"},{"id":3,"uid":"bk_e5a90f16","ref":"BK-0003","roomId":3,"roomName":"Café Stage","band":"Saltmarsh Choir","players":10,"date":"2026-12-09","start":"19:00","end":"21:00","minutes":120,"status":"checked_in","totalCents":6000,"feeCents":0,"createdAt":"2026-11-11T08:15:00.000Z"},{"id":6,"uid":"bk_5d02e7bb","ref":"BK-0006","roomId":2,"roomName":"Annexe","band":"Velvet Static","players":4,"date":"2026-12-10","start":"09:00","end":"09:45","minutes":45,"status":"cancelled","totalCents":938,"feeCents":0,"createdAt":"2026-11-12T17:05:00.000Z"}],"total":7,"limit":3,"offset":3}
+list-status-filter	GET /api/bookings?status=cancelled
+  -> 200 {"items":[{"id":6,"uid":"bk_5d02e7bb","ref":"BK-0006","roomId":2,"roomName":"Annexe","band":"Velvet Static","players":4,"date":"2026-12-10","start":"09:00","end":"09:45","minutes":45,"status":"cancelled","totalCents":938,"feeCents":0,"createdAt":"2026-11-12T17:05:00.000Z"},{"id":7,"uid":"bk_c87e3d1f","ref":"BK-0007","roomId":1,"roomName":"Blue Room","band":"Opal Fern","players":3,"date":"2026-12-11","start":"08:00","end":"09:00","minutes":60,"status":"cancelled","totalCents":1500,"feeCents":750,"createdAt":"2026-11-13T07:55:00.000Z"}],"total":2,"limit":10,"offset":0}
+list-status-bad	GET /api/bookings?status=done
+  -> 422 {"error":"status_invalid","message":"Unknown status.","allowed":["tentative","confirmed","checked_in","completed","cancelled"]}
+list-band-filter	GET /api/bookings?band=LOW
+  -> 200 {"items":[{"id":1,"uid":"bk_0c4f2e91","ref":"BK-0001","roomId":1,"roomName":"Blue Room","band":"The Low Tides","players":5,"date":"2026-12-08","start":"18:00","end":"20:00","minutes":120,"status":"confirmed","totalCents":3750,"feeCents":0,"createdAt":"2026-11-10T12:00:00.000Z"}],"total":1,"limit":10,"offset":0}
+list-room-missing	GET /api/bookings?roomId=42
+  -> 404 {"error":"room_not_found","message":"No such room.","id":42}
+room-create-normalised	POST /api/rooms {"name":"  Écho   Chamber! ","capacity":5,"rateCents":1250}
+  -> 201 {"id":6,"uid":"rm_ea47fd7c","name":"Écho Chamber!","slug":"echo-chamber","capacity":5,"rateCents":1250,"active":true,"openBookings":0,"createdAt":"2026-11-21T04:23:55.914Z"}
+room-name-taken-slug	POST /api/rooms {"name":"blue-ROOM"}
+  -> 409 {"error":"name_taken","message":"Another room has that name.","existingId":1}
+room-name-taken-accent	POST /api/rooms {"name":"CAFE stage"}
+  -> 409 {"error":"name_taken","message":"Another room has that name.","existingId":3}
+room-name-short	POST /api/rooms {"name":" Ab "}
+  -> 422 {"error":"name_length","message":"A room name has 3 to 40 characters.","min":3,"max":40}
+room-name-missing	POST /api/rooms {}
+  -> 422 {"error":"name_required","message":"A room needs a name."}
+room-capacity-over	POST /api/rooms {"name":"Loft","capacity":13}
+  -> 422 {"error":"capacity_invalid","message":"Capacity is a whole number of players from 1 to 12.","min":1,"max":12}
+room-rate-step	POST /api/rooms {"name":"Loft","rateCents":1275}
+  -> 422 {"error":"rate_invalid","message":"The hourly rate is 500 to 20000 cents in steps of 50.","min":500,"max":20000,"step":50}
+room-create-defaults	POST /api/rooms {"name":"Loft"}
+  -> 201 {"id":7,"uid":"rm_ced4425e","name":"Loft","slug":"loft","capacity":4,"rateCents":1500,"active":true,"openBookings":0,"createdAt":"2026-11-21T04:23:55.924Z"}
+rooms-order-after	GET /api/rooms
+  -> 200 {"items":[{"id":3,"uid":"rm_2a9e7c40","name":"Café Stage","slug":"cafe-stage","capacity":10,"rateCents":2400,"active":true,"openBookings":1,"createdAt":"2026-11-02T09:10:00.000Z"},{"id":5,"uid":"rm_6e7a19c2","name":"atrium","slug":"atrium","capacity":6,"rateCents":1350,"active":true,"openBookings":1,"createdAt":"2026-11-03T10:00:00.000Z"},{"id":1,"uid":"rm_51c0e2a7","name":"Blue Room","slug":"blue-room","capacity":6,"rateCents":1500,"active":true,"openBookings":2,"createdAt":"2026-11-02T09:00:00.000Z"},{"id":6,"uid":"rm_ea47fd7c","name":"Écho Chamber!","slug":"echo-chamber","capacity":5,"rateCents":1250,"active":true,"openBookings":0,"createdAt":"2026-11-21T04:23:55.914Z"},{"id":2,"uid":"rm_8d14f6b3","name":"Annexe","slug":"annexe","capacity":4,"rateCents":1250,"active":true,"openBookings":0,"createdAt":"2026-11-02T09:05:00.000Z"},{"id":7,"uid":"rm_ced4425e","name":"Loft","slug":"loft","capacity":4,"rateCents":1500,"active":true,"openBookings":0,"createdAt":"2026-11-21T04:23:55.924Z"},{"id":4,"uid":"rm_f3b605d9","name":"Drum Booth","slug":"drum-booth","capacity":2,"rateCents":900,"active":false,"openBookings":0,"createdAt":"2026-11-02T09:15:00.000Z"}],"total":7}
+booking-create-normalised	POST /api/bookings {"roomId":6,"band":"  north   Wind ","players":3,"date":"2026-12-08","start":"12:00","minutes":45}
+  -> 201 {"id":8,"uid":"bk_5c131c44","ref":"BK-0008","roomId":6,"roomName":"Écho Chamber!","band":"north Wind","players":3,"date":"2026-12-08","start":"12:00","end":"12:45","minutes":45,"status":"tentative","totalCents":938,"feeCents":0,"createdAt":"2026-11-21T04:23:55.927Z"}
+booking-half-even-down	POST /api/bookings {"roomId":5,"band":"Glass Harbour","players":2,"date":"2026-12-08","start":"12:00","minutes":45}
+  -> 201 {"id":9,"uid":"bk_0111fc19","ref":"BK-0009","roomId":5,"roomName":"atrium","band":"Glass Harbour","players":2,"date":"2026-12-08","start":"12:00","end":"12:45","minutes":45,"status":"tentative","totalCents":1012,"feeCents":0,"createdAt":"2026-11-21T04:23:55.928Z"}
+booking-evening-split	POST /api/bookings {"roomId":2,"band":"Fen Lights","players":4,"date":"2026-12-08","start":"17:30","minutes":60}
+  -> 201 {"id":10,"uid":"bk_719d1fed","ref":"BK-0010","roomId":2,"roomName":"Annexe","band":"Fen Lights","players":4,"date":"2026-12-08","start":"17:30","end":"18:30","minutes":60,"status":"tentative","totalCents":1406,"feeCents":0,"createdAt":"2026-11-21T04:23:55.929Z"}
+booking-start-off-grid	POST /api/bookings {"roomId":2,"band":"Probe Band","players":2,"date":"2026-12-09","start":"10:10","minutes":60}
+  -> 422 {"error":"start_invalid","message":"A start time is HH:MM on a quarter hour."}
+booking-start-format	POST /api/bookings {"roomId":2,"band":"Probe Band","players":2,"date":"2026-12-09","start":"9:00","minutes":60}
+  -> 422 {"error":"start_invalid","message":"A start time is HH:MM on a quarter hour."}
+booking-minutes-short	POST /api/bookings {"roomId":2,"band":"Probe Band","players":2,"date":"2026-12-09","start":"10:00","minutes":20}
+  -> 422 {"error":"minutes_invalid","message":"A booking lasts 30 to 240 minutes in steps of 15.","min":30,"max":240,"step":15}
+booking-minutes-step	POST /api/bookings {"roomId":2,"band":"Probe Band","players":2,"date":"2026-12-09","start":"10:00","minutes":50}
+  -> 422 {"error":"minutes_invalid","message":"A booking lasts 30 to 240 minutes in steps of 15.","min":30,"max":240,"step":15}
+booking-too-late	POST /api/bookings {"roomId":2,"band":"Probe Band","players":2,"date":"2026-12-09","start":"22:00","minutes":90}
+  -> 422 {"error":"outside_hours","message":"The studio is open from 08:00 to 23:00.","opens":"08:00","closes":"23:00"}
+booking-too-early	POST /api/bookings {"roomId":2,"band":"Probe Band","players":2,"date":"2026-12-09","start":"07:45","minutes":30}
+  -> 422 {"error":"outside_hours","message":"The studio is open from 08:00 to 23:00.","opens":"08:00","closes":"23:00"}
+booking-last-slot	POST /api/bookings {"roomId":2,"band":"Late Owls","players":2,"date":"2026-12-09","start":"21:30","minutes":90}
+  -> 201 {"id":11,"uid":"bk_566b39b8","ref":"BK-0011","roomId":2,"roomName":"Annexe","band":"Late Owls","players":2,"date":"2026-12-09","start":"21:30","end":"23:00","minutes":90,"status":"tentative","totalCents":2344,"feeCents":0,"createdAt":"2026-11-21T04:23:55.937Z"}
+booking-bad-date	POST /api/bookings {"roomId":2,"band":"Probe Band","players":2,"date":"2026-02-29","start":"10:00","minutes":60}
+  -> 422 {"error":"date_invalid","message":"A date is a real day written YYYY-MM-DD."}
+booking-sunday	POST /api/bookings {"roomId":2,"band":"Probe Band","players":2,"date":"2026-12-13","start":"10:00","minutes":60}
+  -> 422 {"error":"closed_day","message":"The studio is closed on Sundays."}
+booking-players-zero	POST /api/bookings {"roomId":2,"band":"Probe Band","players":0,"date":"2026-12-09","start":"10:00","minutes":60}
+  -> 422 {"error":"players_invalid","message":"Players is a whole number from 1."}
+booking-room-missing	POST /api/bookings {"roomId":42,"band":"Probe Band","players":2,"date":"2026-12-09","start":"nope","minutes":60}
+  -> 404 {"error":"room_not_found","message":"No such room.","id":42}
+booking-band-short	POST /api/bookings {"roomId":2,"band":"  X  ","players":2,"date":"2026-12-09","start":"10:00","minutes":60}
+  -> 422 {"error":"band_length","message":"A band name has 2 to 40 characters.","min":2,"max":40}
+booking-inactive-room	POST /api/bookings {"roomId":4,"band":"Probe Band","players":5,"date":"2026-12-09","start":"10:00","minutes":60}
+  -> 409 {"error":"room_inactive","message":"The room takes no bookings.","roomId":4}
+booking-too-many-players	POST /api/bookings {"roomId":1,"band":"Probe Band","players":7,"date":"2026-12-08","start":"18:30","minutes":60}
+  -> 409 {"error":"room_too_small","message":"Too many players for the room.","capacity":6,"players":7}
+booking-overlap	POST /api/bookings {"roomId":1,"band":"Moss","players":2,"date":"2026-12-08","start":"19:30","minutes":60}
+  -> 409 {"error":"slot_taken","message":"The room is booked at that time.","conflictId":1}
+booking-touching	POST /api/bookings {"roomId":1,"band":"Moss","players":2,"date":"2026-12-08","start":"20:00","minutes":60}
+  -> 201 {"id":12,"uid":"bk_998e305e","ref":"BK-0012","roomId":1,"roomName":"Blue Room","band":"Moss","players":2,"date":"2026-12-08","start":"20:00","end":"21:00","minutes":60,"status":"tentative","totalCents":1875,"feeCents":0,"createdAt":"2026-11-21T04:23:55.947Z"}
+booking-cancelled-frees-slot	POST /api/bookings {"roomId":2,"band":"Velvet Static","players":4,"date":"2026-12-10","start":"09:00","minutes":45}
+  -> 201 {"id":13,"uid":"bk_ece3904e","ref":"BK-0013","roomId":2,"roomName":"Annexe","band":"Velvet Static","players":4,"date":"2026-12-10","start":"09:00","end":"09:45","minutes":45,"status":"tentative","totalCents":938,"feeCents":0,"createdAt":"2026-11-21T04:23:55.948Z"}
+band-second-booking	POST /api/bookings {"roomId":5,"band":" the  LOW tides","players":3,"date":"2026-12-08","start":"14:00","minutes":60}
+  -> 201 {"id":14,"uid":"bk_76895e8d","ref":"BK-0014","roomId":5,"roomName":"atrium","band":"the LOW tides","players":3,"date":"2026-12-08","start":"14:00","end":"15:00","minutes":60,"status":"tentative","totalCents":1350,"feeCents":0,"createdAt":"2026-11-21T04:23:55.949Z"}
+band-third-refused	POST /api/bookings {"roomId":2,"band":"THE LOW TIDES","players":3,"date":"2026-12-08","start":"08:00","minutes":60}
+  -> 409 {"error":"band_daily_limit","message":"A band holds at most two bookings a day.","limit":2,"existingIds":[1,14]}
+status-skip-refused	PUT /api/bookings/14/status {"status":"checked_in"}
+  -> 409 {"error":"invalid_transition","message":"That status change is not allowed.","from":"tentative","to":"checked_in","allowed":["confirmed","cancelled"]}
+status-unknown	PUT /api/bookings/14/status {"status":"done"}
+  -> 422 {"error":"status_invalid","message":"Unknown status.","allowed":["tentative","confirmed","checked_in","completed","cancelled"]}
+status-cancel-tentative	PUT /api/bookings/14/status {"status":"cancelled"}
+  -> 200 {"id":14,"uid":"bk_76895e8d","ref":"BK-0014","roomId":5,"roomName":"atrium","band":"the LOW tides","players":3,"date":"2026-12-08","start":"14:00","end":"15:00","minutes":60,"status":"cancelled","totalCents":1350,"feeCents":0,"createdAt":"2026-11-21T04:23:55.949Z"}
+band-limit-after-cancel	POST /api/bookings {"roomId":2,"band":"THE LOW TIDES","players":3,"date":"2026-12-08","start":"08:00","minutes":60}
+  -> 201 {"id":15,"uid":"bk_4c1ac3e3","ref":"BK-0015","roomId":2,"roomName":"Annexe","band":"THE LOW TIDES","players":3,"date":"2026-12-08","start":"08:00","end":"09:00","minutes":60,"status":"tentative","totalCents":1250,"feeCents":0,"createdAt":"2026-11-21T04:23:55.955Z"}
+status-cancelled-final	PUT /api/bookings/14/status {"status":"confirmed"}
+  -> 409 {"error":"invalid_transition","message":"That status change is not allowed.","from":"cancelled","to":"confirmed","allowed":[]}
+status-confirm	PUT /api/bookings/5/status {"status":"confirmed"}
+  -> 200 {"id":5,"uid":"bk_a3f6c054","ref":"BK-0005","roomId":5,"roomName":"atrium","band":"Paper Lanterns","players":2,"date":"2026-12-08","start":"10:00","end":"11:30","minutes":90,"status":"confirmed","totalCents":2025,"feeCents":0,"createdAt":"2026-11-12T16:20:00.000Z"}
+room-rate-change	PUT /api/rooms/5 {"rateCents":2000}
+  -> 200 {"id":5,"uid":"rm_6e7a19c2","name":"atrium","slug":"atrium","capacity":6,"rateCents":2000,"active":true,"openBookings":2,"createdAt":"2026-11-03T10:00:00.000Z"}
+booking-repriced	GET /api/bookings/9
+  -> 200 {"id":9,"uid":"bk_0111fc19","ref":"BK-0009","roomId":5,"roomName":"atrium","band":"Glass Harbour","players":2,"date":"2026-12-08","start":"12:00","end":"12:45","minutes":45,"status":"tentative","totalCents":1500,"feeCents":0,"createdAt":"2026-11-21T04:23:55.928Z"}
+booking-price-locked	GET /api/bookings/5
+  -> 200 {"id":5,"uid":"bk_a3f6c054","ref":"BK-0005","roomId":5,"roomName":"atrium","band":"Paper Lanterns","players":2,"date":"2026-12-08","start":"10:00","end":"11:30","minutes":90,"status":"confirmed","totalCents":2025,"feeCents":0,"createdAt":"2026-11-12T16:20:00.000Z"}
+booking-edit-confirmed	PUT /api/bookings/5 {"minutes":60}
+  -> 409 {"error":"booking_locked","message":"Only a tentative booking can change.","status":"confirmed"}
+booking-edit-own-slot	PUT /api/bookings/9 {"start":"12:15","minutes":30}
+  -> 200 {"id":9,"uid":"bk_0111fc19","ref":"BK-0009","roomId":5,"roomName":"atrium","band":"Glass Harbour","players":2,"date":"2026-12-08","start":"12:15","end":"12:45","minutes":30,"status":"tentative","totalCents":1000,"feeCents":0,"createdAt":"2026-11-21T04:23:55.928Z"}
+booking-edit-overlap	PUT /api/bookings/9 {"start":"11:00"}
+  -> 409 {"error":"slot_taken","message":"The room is booked at that time.","conflictId":5}
+booking-edit-status-field	PUT /api/bookings/9 {"status":"confirmed"}
+  -> 422 {"error":"status_readonly","message":"Change the status with PUT /api/bookings/:id/status."}
+booking-delete-confirmed	DELETE /api/bookings/5
+  -> 409 {"error":"booking_locked","message":"Only a tentative or cancelled booking can be deleted.","status":"confirmed"}
+status-cancel-confirmed	PUT /api/bookings/5/status {"status":"cancelled"}
+  -> 200 {"id":5,"uid":"bk_a3f6c054","ref":"BK-0005","roomId":5,"roomName":"atrium","band":"Paper Lanterns","players":2,"date":"2026-12-08","start":"10:00","end":"11:30","minutes":90,"status":"cancelled","totalCents":2025,"feeCents":1012,"createdAt":"2026-11-12T16:20:00.000Z"}
+summary-after-fee	GET /api/summary
+  -> 200 {"rooms":7,"activeRooms":6,"bookings":{"tentative":8,"confirmed":1,"checked_in":1,"completed":1,"cancelled":4,"total":15},"revenueCents":12762,"pipelineCents":12001,"busiestRoom":{"id":2,"name":"Annexe","bookedMinutes":315}}
+booking-delete-cancelled	DELETE /api/bookings/5
+  -> 200 {"deleted":true,"id":5}
+day-sheet-atrium-after	GET /api/rooms/5/day?date=2026-12-08
+  -> 200 {"roomId":5,"date":"2026-12-08","closed":false,"bookings":[{"id":9,"uid":"bk_0111fc19","ref":"BK-0009","roomId":5,"roomName":"atrium","band":"Glass Harbour","players":2,"date":"2026-12-08","start":"12:15","end":"12:45","minutes":30,"status":"tentative","totalCents":1000,"feeCents":0,"createdAt":"2026-11-21T04:23:55.928Z"}],"bookedMinutes":30,"utilisationPct":3.3,"freeSlots":[{"start":"08:00","end":"12:15"},{"start":"12:45","end":"23:00"}]}
+status-check-in	PUT /api/bookings/1/status {"status":"checked_in"}
+  -> 200 {"id":1,"uid":"bk_0c4f2e91","ref":"BK-0001","roomId":1,"roomName":"Blue Room","band":"The Low Tides","players":5,"date":"2026-12-08","start":"18:00","end":"20:00","minutes":120,"status":"checked_in","totalCents":3750,"feeCents":0,"createdAt":"2026-11-10T12:00:00.000Z"}
+status-back-refused	PUT /api/bookings/1/status {"status":"confirmed"}
+  -> 409 {"error":"invalid_transition","message":"That status change is not allowed.","from":"checked_in","to":"confirmed","allowed":["completed"]}
+room-capacity-below-booking	PUT /api/rooms/1 {"capacity":4}
+  -> 409 {"error":"capacity_below_booking","message":"An open booking has more players than that.","capacity":4,"largestBooking":5}
+room-rename-taken	PUT /api/rooms/2 {"name":"ATRIUM"}
+  -> 409 {"error":"name_taken","message":"Another room has that name.","existingId":5}
+room-deactivate	PUT /api/rooms/2 {"active":false}
+  -> 200 {"id":2,"uid":"rm_8d14f6b3","name":"Annexe","slug":"annexe","capacity":4,"rateCents":1250,"active":false,"openBookings":4,"createdAt":"2026-11-02T09:05:00.000Z"}
+confirm-in-inactive-room	PUT /api/bookings/10/status {"status":"confirmed"}
+  -> 409 {"error":"room_inactive","message":"The room takes no bookings.","roomId":2}
+booking-in-deactivated-room	POST /api/bookings {"roomId":2,"band":"Late Owls","players":2,"date":"2026-12-11","start":"10:00","minutes":60}
+  -> 409 {"error":"room_inactive","message":"The room takes no bookings.","roomId":2}
+room-delete-busy	DELETE /api/rooms/1
+  -> 409 {"error":"room_busy","message":"The room has confirmed bookings.","heldBookings":1}
+room-delete-cascade	DELETE /api/rooms/6
+  -> 200 {"deleted":true,"id":6,"bookingsRemoved":1}
+booking-gone-after-cascade	GET /api/bookings/8
+  -> 404 {"error":"booking_not_found","message":"No such booking.","id":8}
+room-name-free-again	POST /api/rooms {"name":"Echo chamber"}
+  -> 201 {"id":8,"uid":"rm_14b770bb","name":"Echo chamber","slug":"echo-chamber","capacity":4,"rateCents":1500,"active":true,"openBookings":0,"createdAt":"2026-11-21T04:23:55.979Z"}
+booking-id-not-reused	POST /api/bookings {"roomId":3,"band":"Tin Choir","players":8,"date":"2026-12-09","start":"08:00","minutes":60}
+  -> 201 {"id":16,"uid":"bk_e15637b0","ref":"BK-0016","roomId":3,"roomName":"Café Stage","band":"Tin Choir","players":8,"date":"2026-12-09","start":"08:00","end":"09:00","minutes":60,"status":"tentative","totalCents":2400,"feeCents":0,"createdAt":"2026-11-21T04:23:55.980Z"}
+summary-final	GET /api/summary
+  -> 200 {"rooms":7,"activeRooms":5,"bookings":{"tentative":8,"confirmed":0,"checked_in":2,"completed":1,"cancelled":3,"total":14},"revenueCents":11750,"pipelineCents":13463,"busiestRoom":{"id":2,"name":"Annexe","bookedMinutes":315}}
+bookings-final	GET /api/bookings?limit=25
+  -> 200 {"items":[{"id":15,"uid":"bk_4c1ac3e3","ref":"BK-0015","roomId":2,"roomName":"Annexe","band":"THE LOW TIDES","players":3,"date":"2026-12-08","start":"08:00","end":"09:00","minutes":60,"status":"tentative","totalCents":1250,"feeCents":0,"createdAt":"2026-11-21T04:23:55.955Z"},{"id":2,"uid":"bk_7b21d3a8","ref":"BK-0002","roomId":1,"roomName":"Blue Room","band":"Marrow Quartet","players":4,"date":"2026-12-08","start":"10:00","end":"11:30","minutes":90,"status":"tentative","totalCents":2250,"feeCents":0,"createdAt":"2026-11-10T12:30:00.000Z"},{"id":9,"uid":"bk_0111fc19","ref":"BK-0009","roomId":5,"roomName":"atrium","band":"Glass Harbour","players":2,"date":"2026-12-08","start":"12:15","end":"12:45","minutes":30,"status":"tentative","totalCents":1000,"feeCents":0,"createdAt":"2026-11-21T04:23:55.928Z"},{"id":4,"uid":"bk_19c8b7e2","ref":"BK-0004","roomId":2,"roomName":"Annexe","band":"Kiln","players":3,"date":"2026-12-08","start":"14:00","end":"15:00","minutes":60,"status":"completed","totalCents":1250,"feeCents":0,"createdAt":"2026-11-11T09:40:00.000Z"},{"id":14,"uid":"bk_76895e8d","ref":"BK-0014","roomId":5,"roomName":"atrium","band":"the LOW tides","players":3,"date":"2026-12-08","start":"14:00","end":"15:00","minutes":60,"status":"cancelled","totalCents":2000,"feeCents":0,"createdAt":"2026-11-21T04:23:55.949Z"},{"id":10,"uid":"bk_719d1fed","ref":"BK-0010","roomId":2,"roomName":"Annexe","band":"Fen Lights","players":4,"date":"2026-12-08","start":"17:30","end":"18:30","minutes":60,"status":"tentative","totalCents":1406,"feeCents":0,"createdAt":"2026-11-21T04:23:55.929Z"},{"id":1,"uid":"bk_0c4f2e91","ref":"BK-0001","roomId":1,"roomName":"Blue Room","band":"The Low Tides","players":5,"date":"2026-12-08","start":"18:00","end":"20:00","minutes":120,"status":"checked_in","totalCents":3750,"feeCents":0,"createdAt":"2026-11-10T12:00:00.000Z"},{"id":12,"uid":"bk_998e305e","ref":"BK-0012","roomId":1,"roomName":"Blue Room","band":"Moss","players":2,"date":"2026-12-08","start":"20:00","end":"21:00","minutes":60,"status":"tentative","totalCents":1875,"feeCents":0,"createdAt":"2026-11-21T04:23:55.947Z"},{"id":16,"uid":"bk_e15637b0","ref":"BK-0016","roomId":3,"roomName":"Café Stage","band":"Tin Choir","players":8,"date":"2026-12-09","start":"08:00","end":"09:00","minutes":60,"status":"tentative","totalCents":2400,"feeCents":0,"createdAt":"2026-11-21T04:23:55.980Z"},{"id":3,"uid":"bk_e5a90f16","ref":"BK-0003","roomId":3,"roomName":"Café Stage","band":"Saltmarsh Choir","players":10,"date":"2026-12-09","start":"19:00","end":"21:00","minutes":120,"status":"checked_in","totalCents":6000,"feeCents":0,"createdAt":"2026-11-11T08:15:00.000Z"},{"id":11,"uid":"bk_566b39b8","ref":"BK-0011","roomId":2,"roomName":"Annexe","band":"Late Owls","players":2,"date":"2026-12-09","start":"21:30","end":"23:00","minutes":90,"status":"tentative","totalCents":2344,"feeCents":0,"createdAt":"2026-11-21T04:23:55.937Z"},{"id":6,"uid":"bk_5d02e7bb","ref":"BK-0006","roomId":2,"roomName":"Annexe","band":"Velvet Static","players":4,"date":"2026-12-10","start":"09:00","end":"09:45","minutes":45,"status":"cancelled","totalCents":938,"feeCents":0,"createdAt":"2026-11-12T17:05:00.000Z"},{"id":13,"uid":"bk_ece3904e","ref":"BK-0013","roomId":2,"roomName":"Annexe","band":"Velvet Static","players":4,"date":"2026-12-10","start":"09:00","end":"09:45","minutes":45,"status":"tentative","totalCents":938,"feeCents":0,"createdAt":"2026-11-21T04:23:55.948Z"},{"id":7,"uid":"bk_c87e3d1f","ref":"BK-0007","roomId":1,"roomName":"Blue Room","band":"Opal Fern","players":3,"date":"2026-12-11","start":"08:00","end":"09:00","minutes":60,"status":"cancelled","totalCents":1500,"feeCents":750,"createdAt":"2026-11-13T07:55:00.000Z"}],"total":14,"limit":25,"offset":0}
+rooms-final	GET /api/rooms
+  -> 200 {"items":[{"id":3,"uid":"rm_2a9e7c40","name":"Café Stage","slug":"cafe-stage","capacity":10,"rateCents":2400,"active":true,"openBookings":2,"createdAt":"2026-11-02T09:10:00.000Z"},{"id":5,"uid":"rm_6e7a19c2","name":"atrium","slug":"atrium","capacity":6,"rateCents":2000,"active":true,"openBookings":1,"createdAt":"2026-11-03T10:00:00.000Z"},{"id":1,"uid":"rm_51c0e2a7","name":"Blue Room","slug":"blue-room","capacity":6,"rateCents":1500,"active":true,"openBookings":3,"createdAt":"2026-11-02T09:00:00.000Z"},{"id":8,"uid":"rm_14b770bb","name":"Echo chamber","slug":"echo-chamber","capacity":4,"rateCents":1500,"active":true,"openBookings":0,"createdAt":"2026-11-21T04:23:55.979Z"},{"id":7,"uid":"rm_ced4425e","name":"Loft","slug":"loft","capacity":4,"rateCents":1500,"active":true,"openBookings":0,"createdAt":"2026-11-21T04:23:55.924Z"},{"id":2,"uid":"rm_8d14f6b3","name":"Annexe","slug":"annexe","capacity":4,"rateCents":1250,"active":false,"openBookings":4,"createdAt":"2026-11-02T09:05:00.000Z"},{"id":4,"uid":"rm_f3b605d9","name":"Drum Booth","slug":"drum-booth","capacity":2,"rateCents":900,"active":false,"openBookings":0,"createdAt":"2026-11-02T09:15:00.000Z"}],"total":7}

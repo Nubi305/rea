@@ -1,0 +1,13 @@
+{
+  "file": "server.mjs",
+  "find": "return q % 2 === 0 ? q : q + 1;",
+  "replace": "return q + 1;",
+  "breaks": [
+    "R05-booking-record",
+    "R06-band-normalised",
+    "R10-price",
+    "R23-list-filters",
+    "R26-pages"
+  ],
+  "why": "Its author's first mutant (R10): prices rounded half up instead of half to even. Its author saw it change booking-half-even-down in heldout-api and page-request-booking, api-booking-created, setup-open-new-booking and setup-open-bookings-after in heldout-pages. Those page steps show the booking's price and are cited by four more rules, so five rules disagree."
+}
