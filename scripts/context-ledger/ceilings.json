@@ -11,7 +11,7 @@
   "rows": {
     "mcp.ten-calls.default": {
       "metric": "o200k",
-      "ceiling": 118171,
+      "ceiling": 117430,
       "target": "at most 20,000",
       "target_value": 20000,
       "tolerance": 0.01,
@@ -41,7 +41,7 @@
     },
     "mcp.bundle.default": {
       "metric": "bytes",
-      "ceiling": 349485,
+      "ceiling": 345730,
       "raised": [
         {
           "from": 349452,
@@ -109,7 +109,7 @@
     },
     "cli.census.total": {
       "metric": "bytes",
-      "ceiling": 1487087
+      "ceiling": 1484739
     },
     "cli.census.over-2000": {
       "metric": "count",
