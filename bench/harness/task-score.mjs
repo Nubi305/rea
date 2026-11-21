@@ -12,11 +12,11 @@
 // With --root, the floor cell of the same root (t00-floor) is taken off every
 // other cell unless --floor names another. Servers that prepare started are
 // stopped.
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { costOf, transcriptReport } from "./lib/cost.mjs";
-import { parseJson } from "./lib/proc.mjs";
+import { parseJson, writeOut } from "./lib/proc.mjs";
 import { otherToolUseOf, ruleBreaksOf } from "./lib/rule-breaks.mjs";
 import { stopRecordedService } from "./lib/service.mjs";
 import { firstCommandOf, judgeAnswer, loadTask } from "./lib/tasks.mjs";
@@ -184,7 +184,7 @@ const main = async () => {
     rows,
   };
   const text = `${JSON.stringify(result, null, 1)}\n`;
-  if (values.out !== undefined) writeFileSync(values.out, text);
+  writeOut(values.out, text);
   process.stdout.write(text);
 };
 

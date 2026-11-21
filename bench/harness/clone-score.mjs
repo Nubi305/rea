@@ -12,13 +12,7 @@
 // whose run recorded no stop command cannot be stopped that way: with
 // --force-stop whatever still listens on the cell's two ports is ended.
 import { createHash } from "node:crypto";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
@@ -26,7 +20,7 @@ import { controlOriginal, copyOriginal, loadApp } from "./lib/clone-app.mjs";
 import { transcriptReport } from "./lib/cost.mjs";
 import { replayHeldout } from "./lib/heldout.mjs";
 import { listFiles } from "./lib/inputs.mjs";
-import { checkoutFacts, runControl } from "./lib/proc.mjs";
+import { checkoutFacts, runControl, writeOut } from "./lib/proc.mjs";
 import {
   cloneControl,
   evaluateCopy,
@@ -323,7 +317,7 @@ const main = async () => {
   }
   score.left_running = left;
   const text = `${JSON.stringify(score, null, 1)}\n`;
-  if (values.out !== undefined) writeFileSync(values.out, text);
+  writeOut(values.out, text);
   process.stdout.write(text);
   console.error(headline(score));
   if (left.original || left.clone) process.exitCode = 1;

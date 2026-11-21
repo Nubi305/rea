@@ -381,6 +381,8 @@ prompt, so most of that is floor.
 - **Hidden agreement needs a clone that starts.** A clone whose recorded reset
   command fails is scored `measured: false`, the same as one that recorded no
   command.
+- **The scorer runs the agent's commands.** To restart and stop the clone it
+  runs what the run's `target.json` records, as the user who scores.
 - **Scoring changes nothing in the workspace**, except what the clone itself
   writes when it is started. `clone_tree.changed_by_scoring` says when that
   happened.

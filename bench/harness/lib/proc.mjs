@@ -1,8 +1,15 @@
 // Running a REA checkout and plain shell commands with a deadline. Nothing
 // here interprets REA's output: callers do.
 import { execFileSync, spawnSync } from "node:child_process";
-import { closeSync, existsSync, openSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, join } from "node:path";
 
 const MAX_OUTPUT_BYTES = 256 * 1024 * 1024;
 
@@ -127,4 +134,11 @@ export const runControl = (command, logFile, timeoutMs = 90_000) => {
   } finally {
     closeSync(log);
   }
+};
+
+/** Write a result where --out says, creating the directory if it is new. */
+export const writeOut = (file, text) => {
+  if (file === undefined) return;
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, text);
 };
