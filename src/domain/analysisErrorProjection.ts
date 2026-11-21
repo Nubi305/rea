@@ -943,6 +943,14 @@ const lifecycleErrorDetails = (
       ...(error.probedPaths === undefined
         ? {}
         : { probed_paths: [...error.probedPaths] }),
+      ...(error.nextProbes === undefined
+        ? {}
+        : {
+            next_probes: error.nextProbes.map(({ operation, command }) => ({
+              operation,
+              command,
+            })),
+          }),
       ...(error.systemCode === undefined
         ? {}
         : { system_code: error.systemCode, boundary: "filesystem-read" }),

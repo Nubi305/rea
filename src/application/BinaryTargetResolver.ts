@@ -31,7 +31,7 @@ import { analysisErrorWithCancellation } from "../domain/analysisErrorCancellati
 import { childFailureDiagnostics } from "../domain/analysisErrorProjection.js";
 import { constants, type Stats } from "node:fs";
 import { access, realpath, stat, type FileHandle } from "node:fs/promises";
-import { extname } from "node:path";
+import { basename, extname } from "node:path";
 
 import { BinaryTargetError } from "../domain/configurationErrors.js";
 import {
@@ -138,6 +138,12 @@ import { absoluteCallerPath } from "../filesystem/callerPath.js";
 import { localPathStringSchema } from "../domain/localPath.js";
 import type { JsonValue } from "../domain/jsonValue.js";
 import { errorMessage } from "../kernel/errorMessage.js";
+import {
+  pathProbes,
+  SNIFF_BYTES,
+  sniffPathFormat,
+  type PathRoute,
+} from "../domain/pathInspectorRoutes.js";
 
 const XML_PLIST_PROBE_CHUNK_BYTES = 64 * 1024;
 
@@ -554,10 +560,38 @@ const readOpenedBinaryTarget = async (
       typeof detected.error === "string"
         ? undefined
         : detected.error.diagnostics;
+    // A file no executable or container reader admits may still be one a
+    // path inspector reads; the refusal then names that inspector.
+    const sniffed =
+      typeof detected.error === "string"
+        ? sniffPathFormat(
+            await readHandleRange(
+              handle,
+              0,
+              Math.min(metadata.size, SNIFF_BYTES),
+              signal,
+            ),
+            basename(classificationPath),
+            metadata.size,
+          )
+        : undefined;
+    const routed =
+      sniffed === undefined
+        ? undefined
+        : pathProbes(sniffed.routes, callerInputPath);
     return err(
       new BinaryTargetError(path, reason, {
         constraint: "file_format_rejected",
         ...(diagnostics === undefined ? {} : { diagnostics }),
+        ...(sniffed === undefined || routed === undefined
+          ? {}
+          : {
+              remediationAction: `Read this ${sniffed.label} with: ${routed.probes[0]!.command}`,
+              nextProbes: routed.probes.map(({ operation, command }) => ({
+                operation,
+                command,
+              })),
+            }),
       }),
     );
   }
@@ -928,6 +962,19 @@ const sha256Handle = async (
   }
 };
 
+const DIRECTORY_ROUTES: readonly PathRoute[] = [
+  {
+    operation: "analyze_javascript_application",
+    rationale: "JavaScript or Electron application tree.",
+    authority: "ast-static-analysis",
+  },
+  {
+    operation: "inspect_desktop_application",
+    rationale: "Desktop runtime candidates of an installation.",
+    authority: "artifact-bytes",
+  },
+];
+
 const resolveAppBundle = async (
   path: string,
   options: Pick<BinaryTargetResolverOptions, "resources" | "signal">,
@@ -952,6 +999,11 @@ const resolveAppBundle = async (
       "this opening route requires a file or a supported Apple bundle directory",
       {
         constraint: "directory_requires_file",
+        // A directory is read whole by these; the first fits a JavaScript or
+        // Electron tree, the second names any desktop runtime it holds.
+        nextProbes: pathProbes(DIRECTORY_ROUTES, path).probes.map(
+          ({ operation, command }) => ({ operation, command }),
+        ),
       },
     ),
   );

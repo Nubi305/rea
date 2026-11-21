@@ -75,6 +75,11 @@ export interface BinaryTargetErrorOptions extends AnalysisErrorOptions {
   /** Bundle paths examined before resolution failed. */
   readonly probedPaths?: readonly string[];
   readonly remediationAction?: string;
+  /** Path inspectors that read the refused file, each with its CLI command. */
+  readonly nextProbes?: readonly {
+    readonly operation: string;
+    readonly command: string;
+  }[];
 }
 
 /** A supplied target path could not be safely opened as a supported app or binary. */
@@ -84,6 +89,7 @@ export class BinaryTargetError extends AnalysisError {
   readonly infoPlist: string | undefined;
   readonly probedPaths: readonly string[] | undefined;
   readonly remediationAction: string | undefined;
+  readonly nextProbes: BinaryTargetErrorOptions["nextProbes"];
   /** The OS read-permission code of the cause, when the host denied access. */
   readonly systemCode: "EACCES" | "EPERM" | undefined;
   constructor(
@@ -96,6 +102,7 @@ export class BinaryTargetError extends AnalysisError {
     this.infoPlist = options?.infoPlist;
     this.probedPaths = options?.probedPaths;
     this.remediationAction = options?.remediationAction;
+    this.nextProbes = options?.nextProbes;
     this.systemCode = readPermissionCode(options?.cause);
   }
 }

@@ -55,6 +55,7 @@ cliTest.for(carriers)(
     expect(inspection.next_probes).toEqual([
       {
         operation: "extract_artifact",
+        command: `rea extract-artifact ${source}`,
         authority: "artifact-bytes",
         rationale: expect.any(String),
       },

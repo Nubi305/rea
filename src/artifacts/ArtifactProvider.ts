@@ -6,6 +6,7 @@ import {
 } from "../domain/artifactReaderLimits.js";
 import type { AnalysisSettingsReader } from "../domain/analysisSettings.js";
 import { runtimeAsarHeaderAdmission } from "../config/runtimeAnalysisSettings.js";
+import { readElfRouteFactsAt } from "./pathRouteFacts.js";
 import { artifactTargetRefusal } from "../domain/apple/artifactTargetApplicability.js";
 import {
   bindArtifactFileCleanup,
@@ -535,8 +536,19 @@ class ArtifactClient implements AnalysisClient {
       locations: [],
     });
     // The returned execution and its Evidence then reuse this owned report.
+    // Probes name commands for the path as the caller spelled it; ELF facts
+    // order the inspectors of an executable, library or core file.
+    const routedPath =
+      this.target.callerInputPath ?? this.target.sourcePath ?? this.target.path;
+    const elf =
+      inventory.manifest.root_format === "elf"
+        ? await readElfRouteFactsAt(this.target.sourcePath ?? this.target.path)
+        : undefined;
     const result = freezeJsonSnapshot(
-      createArtifactInspection(inventoryEvidence),
+      createArtifactInspection(inventoryEvidence, {
+        path: routedPath,
+        ...(elf === undefined ? {} : { elf }),
+      }),
     );
     await options?.progress?.report({
       phase: "inspect_artifact.inventory",
