@@ -66,9 +66,6 @@ describe("parseCliArgv", () => {
   });
 
   it.each([
-    [["file", "--nope"], "Unknown flag: --nope"],
-    [["file", "--nope=1"], "Unknown flag: --nope"],
-    [["file", "--no-nope"], "Unknown flag: --no-nope"],
     [["file", "-z"], "Unknown flag: -z"],
     [["file", "--"], "Unknown flag: --"],
     [["file", "--block-size"], "Missing value for flag: --block-size"],
@@ -175,5 +172,117 @@ describe("parseCliArgv", () => {
       expect(bound([], strict).options[key]).toBe(false);
     }
     expect(bound(["--other=1"], strict).options.other).toBe("1");
+  });
+});
+
+describe("parseCliArgv snake_case options", () => {
+  const snake = {
+    options: z.object({
+      evidence_output: z.string().optional(),
+      dry_run: z.boolean().optional(),
+      object_ids: z.array(z.string()).optional(),
+    }),
+  };
+  const parse = (argv: readonly string[]) => parseCliArgv(argv, snake);
+
+  it("accepts the kebab spelling of a snake_case option as the same option", () => {
+    expect(parse(["--evidence-output", "a.json"])).toEqual(
+      parse(["--evidence_output", "a.json"]),
+    );
+    expect(bound(["--evidence-output=a.json"], snake).options).toEqual({
+      evidence_output: "a.json",
+    });
+    expect(bound(["--dry-run"], snake).options).toEqual({ dry_run: true });
+    expect(bound(["--no-dry-run"], snake).options).toEqual({
+      dry_run: false,
+    });
+    expect(
+      bound(["--object-ids", "a", "--object_ids", "b"], snake).options,
+    ).toEqual({ object_ids: ["a", "b"] });
+  });
+
+  it("accepts both spellings when they give the same value", () => {
+    expect(
+      bound(["--evidence_output", "a.json", "--evidence-output=a.json"], snake)
+        .options,
+    ).toEqual({ evidence_output: "a.json" });
+  });
+
+  it.each([
+    [["--evidence_output", "a.json", "--evidence-output", "b.json"]],
+    [["--evidence-output=b.json", "--evidence_output=a.json"]],
+  ])("refuses both spellings with different values in %j", (argv) => {
+    expect(parse(argv)).toEqual({
+      ok: false,
+      error: {
+        kind: "parse",
+        message:
+          "Conflicting values for --evidence_output and its spelling --evidence-output; give the option once.",
+      },
+    });
+  });
+
+  it("refuses a boolean set by one spelling and cleared by the other", () => {
+    expect(parse(["--dry_run", "--no-dry-run"])).toMatchObject({
+      ok: false,
+      error: {
+        kind: "parse",
+        message: expect.stringMatching(/^Conflicting values for --dry_run/u),
+      },
+    });
+  });
+
+  it("names the declared spelling of a near snake_case option", () => {
+    expect(parse(["--evidence-outptu", "a.json"])).toMatchObject({
+      ok: false,
+      error: { unknownFlag: { suggestion: "--evidence_output" } },
+    });
+  });
+});
+
+describe("parseCliArgv unknown long flags", () => {
+  it.each([
+    [["file", "--quux"], "--quux"],
+    [["file", "--quux=1"], "--quux"],
+    [["file", "--no-nope"], "--no-nope"],
+  ])(
+    "refuses the unknown flag in %j and names no flag far from it",
+    (argv, typed) => {
+      expect(failure(argv)).toEqual({
+        kind: "parse",
+        message: `Unknown flag: ${typed}`,
+        unknownFlag: { typed, suggestion: undefined },
+      });
+    },
+  );
+
+  it.each([
+    [["file", "--blok-size", "1"], "--blok-size", "--block-size"],
+    [["file", "--blocksize=1"], "--blocksize", "--block-size"],
+    [["file", "--Mode", "a"], "--Mode", "--mode"],
+    [["file", "--no-globl"], "--no-globl", "--no-global"],
+    [["file", "--colunm", "a"], "--colunm", "--column"],
+    [["file", "--jsno"], "--jsno", "--json"],
+    [["file", "--fromat", "json"], "--fromat", "--format"],
+    [["file", "--filter_output", "a"], "--filter_output", "--filter-output"],
+  ])(
+    "names the nearest declared or global flag for %j",
+    (argv, typed, suggestion) => {
+      expect(failure(argv)).toEqual({
+        kind: "parse",
+        message: `Unknown flag: ${typed}`,
+        unknownFlag: { typed, suggestion },
+      });
+    },
+  );
+
+  it("allows one edit for a two-letter typed name", () => {
+    // "--xs" is within 2 edits of "--yes" but only 1 edit is allowed for 2 letters.
+    expect(failure(["file", "--ys"])).toMatchObject({
+      unknownFlag: { suggestion: "--yes" },
+    });
+    expect(failure(["file", "--xs"])).toMatchObject({
+      unknownFlag: { suggestion: undefined },
+    });
   });
 });

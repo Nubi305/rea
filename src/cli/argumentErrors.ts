@@ -42,6 +42,16 @@ const isAdbSelector = (command: string, field: string): boolean =>
     ["action", "component", "data-uri"].includes(field)) ||
   (command === "read-adb-setting" && field === "key");
 
+/**
+ * The suggestion-free message and the typed flag of each failure that names a
+ * nearest flag, so redaction can drop the suggestion when it changed the
+ * typed flag: a flag near the caller's text would hint at a redacted value.
+ */
+const suggestedFlags = new WeakMap<
+  CliCommandFailure,
+  { readonly message: string; readonly typed: string }
+>();
+
 /** Project the parser's retained facts, without serializing an exception cause. */
 export const cliArgumentFailure = (
   cli: string,
@@ -50,6 +60,19 @@ export const cliArgumentFailure = (
 ): CliCommandFailure => {
   if (failure.kind === "boolean_literal")
     return { code: "PARSE_ERROR", message: failure.message, retryable: false };
+  const suggestion =
+    failure.kind === "parse" ? failure.unknownFlag?.suggestion : undefined;
+  if (failure.kind === "parse" && suggestion !== undefined) {
+    const suggested: CliCommandFailure = {
+      code: "UNKNOWN",
+      message: `${failure.message}. Did you mean ${suggestion}?`,
+    };
+    suggestedFlags.set(suggested, {
+      message: failure.message,
+      typed: failure.unknownFlag?.typed ?? "",
+    });
+    return suggested;
+  }
   if (failure.kind !== "validation")
     return {
       code: "UNKNOWN",
@@ -88,19 +111,27 @@ export const cliArgumentFailure = (
 export const redactCliCommandFailure = (
   failure: CliCommandFailure,
   values: readonly string[],
-): CliCommandFailure => ({
-  ...failure,
-  message: redactExplicitText(failure.message, values),
-  ...(failure.fieldErrors === undefined
-    ? {}
-    : {
-        fieldErrors: failure.fieldErrors.map((field) => ({
-          ...field,
-          received: redactExplicitText(field.received, values),
-          message: redactExplicitText(field.message, values),
-        })),
-      }),
-});
+): CliCommandFailure => {
+  const suggested = suggestedFlags.get(failure);
+  const message =
+    suggested !== undefined &&
+    redactExplicitText(suggested.typed, values) !== suggested.typed
+      ? suggested.message
+      : failure.message;
+  return {
+    ...failure,
+    message: redactExplicitText(message, values),
+    ...(failure.fieldErrors === undefined
+      ? {}
+      : {
+          fieldErrors: failure.fieldErrors.map((field) => ({
+            ...field,
+            received: redactExplicitText(field.received, values),
+            message: redactExplicitText(field.message, values),
+          })),
+        }),
+  };
+};
 
 const validationUsage = (
   cli: string,

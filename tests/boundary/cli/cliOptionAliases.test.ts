@@ -92,4 +92,100 @@ describe("CLI option aliases", () => {
     expect(result.stdout).not.toContain("Unknown flag");
     expect(result.stdout).toContain("/nonexistent/REA.app");
   });
+
+  it("accepts the kebab spelling of a snake_case option", async () => {
+    const cli = createCli({});
+    const result = await serve(cli, [
+      "inspect-artifact",
+      "/nonexistent/REA.app",
+      "--detail",
+      "summary",
+      "--evidence-output",
+      "/nonexistent/evidence.json",
+      "--json",
+    ]);
+    expect(result.stdout).not.toContain("Unknown flag");
+    expect(result.stdout).not.toContain("--evidence-output");
+  });
+
+  it("refuses both spellings of a snake_case option with different values", async () => {
+    const cli = createCli({});
+    const result = await serve(cli, [
+      "inspect-artifact",
+      "/nonexistent/REA.app",
+      "--evidence_output",
+      "/nonexistent/a.json",
+      "--evidence-output",
+      "/nonexistent/b.json",
+      "--json",
+    ]);
+    expect(result.exitCode).toBe(1);
+    expect(JSON.parse(result.stdout)).toEqual({
+      code: "UNKNOWN",
+      message:
+        "Conflicting values for --evidence_output and its spelling --evidence-output; give the option once.",
+    });
+  });
+
+  it("names the nearest flag of the command for an unknown flag", async () => {
+    const cli = createCli({});
+    const result = await serve(cli, [
+      "inspect-artifact",
+      "/nonexistent/REA.app",
+      "--detial",
+      "summary",
+      "--json",
+    ]);
+    expect(result.exitCode).toBe(1);
+    expect(JSON.parse(result.stdout)).toEqual({
+      code: "UNKNOWN",
+      message: "Unknown flag: --detial. Did you mean --detail?",
+    });
+  });
+
+  it("keeps today's text when no flag is near", async () => {
+    const cli = createCli({});
+    const result = await serve(cli, [
+      "inspect-artifact",
+      "/nonexistent/REA.app",
+      "--no-such-flag",
+      "--json",
+    ]);
+    expect(JSON.parse(result.stdout)).toEqual({
+      code: "UNKNOWN",
+      message: "Unknown flag: --no-such-flag",
+    });
+  });
+
+  it("names no flag when redaction changed the typed flag", async () => {
+    const cli = createCli({});
+    const capture = [
+      "inspect-web-network-capture",
+      "/nonexistent/capture.har",
+      "har",
+    ];
+    const plain = await serve(cli, [
+      ...capture,
+      "--sensitive-valeu",
+      "x",
+      "--json",
+    ]);
+    expect(JSON.parse(plain.stdout)).toEqual({
+      code: "UNKNOWN",
+      message:
+        "Unknown flag: --sensitive-valeu. Did you mean --sensitive-value?",
+    });
+    const redacted = await serve(cli, [
+      ...capture,
+      "--sensitive-value",
+      "valeu",
+      "--sensitive-valeu",
+      "x",
+      "--json",
+    ]);
+    expect(JSON.parse(redacted.stdout)).toEqual({
+      code: "UNKNOWN",
+      message: "Unknown flag: --sensitive-[REDACTED]",
+    });
+  });
 });
