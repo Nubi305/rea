@@ -1,0 +1,105 @@
+{"id":"inspect-artifact.elf","args":["inspect-artifact","inputs/hello"],"quick":true}
+{"id":"inspect-artifact.elf-stripped","args":["inspect-artifact","inputs/hello.stripped"]}
+{"id":"inspect.elf","args":["inspect","inputs/hello"]}
+{"id":"analyze.elf","args":["analyze","inputs/hello"]}
+{"id":"inspect-binary-hardening.elf","args":["inspect-binary-hardening","inputs/hello"],"quick":true}
+{"id":"inspect-binary-layout.elf","args":["inspect-binary-layout","inputs/hello"]}
+{"id":"inspect-byte-entropy.elf","args":["inspect-byte-entropy","inputs/hello"]}
+{"id":"inspect-dwarf-units.elf","args":["inspect-dwarf-units","inputs/hello"]}
+{"id":"inspect-elf-debug-link.elf","args":["inspect-elf-debug-link","inputs/hello"]}
+{"id":"inspect-elf-dependencies.elf","args":["inspect-elf-dependencies","inputs/hello"],"quick":true}
+{"id":"inspect-elf-notes.elf","args":["inspect-elf-notes","inputs/hello"]}
+{"id":"inspect-elf-unwind-ranges.elf","args":["inspect-elf-unwind-ranges","inputs/hello"]}
+{"id":"inspect-native-exports.elf","args":["inspect-native-exports","inputs/hello"]}
+{"id":"inspect-native-initializers.elf","args":["inspect-native-initializers","inputs/hello"]}
+{"id":"inspect-native-load-image.elf","args":["inspect-native-load-image","inputs/hello"]}
+{"id":"objdump-file-headers.elf","args":["inspect-with-objdump","inputs/hello","file_headers"]}
+{"id":"objdump-section-headers.elf","args":["inspect-with-objdump","inputs/hello","section_headers"],"quick":true}
+{"id":"objdump-symbols.elf","args":["inspect-with-objdump","inputs/hello","symbols"]}
+{"id":"objdump-disassemble-all.elf","args":["inspect-with-objdump","inputs/hello","disassemble_all"],"quick":true}
+{"id":"objdump-disassemble-symbol.elf","args":["inspect-with-objdump","inputs/hello","disassemble","--symbol","check_license"]}
+{"id":"objdump-dwarf.elf","args":["inspect-with-objdump","inputs/hello","dwarf"]}
+{"id":"list-objdump-architectures","args":["list-objdump-architectures"]}
+{"id":"audit-release-exposure.elf","args":["audit-release-exposure","inputs/hello"],"quick":true}
+{"id":"audit-release-exposure.elf-stripped","args":["audit-release-exposure","inputs/hello.stripped"]}
+{"id":"search-bytes.elf","args":["search-bytes","inputs/hello","43454e535553"]}
+{"id":"read-bytes.elf","args":["read-bytes","inputs/hello","0x1000"]}
+{"id":"decompile.elf","args":["decompile","inputs/hello","--procedure","main"],"quick":true}
+{"id":"function.elf","args":["function","inputs/hello","--procedure","main"]}
+{"id":"search.elf","args":["search","inputs/hello","license"]}
+{"id":"trace.elf","args":["trace","inputs/hello","license"]}
+{"id":"xrefs.elf","args":["xrefs","inputs/hello","0x1189"]}
+{"id":"instructions.elf","args":["instructions","inputs/hello","--procedure","main"]}
+{"id":"debug-with-gdb.info-functions","args":["debug-with-gdb","info functions","--executable","inputs/hello"]}
+{"id":"debug-with-gdb.disassemble","args":["debug-with-gdb","disassemble check_license","--executable","inputs/hello"]}
+{"id":"inspect-firmware-regions.elf","args":["inspect-firmware-regions","inputs/hello"]}
+{"id":"inspect-go-binary","args":["inspect-go-binary","inputs/gohello"]}
+{"id":"inspect-go-binary.strings","args":["inspect-go-binary","inputs/gohello","--include-string-literals"]}
+{"id":"inspect-artifact.go","args":["inspect-artifact","inputs/gohello"]}
+{"id":"inspect-rust-binary","args":["inspect-rust-binary","inputs/rusthello"]}
+{"id":"inspect-artifact.rust","args":["inspect-artifact","inputs/rusthello"]}
+{"id":"inspect-binary-hardening.go","args":["inspect-binary-hardening","inputs/gohello"]}
+{"id":"inspect-elf-unwind-ranges.rust","args":["inspect-elf-unwind-ranges","inputs/rusthello"]}
+{"id":"inspect-native-exports.rust","args":["inspect-native-exports","inputs/rusthello"]}
+{"id":"objdump-symbols.go","args":["inspect-with-objdump","inputs/gohello","symbols"]}
+{"id":"debug-with-gdb.info-functions.tty","args":["debug-with-gdb","info functions","--executable","inputs/hello","--inferior-tty","/dev/null"]}
+{"id":"debug-with-gdb.disassemble.tty","args":["debug-with-gdb","disassemble check_license","--executable","inputs/hello","--inferior-tty","/dev/null"]}
+{"id":"debug-with-gdb.info-line.tty","args":["debug-with-gdb","info line main","--executable","inputs/hello","--inferior-tty","/dev/null"]}
+{"id":"guided-workflows.render","args":["guided-workflows","--action","render","--workflow-id","investigate_feature","--arguments-json","{\"feature\":\"license check\"}"]}
+{"id":"mcp-doctor","args":["mcp","doctor"],"timeout":180}
+{"id":"version","args":["--version"]}
+{"id":"inspect-nuget-nupkg","args":["inspect-nuget-nupkg","inputs/census.lib.1.2.3.nupkg"]}
+{"id":"guided-workflows.render.2","args":["guided-workflows","--action","render","--workflow-id","investigate_feature","--arguments-json","{\"feature\":\"license check\"}"]}
+{"id":"guided-workflows.render.verify","args":["guided-workflows","--action","render","--workflow-id","verify_reconstruction","--arguments-json","{\"claim\":\"the clone matches\",\"target_path\":\"/tmp/x\"}"]}
+{"id":"analyze-js.jstiny","args":["analyze-javascript-application","inputs/jstiny"],"quick":true}
+{"id":"analyze-js.jsone","args":["analyze-javascript-application","inputs/jsone"],"quick":true}
+{"id":"inspect-artifact.zip","args":["inspect-artifact","inputs/sample.zip"],"quick":true}
+{"id":"inspect-artifact.jar","args":["inspect-artifact","inputs/sample.jar"]}
+{"id":"extract-artifact.zip","args":["extract-artifact","inputs/sample.zip"]}
+{"id":"inspect-artifact.jsdir","args":["inspect-artifact","inputs/jsbundle"]}
+{"id":"analyze-js.jsbundle","args":["analyze-javascript-application","inputs/jsbundle"],"quick":true}
+{"id":"analyze-js.jsmedium","args":["analyze-javascript-application","inputs/jsmedium"],"timeout":300}
+{"id":"analyze-js.jsplain","args":["analyze-javascript-application","inputs/jsplain"]}
+{"id":"analyze.jsbundle","args":["analyze","inputs/jsbundle"]}
+{"id":"import-reference-source.jsplain","args":["import-reference-source","inputs/jsplain"]}
+{"id":"audit-release-exposure.jsdir","args":["audit-release-exposure","inputs/jsbundle"]}
+{"id":"inspect-python-pyc","args":["inspect-python-pyc","inputs/census_mod.pyc"]}
+{"id":"inspect-sqlite-database","args":["inspect-sqlite-database","inputs/sample.sqlite"]}
+{"id":"inspect-sqlite-database.table","args":["inspect-sqlite-database","inputs/sample.sqlite","--table","topics"]}
+{"id":"inspect-sqlite-database.dbscope","args":["inspect-sqlite-database","inputs/sample.sqlite","--schema-scope","database"]}
+{"id":"inspect-artifact.wasm","args":["inspect-artifact","inputs/mod.wasm"]}
+{"id":"inspect-api-contract","args":["inspect-api-contract","inputs/openapi.json"],"quick":true}
+{"id":"inspect-plist","args":["inspect-plist","inputs/Info.plist"]}
+{"id":"inspect-model-artifact","args":["inspect-model-artifact","inputs/tiny.safetensors"]}
+{"id":"inspect-evm-interface","args":["inspect-evm-interface","inputs/contract.hex","hex"]}
+{"id":"inspect-v8-code-cache","args":["inspect-v8-code-cache","inputs/census.jsc"]}
+{"id":"inspect-maven-gradle-metadata","args":["inspect-maven-gradle-metadata","inputs/pom.xml"]}
+{"id":"inspect-byte-entropy.zip","args":["inspect-byte-entropy","inputs/sample.zip"]}
+{"id":"inspect-artifact.sqlite","args":["inspect-artifact","inputs/sample.sqlite"]}
+{"id":"inspect-artifact.pyc","args":["inspect-artifact","inputs/census_mod.pyc"]}
+{"id":"doctor","args":["doctor"]}
+{"id":"providers","args":["providers"],"quick":true}
+{"id":"capabilities","args":["capabilities"]}
+{"id":"guided-workflows.list","args":["guided-workflows"],"quick":true}
+{"id":"guidance.search","args":["guidance","--query","clone web application"],"quick":true}
+{"id":"guidance.search.broad","args":["guidance","--query","javascript bundle"]}
+{"id":"setup.dry-run","args":["setup","--dry-run","--yes","--client","claude_code"]}
+{"id":"doctor.target","args":["doctor","--target","inputs/hello"]}
+{"id":"list-adb-devices","args":["list-adb-devices"]}
+{"id":"inspect-adb-client","args":["inspect-adb-client"]}
+{"id":"list-frida-devices","args":["list-frida-devices"]}
+{"id":"list-cutter-sessions","args":["list-cutter-sessions"]}
+{"id":"inspect-jeb-client","args":["inspect-jeb-client"]}
+{"id":"list-architectures","args":["list-architectures"]}
+{"id":"inspect-pcap-client","args":["inspect-pcap-client"]}
+{"id":"inspect-apktool-client","args":["inspect-apktool-client"]}
+{"id":"inspect-android-package.wrongtype","args":["inspect-android-package","inputs/sample.jar"]}
+{"id":"inspect-macho.wrongtype","args":["inspect-macho","inputs/hello"]}
+{"id":"inspect-pe-imports.wrongtype","args":["inspect-pe-imports","inputs/hello"]}
+{"id":"inspect-managed-artifact.wrongtype","args":["inspect-managed-artifact","inputs/hello"]}
+{"id":"inspect-desktop-application","args":["inspect-desktop-application","inputs"]}
+{"id":"inspect-electron-fuses.wrongtype","args":["inspect-electron-fuses","inputs/hello"]}
+{"id":"inspect-kernel-module.wrongtype","args":["inspect-kernel-module","inputs/hello"]}
+{"id":"execute-rizin-command","args":["execute-rizin-command","inputs/hello","afl"]}
+{"id":"inspect-pcap-capture.missing","args":["inspect-pcap-capture","inputs/hello"]}
+{"id":"extract-artifact.jar","args":["extract-artifact","inputs/sample.jar"]}

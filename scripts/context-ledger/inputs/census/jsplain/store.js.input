@@ -1,0 +1,21 @@
+import { listTopics, createTopic, deleteTopic } from "./api.js";
+const KEY = "census.topics.cache";
+export class TopicStore {
+  constructor() { this.items = []; this.listeners = new Set(); }
+  subscribe(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+  emit() { for (const listener of this.listeners) listener(this.items); localStorage.setItem(KEY, JSON.stringify(this.items)); }
+  async refresh(query) { const { items } = await listTopics(query); this.items = items; this.emit(); }
+  async add(title) {
+    const trimmed = title.trim().replace(/\s+/g, " ");
+    if (trimmed.length < 3 || trimmed.length > 48) return { ok: false, reason: "title_length" };
+    const { status, body } = await createTopic(trimmed);
+    if (status === 409) return { ok: false, reason: "title_taken", id: body.id };
+    if (status !== 201) return { ok: false, reason: body.error || "unknown" };
+    this.items = [...this.items, body]; this.emit(); return { ok: true, topic: body };
+  }
+  async remove(id) { if (await deleteTopic(id)) { this.items = this.items.filter((item) => item.id !== id); this.emit(); return true; } return false; }
+}
+export function slugFor(title) {
+  const base = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24) || "topic";
+  return base;
+}

@@ -1,0 +1,44 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static const char *GREETING = "hello from the census fixture";
+static const char *SECRET_HINT = "license-check: expected key CENSUS-1234";
+
+struct item { int id; char name[32]; double price; };
+
+static int checksum(const char *s) {
+  int h = 17;
+  while (*s) h = h * 31 + (unsigned char)*s++;
+  return h;
+}
+
+int check_license(const char *key) {
+  if (key == NULL) return 0;
+  if (strlen(key) != 11) return 0;
+  return strcmp(key, "CENSUS-1234") == 0;
+}
+
+double total_price(const struct item *items, int n) {
+  double t = 0;
+  for (int i = 0; i < n; i++) t += items[i].price;
+  return t;
+}
+
+void print_item(const struct item *it) {
+  printf("item %d %s %.2f\n", it->id, it->name, it->price);
+}
+
+int main(int argc, char **argv) {
+  struct item items[3] = {{1, "widget", 2.5}, {2, "gadget", 4.0}, {3, "doohickey", 9.75}};
+  puts(GREETING);
+  for (int i = 0; i < 3; i++) print_item(&items[i]);
+  printf("total %.2f\n", total_price(items, 3));
+  if (argc > 1) {
+    printf("checksum %d\n", checksum(argv[1]));
+    if (check_license(argv[1])) puts("license ok"); else puts(SECRET_HINT);
+  }
+  char *env = getenv("CENSUS_MODE");
+  if (env && strcmp(env, "fail") == 0) { fprintf(stderr, "failing on request\n"); return 3; }
+  return 0;
+}

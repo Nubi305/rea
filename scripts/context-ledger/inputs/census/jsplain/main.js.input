@@ -1,0 +1,27 @@
+import { TopicStore, slugFor } from "./store.js";
+import { openSocket } from "./api.js";
+const store = new TopicStore();
+const list = document.querySelector("#topics");
+const form = document.querySelector("#new-topic");
+const status = document.querySelector("#status");
+function render(items) {
+  list.replaceChildren(...items.map((item) => {
+    const li = document.createElement("li");
+    li.dataset.id = String(item.id);
+    li.textContent = `${item.pinned ? "[pinned] " : ""}${item.title} (${item.slug || slugFor(item.title)})`;
+    const button = document.createElement("button");
+    button.textContent = "Delete";
+    button.addEventListener("click", async () => { status.textContent = (await store.remove(item.id)) ? "Deleted" : "Cannot delete"; });
+    li.append(button);
+    return li;
+  }));
+}
+store.subscribe(render);
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const result = await store.add(new FormData(form).get("title"));
+  status.textContent = result.ok ? `Created ${result.topic.slug}` : `Refused: ${result.reason}`;
+});
+window.addEventListener("message", (event) => { if (event.origin === location.origin && event.data?.type === "refresh") store.refresh(""); });
+openSocket((message) => { if (message.kind === "changed") store.refresh(""); });
+store.refresh(new URLSearchParams(location.search).get("q"));

@@ -11,6 +11,8 @@
     "src/composition/javascriptAnalysisWorkerProcess.ts",
     "src/composition/webBundleAnalysisWorkerProcess.ts",
     "src/contracts/errorSchemas.ts",
+    "scripts/context-ledger/install-tokenizer.mjs",
+    "scripts/context-ledger/run.mjs",
     "scripts/read-authored-skill-manifest.mjs",
     "scripts/verify/fridaBindingsCompatibility.ts",
     "scripts/verify/termux/browser.mjs",

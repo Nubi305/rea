@@ -1,0 +1,1989 @@
+{
+  "schema": "rea.context-ledger/1",
+  "checkout": {
+    "path": "/home/user/rea-judge",
+    "commit": "0e089b3eeb56768594c9b89744a54ca666529a96",
+    "package": "rea-agents@6.9.0"
+  },
+  "node": "v22.23.5",
+  "units": {
+    "bytes": "UTF-8 bytes",
+    "tokenx": "REA's own estimate (tokenx, the estimator behind rea --token-count)",
+    "o200k": "real BPE tokens, o200k_base through gpt-tokenizer 4.1.2 (a proxy: no tokenizer for Anthropic's models exists offline)"
+  },
+  "work": "/tmp/rea-context-ledger/run",
+  "full_census": true,
+  "elapsed_seconds": 207,
+  "rows": [
+    {
+      "id": "mcp.ten-calls.default",
+      "status": "measured",
+      "value": 118158,
+      "units": {
+        "bytes": 340885,
+        "tokenx": 94033,
+        "o200k": 118158
+      },
+      "detail": {
+        "calls": [
+          {
+            "tool": "search_guidance",
+            "note": "find guidance",
+            "outcome": "ok",
+            "bytes": 1296,
+            "tokenx": 341,
+            "o200k": 447
+          },
+          {
+            "tool": "open_binary",
+            "note": "open the package",
+            "outcome": "ok",
+            "bytes": 196,
+            "tokenx": 58,
+            "o200k": 78
+          },
+          {
+            "tool": "inspect_artifact",
+            "note": "inventory",
+            "outcome": "ok",
+            "bytes": 15158,
+            "tokenx": 3944,
+            "o200k": 5545
+          },
+          {
+            "tool": "analyze_javascript_application",
+            "note": "static JavaScript graph",
+            "outcome": "ok",
+            "bytes": 291549,
+            "tokenx": 80590,
+            "o200k": 103987
+          },
+          {
+            "tool": "inspect_analysis_view",
+            "note": "page modules from retained Evidence",
+            "outcome": "ok",
+            "bytes": 8371,
+            "tokenx": 2105,
+            "o200k": 1893
+          },
+          {
+            "tool": "inspect_web_network_capture",
+            "note": "HAR",
+            "outcome": "ok",
+            "bytes": 10559,
+            "tokenx": 3203,
+            "o200k": 2598
+          },
+          {
+            "tool": "compare_static_and_observed_endpoints",
+            "note": "static against observed endpoints",
+            "outcome": "ok",
+            "bytes": 4073,
+            "tokenx": 1081,
+            "o200k": 1158
+          },
+          {
+            "tool": "inspect_api_contract",
+            "note": "OpenAPI",
+            "outcome": "ok",
+            "bytes": 4555,
+            "tokenx": 1215,
+            "o200k": 1162
+          },
+          {
+            "tool": "inspect_binary_hardening",
+            "note": "native helper hardening",
+            "outcome": "ok",
+            "bytes": 5012,
+            "tokenx": 1452,
+            "o200k": 1254
+          },
+          {
+            "tool": "export_evidence_bundle",
+            "note": "save Evidence",
+            "outcome": "ok",
+            "bytes": 116,
+            "tokenx": 44,
+            "o200k": 36
+          }
+        ]
+      },
+      "what": "Ten MCP calls of the audit's task with default arguments: total text of the results",
+      "metric": "o200k",
+      "plan": "Ten MCP calls, default arguments"
+    },
+    {
+      "id": "mcp.ten-calls.summary",
+      "status": "measured",
+      "value": 10914,
+      "units": {
+        "bytes": 43069,
+        "tokenx": 11611,
+        "o200k": 10914
+      },
+      "detail": {
+        "calls": [
+          {
+            "tool": "search_guidance",
+            "note": "find guidance",
+            "outcome": "ok",
+            "bytes": 1296,
+            "tokenx": 341,
+            "o200k": 447
+          },
+          {
+            "tool": "open_binary",
+            "note": "open the package",
+            "outcome": "ok",
+            "bytes": 196,
+            "tokenx": 58,
+            "o200k": 78
+          },
+          {
+            "tool": "inspect_artifact",
+            "note": "inventory",
+            "outcome": "ok",
+            "bytes": 3615,
+            "tokenx": 995,
+            "o200k": 1162
+          },
+          {
+            "tool": "analyze_javascript_application",
+            "note": "static JavaScript graph",
+            "outcome": "ok",
+            "bytes": 10313,
+            "tokenx": 2823,
+            "o200k": 2292
+          },
+          {
+            "tool": "inspect_analysis_view",
+            "note": "page modules from retained Evidence",
+            "outcome": "ok",
+            "bytes": 8371,
+            "tokenx": 2105,
+            "o200k": 1893
+          },
+          {
+            "tool": "inspect_web_network_capture",
+            "note": "HAR",
+            "outcome": "ok",
+            "bytes": 5521,
+            "tokenx": 1497,
+            "o200k": 1432
+          },
+          {
+            "tool": "compare_static_and_observed_endpoints",
+            "note": "static against observed endpoints",
+            "outcome": "ok",
+            "bytes": 4073,
+            "tokenx": 1081,
+            "o200k": 1158
+          },
+          {
+            "tool": "inspect_api_contract",
+            "note": "OpenAPI",
+            "outcome": "ok",
+            "bytes": 4555,
+            "tokenx": 1215,
+            "o200k": 1162
+          },
+          {
+            "tool": "inspect_binary_hardening",
+            "note": "native helper hardening",
+            "outcome": "ok",
+            "bytes": 5012,
+            "tokenx": 1452,
+            "o200k": 1254
+          },
+          {
+            "tool": "export_evidence_bundle",
+            "note": "save Evidence",
+            "outcome": "ok",
+            "bytes": 117,
+            "tokenx": 44,
+            "o200k": 36
+          }
+        ]
+      },
+      "what": "The same ten calls with detail summary asked wherever a tool takes it",
+      "metric": "o200k",
+      "plan": "Ten MCP calls, summary asked each time"
+    },
+    {
+      "id": "mcp.status.default",
+      "status": "measured",
+      "value": 18615,
+      "units": {
+        "bytes": 18615,
+        "tokenx": 5689,
+        "o200k": 4197
+      },
+      "detail": null,
+      "what": "binary_session with no arguments on a fresh connection, no target open",
+      "metric": "bytes",
+      "plan": "Default status call"
+    },
+    {
+      "id": "mcp.bundle.default",
+      "status": "measured",
+      "value": 349452,
+      "units": {
+        "bytes": 349452,
+        "tokenx": 96391,
+        "o200k": 121702
+      },
+      "detail": {
+        "outcome": "ok"
+      },
+      "what": "get_evidence_bundle with no arguments after four small summary analyses",
+      "metric": "bytes"
+    },
+    {
+      "id": "mcp.page.one-row",
+      "status": "measured",
+      "value": 7655,
+      "units": {
+        "bytes": 7655,
+        "tokenx": 1915,
+        "o200k": 1596
+      },
+      "detail": {
+        "outcome": "ok"
+      },
+      "what": "inspect_analysis_view page of one module row from retained Evidence",
+      "metric": "bytes"
+    },
+    {
+      "id": "mcp.catalogue",
+      "status": "measured",
+      "value": 97146,
+      "units": {
+        "bytes": 352159,
+        "tokenx": 97146,
+        "o200k": 78806
+      },
+      "detail": {
+        "tools": 263
+      },
+      "what": "tools/list result as the server sends it (every page)",
+      "metric": "tokenx"
+    },
+    {
+      "id": "mcp.catalogue.model-visible",
+      "status": "measured",
+      "value": 70015,
+      "units": {
+        "bytes": 316762,
+        "tokenx": 87758,
+        "o200k": 70015
+      },
+      "detail": {
+        "tools": 263
+      },
+      "what": "Name, description and input schema of every listed tool",
+      "metric": "o200k"
+    },
+    {
+      "id": "mcp.instructions",
+      "status": "measured",
+      "value": 488,
+      "units": {
+        "bytes": 2604,
+        "tokenx": 627,
+        "o200k": 488
+      },
+      "detail": null,
+      "what": "Server instructions in the initialize result",
+      "metric": "o200k"
+    },
+    {
+      "id": "guidance.search.mean",
+      "status": "measured",
+      "value": 1751,
+      "units": {
+        "bytes": 4217,
+        "tokenx": 953,
+        "o200k": 1751
+      },
+      "detail": {
+        "matched": 18,
+        "of": 20,
+        "replies": [
+          {
+            "query": "clone a web application",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 3963,
+            "tokenx": 939,
+            "o200k": 1597
+          },
+          {
+            "query": "rebuild website and check it matches",
+            "status": "no_matches",
+            "exit": 0,
+            "bytes": 265,
+            "tokenx": 71,
+            "o200k": 54
+          },
+          {
+            "query": "clone run prober",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 4427,
+            "tokenx": 1012,
+            "o200k": 1891
+          },
+          {
+            "query": "evidence_stale",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 8028,
+            "tokenx": 1779,
+            "o200k": 3303
+          },
+          {
+            "query": "stalled what now",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 1533,
+            "tokenx": 354,
+            "o200k": 661
+          },
+          {
+            "query": "decompile a function in a native binary",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 2568,
+            "tokenx": 603,
+            "o200k": 1023
+          },
+          {
+            "query": "android apk classes methods",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 5142,
+            "tokenx": 1173,
+            "o200k": 2246
+          },
+          {
+            "query": "electron asar",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 1777,
+            "tokenx": 411,
+            "o200k": 702
+          },
+          {
+            "query": "firmware image",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 2530,
+            "tokenx": 593,
+            "o200k": 1017
+          },
+          {
+            "query": "compare two versions",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 4554,
+            "tokenx": 1001,
+            "o200k": 1978
+          },
+          {
+            "query": "core dump crash",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 1946,
+            "tokenx": 429,
+            "o200k": 887
+          },
+          {
+            "query": "provider_unavailable",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 7793,
+            "tokenx": 1746,
+            "o200k": 3055
+          },
+          {
+            "query": "ghidra startup timeout",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 3534,
+            "tokenx": 803,
+            "o200k": 1528
+          },
+          {
+            "query": "tools missing after setup",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 9395,
+            "tokenx": 2084,
+            "o200k": 3876
+          },
+          {
+            "query": "result too large truncated",
+            "status": "no_matches",
+            "exit": 0,
+            "bytes": 255,
+            "tokenx": 67,
+            "o200k": 52
+          },
+          {
+            "query": "which api endpoints does the page call",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 2198,
+            "tokenx": 486,
+            "o200k": 929
+          },
+          {
+            "query": "agent environment from a HAR",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 5297,
+            "tokenx": 1209,
+            "o200k": 2167
+          },
+          {
+            "query": "desktop app environment task",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 8139,
+            "tokenx": 1804,
+            "o200k": 3491
+          },
+          {
+            "query": "frida instrumentation",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 1358,
+            "tokenx": 326,
+            "o200k": 468
+          },
+          {
+            "query": "recover readable source from minified bundle",
+            "status": "matches",
+            "exit": 0,
+            "bytes": 1715,
+            "tokenx": 395,
+            "o200k": 697
+          }
+        ]
+      },
+      "what": "Mean `rea guidance --query` reply (default TOON) over the queries that match, of the audit's twenty",
+      "metric": "o200k",
+      "plan": "Guidance search reply"
+    },
+    {
+      "id": "guidance.search.no-match",
+      "status": "measured",
+      "value": 2,
+      "units": null,
+      "detail": {
+        "queries": [
+          "rebuild website and check it matches: no_matches",
+          "result too large truncated: no_matches"
+        ]
+      },
+      "what": "Of the audit's twenty guidance queries, how many match nothing",
+      "metric": "count"
+    },
+    {
+      "id": "cli.census.largest",
+      "status": "measured",
+      "value": 1022084,
+      "units": {
+        "bytes": 1022084,
+        "tokenx": 281381,
+        "o200k": 379116
+      },
+      "detail": {
+        "scope": "quick",
+        "calls": 15,
+        "successful": 14,
+        "skipped": [],
+        "largest": "analyze-js.jsbundle",
+        "note": "quick census: 14 successful of 15 calls; largest is analyze-js.jsbundle"
+      },
+      "what": "Largest successful first answer (stdout) in the quick CLI census (15 calls)",
+      "metric": "bytes",
+      "plan": "CLI census, largest first answer"
+    },
+    {
+      "id": "cli.census.total",
+      "status": "measured",
+      "value": 1487218,
+      "units": {
+        "bytes": 1487218,
+        "tokenx": 404843,
+        "o200k": 558517
+      },
+      "detail": {
+        "scope": "quick",
+        "calls": [
+          {
+            "id": "inspect-artifact.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 5937,
+            "tokenx": 1564,
+            "o200k": 2009
+          },
+          {
+            "id": "inspect-binary-hardening.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 4890,
+            "tokenx": 1434,
+            "o200k": 1235
+          },
+          {
+            "id": "inspect-elf-dependencies.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 4999,
+            "tokenx": 1647,
+            "o200k": 1454
+          },
+          {
+            "id": "objdump-section-headers.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 11179,
+            "tokenx": 2505,
+            "o200k": 4010
+          },
+          {
+            "id": "objdump-disassemble-all.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 276965,
+            "tokenx": 72390,
+            "o200k": 123738
+          },
+          {
+            "id": "audit-release-exposure.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 9098,
+            "tokenx": 2676,
+            "o200k": 2242
+          },
+          {
+            "id": "decompile.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3464,
+            "tokenx": 1016,
+            "o200k": 798
+          },
+          {
+            "id": "analyze-js.jstiny",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 24670,
+            "tokenx": 6751,
+            "o200k": 7724
+          },
+          {
+            "id": "analyze-js.jsone",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 55077,
+            "tokenx": 15159,
+            "o200k": 18641
+          },
+          {
+            "id": "inspect-artifact.zip",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 14010,
+            "tokenx": 3643,
+            "o200k": 5209
+          },
+          {
+            "id": "analyze-js.jsbundle",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 1022084,
+            "tokenx": 281381,
+            "o200k": 379116
+          },
+          {
+            "id": "inspect-api-contract",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 5723,
+            "tokenx": 1582,
+            "o200k": 1527
+          },
+          {
+            "id": "providers",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 44464,
+            "tokenx": 12019,
+            "o200k": 9328
+          },
+          {
+            "id": "guided-workflows.list",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 4209,
+            "tokenx": 1109,
+            "o200k": 765
+          },
+          {
+            "id": "guidance.search",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 3913,
+            "tokenx": 983,
+            "o200k": 1519
+          }
+        ],
+        "successful": 14,
+        "skipped": [],
+        "largest": "analyze-js.jsbundle"
+      },
+      "what": "Total stdout of the successful first answers in the quick CLI census",
+      "metric": "bytes",
+      "plan": "CLI census, total first-answer bytes"
+    },
+    {
+      "id": "cli.census.over-2000",
+      "status": "measured",
+      "value": 9,
+      "units": null,
+      "detail": {
+        "scope": "quick",
+        "of": 14
+      },
+      "what": "Successful first answers over 2,000 o200k tokens in the quick CLI census",
+      "metric": "count"
+    },
+    {
+      "id": "cli.census-full.largest",
+      "status": "measured",
+      "value": 1023454,
+      "units": {
+        "bytes": 1023454,
+        "tokenx": 280682,
+        "o200k": 372286
+      },
+      "detail": {
+        "scope": "full",
+        "calls": 87,
+        "successful": 54,
+        "skipped": [
+          "inspect-go-binary: needs inputs/gohello",
+          "inspect-go-binary.strings: needs inputs/gohello",
+          "inspect-artifact.go: needs inputs/gohello",
+          "inspect-rust-binary: needs inputs/rusthello",
+          "inspect-artifact.rust: needs inputs/rusthello",
+          "inspect-binary-hardening.go: needs inputs/gohello",
+          "inspect-elf-unwind-ranges.rust: needs inputs/rusthello",
+          "inspect-native-exports.rust: needs inputs/rusthello",
+          "objdump-symbols.go: needs inputs/gohello",
+          "inspect-nuget-nupkg: needs inputs/census.lib.1.2.3.nupkg",
+          "inspect-artifact.jar: needs inputs/sample.jar",
+          "analyze-js.jsmedium: needs inputs/jsmedium",
+          "inspect-python-pyc: needs inputs/census_mod.pyc",
+          "inspect-artifact.wasm: needs inputs/mod.wasm",
+          "inspect-v8-code-cache: needs inputs/census.jsc",
+          "inspect-artifact.pyc: needs inputs/census_mod.pyc",
+          "inspect-android-package.wrongtype: needs inputs/sample.jar",
+          "extract-artifact.jar: needs inputs/sample.jar"
+        ],
+        "largest": "analyze-js.jsplain",
+        "note": "full census: 54 successful of 87 calls; largest is analyze-js.jsplain"
+      },
+      "what": "Largest successful first answer in the full in-repository CLI census",
+      "metric": "bytes",
+      "plan": "CLI census, largest first answer",
+      "slow": true
+    },
+    {
+      "id": "cli.census-full.total",
+      "status": "measured",
+      "value": 3892117,
+      "units": {
+        "bytes": 3892117,
+        "tokenx": 1076223,
+        "o200k": 1422806
+      },
+      "detail": {
+        "scope": "full",
+        "calls": [
+          {
+            "id": "inspect-artifact.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 5937,
+            "tokenx": 1564,
+            "o200k": 2009
+          },
+          {
+            "id": "inspect-artifact.elf-stripped",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 5991,
+            "tokenx": 1580,
+            "o200k": 2035
+          },
+          {
+            "id": "inspect.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3472,
+            "tokenx": 1019,
+            "o200k": 798
+          },
+          {
+            "id": "analyze.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3472,
+            "tokenx": 1019,
+            "o200k": 798
+          },
+          {
+            "id": "inspect-binary-hardening.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 4890,
+            "tokenx": 1434,
+            "o200k": 1235
+          },
+          {
+            "id": "inspect-binary-layout.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 972,
+            "tokenx": 294,
+            "o200k": 266
+          },
+          {
+            "id": "inspect-byte-entropy.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 2232,
+            "tokenx": 643,
+            "o200k": 595
+          },
+          {
+            "id": "inspect-dwarf-units.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 2989,
+            "tokenx": 960,
+            "o200k": 876
+          },
+          {
+            "id": "inspect-elf-debug-link.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 4177,
+            "tokenx": 1182,
+            "o200k": 1121
+          },
+          {
+            "id": "inspect-elf-dependencies.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 4999,
+            "tokenx": 1647,
+            "o200k": 1454
+          },
+          {
+            "id": "inspect-elf-notes.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 5637,
+            "tokenx": 1756,
+            "o200k": 1829
+          },
+          {
+            "id": "inspect-elf-unwind-ranges.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 5339,
+            "tokenx": 1749,
+            "o200k": 1605
+          },
+          {
+            "id": "inspect-native-exports.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 2313,
+            "tokenx": 673,
+            "o200k": 613
+          },
+          {
+            "id": "inspect-native-initializers.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 5120,
+            "tokenx": 1504,
+            "o200k": 1314
+          },
+          {
+            "id": "inspect-native-load-image.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3468,
+            "tokenx": 1018,
+            "o200k": 798
+          },
+          {
+            "id": "objdump-file-headers.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 2342,
+            "tokenx": 692,
+            "o200k": 649
+          },
+          {
+            "id": "objdump-section-headers.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 11179,
+            "tokenx": 2505,
+            "o200k": 4010
+          },
+          {
+            "id": "objdump-symbols.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 9797,
+            "tokenx": 2328,
+            "o200k": 3062
+          },
+          {
+            "id": "objdump-disassemble-all.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 276965,
+            "tokenx": 72390,
+            "o200k": 123738
+          },
+          {
+            "id": "objdump-disassemble-symbol.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 5737,
+            "tokenx": 1572,
+            "o200k": 2063
+          },
+          {
+            "id": "objdump-dwarf.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 120533,
+            "tokenx": 40430,
+            "o200k": 46833
+          },
+          {
+            "id": "list-objdump-architectures",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 5893,
+            "tokenx": 1727,
+            "o200k": 1692
+          },
+          {
+            "id": "audit-release-exposure.elf",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 9098,
+            "tokenx": 2676,
+            "o200k": 2242
+          },
+          {
+            "id": "audit-release-exposure.elf-stripped",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 9287,
+            "tokenx": 2738,
+            "o200k": 2280
+          },
+          {
+            "id": "search-bytes.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3455,
+            "tokenx": 1014,
+            "o200k": 796
+          },
+          {
+            "id": "read-bytes.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3453,
+            "tokenx": 1013,
+            "o200k": 796
+          },
+          {
+            "id": "decompile.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3464,
+            "tokenx": 1016,
+            "o200k": 798
+          },
+          {
+            "id": "function.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3459,
+            "tokenx": 1015,
+            "o200k": 797
+          },
+          {
+            "id": "search.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3457,
+            "tokenx": 1015,
+            "o200k": 796
+          },
+          {
+            "id": "trace.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3457,
+            "tokenx": 1015,
+            "o200k": 796
+          },
+          {
+            "id": "xrefs.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3448,
+            "tokenx": 1012,
+            "o200k": 796
+          },
+          {
+            "id": "instructions.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 3469,
+            "tokenx": 1018,
+            "o200k": 798
+          },
+          {
+            "id": "debug-with-gdb.info-functions",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 319,
+            "tokenx": 87,
+            "o200k": 68
+          },
+          {
+            "id": "debug-with-gdb.disassemble",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 319,
+            "tokenx": 87,
+            "o200k": 68
+          },
+          {
+            "id": "inspect-firmware-regions.elf",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 514,
+            "tokenx": 137,
+            "o200k": 110
+          },
+          {
+            "id": "inspect-go-binary",
+            "skipped": "needs inputs/gohello"
+          },
+          {
+            "id": "inspect-go-binary.strings",
+            "skipped": "needs inputs/gohello"
+          },
+          {
+            "id": "inspect-artifact.go",
+            "skipped": "needs inputs/gohello"
+          },
+          {
+            "id": "inspect-rust-binary",
+            "skipped": "needs inputs/rusthello"
+          },
+          {
+            "id": "inspect-artifact.rust",
+            "skipped": "needs inputs/rusthello"
+          },
+          {
+            "id": "inspect-binary-hardening.go",
+            "skipped": "needs inputs/gohello"
+          },
+          {
+            "id": "inspect-elf-unwind-ranges.rust",
+            "skipped": "needs inputs/rusthello"
+          },
+          {
+            "id": "inspect-native-exports.rust",
+            "skipped": "needs inputs/rusthello"
+          },
+          {
+            "id": "objdump-symbols.go",
+            "skipped": "needs inputs/gohello"
+          },
+          {
+            "id": "debug-with-gdb.info-functions.tty",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 5865,
+            "tokenx": 2031,
+            "o200k": 2140
+          },
+          {
+            "id": "debug-with-gdb.disassemble.tty",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 8434,
+            "tokenx": 2768,
+            "o200k": 3804
+          },
+          {
+            "id": "debug-with-gdb.info-line.tty",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 2279,
+            "tokenx": 695,
+            "o200k": 675
+          },
+          {
+            "id": "guided-workflows.render",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 4690,
+            "tokenx": 1237,
+            "o200k": 934
+          },
+          {
+            "id": "mcp-doctor",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 1571,
+            "tokenx": 496,
+            "o200k": 445
+          },
+          {
+            "id": "version",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 207,
+            "tokenx": 81,
+            "o200k": 70
+          },
+          {
+            "id": "inspect-nuget-nupkg",
+            "skipped": "needs inputs/census.lib.1.2.3.nupkg"
+          },
+          {
+            "id": "guided-workflows.render.2",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 4690,
+            "tokenx": 1237,
+            "o200k": 934
+          },
+          {
+            "id": "guided-workflows.render.verify",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 744,
+            "tokenx": 206,
+            "o200k": 152
+          },
+          {
+            "id": "analyze-js.jstiny",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 24670,
+            "tokenx": 6751,
+            "o200k": 7724
+          },
+          {
+            "id": "analyze-js.jsone",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 55077,
+            "tokenx": 15159,
+            "o200k": 18641
+          },
+          {
+            "id": "inspect-artifact.zip",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 14010,
+            "tokenx": 3643,
+            "o200k": 5209
+          },
+          {
+            "id": "inspect-artifact.jar",
+            "skipped": "needs inputs/sample.jar"
+          },
+          {
+            "id": "extract-artifact.zip",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 4407,
+            "tokenx": 1139,
+            "o200k": 1563
+          },
+          {
+            "id": "inspect-artifact.jsdir",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 998,
+            "tokenx": 275,
+            "o200k": 208
+          },
+          {
+            "id": "analyze-js.jsbundle",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 1022084,
+            "tokenx": 281381,
+            "o200k": 379116
+          },
+          {
+            "id": "analyze-js.jsmedium",
+            "skipped": "needs inputs/jsmedium"
+          },
+          {
+            "id": "analyze-js.jsplain",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 1023454,
+            "tokenx": 280682,
+            "o200k": 372286
+          },
+          {
+            "id": "analyze.jsbundle",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 1022084,
+            "tokenx": 281381,
+            "o200k": 379116
+          },
+          {
+            "id": "import-reference-source.jsplain",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 1575,
+            "tokenx": 429,
+            "o200k": 459
+          },
+          {
+            "id": "audit-release-exposure.jsdir",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 9441,
+            "tokenx": 2788,
+            "o200k": 2307
+          },
+          {
+            "id": "inspect-python-pyc",
+            "skipped": "needs inputs/census_mod.pyc"
+          },
+          {
+            "id": "inspect-sqlite-database",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 1073,
+            "tokenx": 310,
+            "o200k": 251
+          },
+          {
+            "id": "inspect-sqlite-database.table",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 1073,
+            "tokenx": 310,
+            "o200k": 251
+          },
+          {
+            "id": "inspect-sqlite-database.dbscope",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 1073,
+            "tokenx": 310,
+            "o200k": 251
+          },
+          {
+            "id": "inspect-artifact.wasm",
+            "skipped": "needs inputs/mod.wasm"
+          },
+          {
+            "id": "inspect-api-contract",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 5723,
+            "tokenx": 1582,
+            "o200k": 1527
+          },
+          {
+            "id": "inspect-plist",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 445,
+            "tokenx": 120,
+            "o200k": 87
+          },
+          {
+            "id": "inspect-model-artifact",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 2813,
+            "tokenx": 848,
+            "o200k": 694
+          },
+          {
+            "id": "inspect-evm-interface",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 6244,
+            "tokenx": 1632,
+            "o200k": 1509
+          },
+          {
+            "id": "inspect-v8-code-cache",
+            "skipped": "needs inputs/census.jsc"
+          },
+          {
+            "id": "inspect-maven-gradle-metadata",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 2935,
+            "tokenx": 883,
+            "o200k": 781
+          },
+          {
+            "id": "inspect-byte-entropy.zip",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 2121,
+            "tokenx": 602,
+            "o200k": 543
+          },
+          {
+            "id": "inspect-artifact.sqlite",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 427,
+            "tokenx": 122,
+            "o200k": 87
+          },
+          {
+            "id": "inspect-artifact.pyc",
+            "skipped": "needs inputs/census_mod.pyc"
+          },
+          {
+            "id": "doctor",
+            "exit": 1,
+            "status": "ok-report-exit",
+            "bytes": 7745,
+            "tokenx": 2339,
+            "o200k": 2150
+          },
+          {
+            "id": "providers",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 44464,
+            "tokenx": 12019,
+            "o200k": 9328
+          },
+          {
+            "id": "capabilities",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 44464,
+            "tokenx": 12019,
+            "o200k": 9328
+          },
+          {
+            "id": "guided-workflows.list",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 4209,
+            "tokenx": 1109,
+            "o200k": 765
+          },
+          {
+            "id": "guidance.search",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 3913,
+            "tokenx": 983,
+            "o200k": 1519
+          },
+          {
+            "id": "guidance.search.broad",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 7040,
+            "tokenx": 1693,
+            "o200k": 2667
+          },
+          {
+            "id": "setup.dry-run",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 26457,
+            "tokenx": 8230,
+            "o200k": 6785
+          },
+          {
+            "id": "doctor.target",
+            "exit": 1,
+            "status": "ok-report-exit",
+            "bytes": 7913,
+            "tokenx": 2390,
+            "o200k": 2189
+          },
+          {
+            "id": "list-adb-devices",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 612,
+            "tokenx": 176,
+            "o200k": 140
+          },
+          {
+            "id": "inspect-adb-client",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 614,
+            "tokenx": 177,
+            "o200k": 140
+          },
+          {
+            "id": "list-frida-devices",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 221,
+            "tokenx": 68,
+            "o200k": 55
+          },
+          {
+            "id": "list-cutter-sessions",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 699,
+            "tokenx": 194,
+            "o200k": 155
+          },
+          {
+            "id": "inspect-jeb-client",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 499,
+            "tokenx": 166,
+            "o200k": 142
+          },
+          {
+            "id": "list-architectures",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 312,
+            "tokenx": 85,
+            "o200k": 65
+          },
+          {
+            "id": "inspect-pcap-client",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 834,
+            "tokenx": 235,
+            "o200k": 212
+          },
+          {
+            "id": "inspect-apktool-client",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 774,
+            "tokenx": 223,
+            "o200k": 179
+          },
+          {
+            "id": "inspect-android-package.wrongtype",
+            "skipped": "needs inputs/sample.jar"
+          },
+          {
+            "id": "inspect-macho.wrongtype",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 445,
+            "tokenx": 120,
+            "o200k": 87
+          },
+          {
+            "id": "inspect-pe-imports.wrongtype",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 865,
+            "tokenx": 247,
+            "o200k": 220
+          },
+          {
+            "id": "inspect-managed-artifact.wrongtype",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 586,
+            "tokenx": 168,
+            "o200k": 124
+          },
+          {
+            "id": "inspect-desktop-application",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 14881,
+            "tokenx": 4463,
+            "o200k": 4785
+          },
+          {
+            "id": "inspect-electron-fuses.wrongtype",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 2335,
+            "tokenx": 657,
+            "o200k": 618
+          },
+          {
+            "id": "inspect-kernel-module.wrongtype",
+            "exit": 0,
+            "status": "ok",
+            "bytes": 2947,
+            "tokenx": 864,
+            "o200k": 730
+          },
+          {
+            "id": "execute-rizin-command",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 634,
+            "tokenx": 173,
+            "o200k": 137
+          },
+          {
+            "id": "inspect-pcap-capture.missing",
+            "exit": 1,
+            "status": "needs-provider",
+            "bytes": 835,
+            "tokenx": 235,
+            "o200k": 212
+          },
+          {
+            "id": "extract-artifact.jar",
+            "skipped": "needs inputs/sample.jar"
+          }
+        ],
+        "successful": 54,
+        "skipped": [
+          "inspect-go-binary: needs inputs/gohello",
+          "inspect-go-binary.strings: needs inputs/gohello",
+          "inspect-artifact.go: needs inputs/gohello",
+          "inspect-rust-binary: needs inputs/rusthello",
+          "inspect-artifact.rust: needs inputs/rusthello",
+          "inspect-binary-hardening.go: needs inputs/gohello",
+          "inspect-elf-unwind-ranges.rust: needs inputs/rusthello",
+          "inspect-native-exports.rust: needs inputs/rusthello",
+          "objdump-symbols.go: needs inputs/gohello",
+          "inspect-nuget-nupkg: needs inputs/census.lib.1.2.3.nupkg",
+          "inspect-artifact.jar: needs inputs/sample.jar",
+          "analyze-js.jsmedium: needs inputs/jsmedium",
+          "inspect-python-pyc: needs inputs/census_mod.pyc",
+          "inspect-artifact.wasm: needs inputs/mod.wasm",
+          "inspect-v8-code-cache: needs inputs/census.jsc",
+          "inspect-artifact.pyc: needs inputs/census_mod.pyc",
+          "inspect-android-package.wrongtype: needs inputs/sample.jar",
+          "extract-artifact.jar: needs inputs/sample.jar"
+        ],
+        "largest": "analyze-js.jsplain"
+      },
+      "what": "Total stdout of the successful first answers in the full in-repository CLI census",
+      "metric": "bytes",
+      "plan": "CLI census, total first-answer bytes",
+      "slow": true
+    },
+    {
+      "id": "cli.census-full.over-2000",
+      "status": "measured",
+      "value": 25,
+      "units": null,
+      "detail": {
+        "scope": "full",
+        "of": 54
+      },
+      "what": "Successful first answers over 2,000 o200k tokens in the full in-repository CLI census",
+      "metric": "count",
+      "slow": true
+    },
+    {
+      "id": "cli.mistakes.largest",
+      "status": "measured",
+      "value": 1022458,
+      "units": {
+        "bytes": 1022458,
+        "tokenx": 281493,
+        "o200k": 379194
+      },
+      "detail": {
+        "note": "largest of 16 mistakes is err.evidence-output-exists.js",
+        "calls": [
+          {
+            "id": "err.unknown-command",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 301,
+            "tokenx": 87,
+            "o200k": 69
+          },
+          {
+            "id": "err.unknown-command.far",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 207,
+            "tokenx": 61,
+            "o200k": 47
+          },
+          {
+            "id": "err.missing-argument",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 312,
+            "tokenx": 85,
+            "o200k": 65
+          },
+          {
+            "id": "err.unknown-option.kebab",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 63,
+            "tokenx": 20,
+            "o200k": 15
+          },
+          {
+            "id": "err.unknown-option",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 55,
+            "tokenx": 17,
+            "o200k": 13
+          },
+          {
+            "id": "err.bad-enum",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 316,
+            "tokenx": 91,
+            "o200k": 68
+          },
+          {
+            "id": "err.summary-without-output",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 659,
+            "tokenx": 181,
+            "o200k": 135
+          },
+          {
+            "id": "err.missing-file",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 908,
+            "tokenx": 268,
+            "o200k": 222
+          },
+          {
+            "id": "err.invalid-json-input",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 620,
+            "tokenx": 174,
+            "o200k": 128
+          },
+          {
+            "id": "err.invalid-scenario",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 1231,
+            "tokenx": 364,
+            "o200k": 268
+          },
+          {
+            "id": "err.json-token-limit",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 207,
+            "tokenx": 54,
+            "o200k": 43
+          },
+          {
+            "id": "err.evidence-output-exists",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 6626,
+            "tokenx": 1759,
+            "o200k": 2155
+          },
+          {
+            "id": "err.wrong-type-number",
+            "skipped": "needs inputs/rusthello"
+          },
+          {
+            "id": "err.view-without-summary",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 731,
+            "tokenx": 201,
+            "o200k": 152
+          },
+          {
+            "id": "err.bad-view-kind",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 1503,
+            "tokenx": 445,
+            "o200k": 330
+          },
+          {
+            "id": "err.evidence-output-exists.js",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 1022458,
+            "tokenx": 281493,
+            "o200k": 379194
+          },
+          {
+            "id": "err.evidence-output-parent-missing",
+            "exit": 1,
+            "status": "input-error",
+            "bytes": 6680,
+            "tokenx": 1772,
+            "o200k": 2165
+          }
+        ]
+      },
+      "what": "Largest stdout among the typical CLI mistakes",
+      "metric": "bytes",
+      "plan": "Largest error"
+    },
+    {
+      "id": "cli.help",
+      "status": "measured",
+      "value": 29651,
+      "units": {
+        "bytes": 29651,
+        "tokenx": 6085,
+        "o200k": 5270
+      },
+      "detail": {
+        "exit": 0
+      },
+      "what": "`rea --help`",
+      "metric": "bytes",
+      "plan": "`rea --help`"
+    },
+    {
+      "id": "cli.help.command",
+      "status": "measured",
+      "value": 2096,
+      "units": {
+        "bytes": 2096,
+        "tokenx": 449,
+        "o200k": 432
+      },
+      "detail": {
+        "exit": 0
+      },
+      "what": "`rea inspect-artifact --help`, one command's help",
+      "metric": "bytes"
+    },
+    {
+      "id": "cli.setup.one-client",
+      "status": "measured",
+      "value": 6675,
+      "units": {
+        "bytes": 26347,
+        "tokenx": 8229,
+        "o200k": 6675
+      },
+      "detail": {
+        "exit": 0
+      },
+      "what": "`rea setup --dry-run --yes --json --client claude_code` in a throwaway home",
+      "metric": "o200k",
+      "plan": "Setup output for one client"
+    },
+    {
+      "id": "cli.progress.stderr",
+      "status": "measured",
+      "value": 5159,
+      "units": {
+        "bytes": 5159,
+        "tokenx": 1641,
+        "o200k": 1167
+      },
+      "detail": {
+        "stderr_lines": 33,
+        "stdout_bytes": 10397
+      },
+      "what": "Standard error of a successful `rea analyze-javascript-application <5-file app> --detail summary --evidence_output <file> --json`",
+      "metric": "bytes"
+    },
+    {
+      "id": "skill.body",
+      "status": "measured",
+      "value": 10840,
+      "units": {
+        "bytes": 48427,
+        "tokenx": 12510,
+        "o200k": 10840
+      },
+      "detail": {
+        "lines": 680
+      },
+      "what": "SKILL.md body (frontmatter removed), the part loaded whenever the skill triggers",
+      "metric": "o200k",
+      "plan": "Skill body"
+    },
+    {
+      "id": "skill.lines-lost-at-carry-over",
+      "status": "measured",
+      "value": 381,
+      "units": null,
+      "detail": {
+        "body_lines": 680,
+        "first_body_line_over": 300,
+        "first_file_line_over": 306,
+        "note": "a 5,000-token carry-over keeps body lines 1-299 (file line 306 is the first one lost)"
+      },
+      "what": "Body lines after the point where a 5,000-token carry-over (o200k) cuts; 0 when the whole body survives",
+      "metric": "lines"
+    },
+    {
+      "id": "skill.loaded-per-request",
+      "status": "measured",
+      "value": 14115,
+      "units": null,
+      "detail": {
+        "requests": [
+          {
+            "id": "R1",
+            "o200k": 10840
+          },
+          {
+            "id": "R2",
+            "o200k": 10840
+          },
+          {
+            "id": "R3",
+            "o200k": 10840
+          },
+          {
+            "id": "R4",
+            "o200k": 18235
+          },
+          {
+            "id": "R5",
+            "o200k": 10840
+          },
+          {
+            "id": "R6",
+            "o200k": 10840
+          },
+          {
+            "id": "R7",
+            "o200k": 26079
+          },
+          {
+            "id": "R8",
+            "o200k": 14247
+          },
+          {
+            "id": "R9",
+            "o200k": 13100
+          },
+          {
+            "id": "R10",
+            "o200k": 10840
+          },
+          {
+            "id": "R11",
+            "o200k": 16173
+          },
+          {
+            "id": "R12",
+            "o200k": 24070
+          },
+          {
+            "id": "R13",
+            "o200k": 10840
+          },
+          {
+            "id": "R14",
+            "o200k": 10840
+          },
+          {
+            "id": "R15",
+            "o200k": 13100
+          }
+        ]
+      },
+      "what": "Mean tokens a client loads per request over the fifteen traced requests: body plus each whole reference the route names",
+      "metric": "o200k",
+      "plan": "Skill loaded per request (15 requests)"
+    },
+    {
+      "id": "skill.routes-clear",
+      "status": "measured",
+      "value": 7,
+      "units": null,
+      "detail": {
+        "of": 15,
+        "note": "a reading judgment recorded in inputs/skill-routes.json, not computed"
+      },
+      "what": "Of the fifteen traced requests, how many the skill routes clearly (from the trace file)",
+      "metric": "count",
+      "better": "higher",
+      "plan": "Routes clear on the 15 requests"
+    },
+    {
+      "id": "clone.loop.stdout",
+      "status": "measured",
+      "value": 31183,
+      "units": {
+        "bytes": 115148,
+        "tokenx": 37014,
+        "o200k": 31183
+      },
+      "detail": {
+        "verdict": "done",
+        "captures": 4,
+        "note": "verdict done after 4 captures",
+        "outputs": [
+          {
+            "label": "init-clone-run",
+            "exit": 0,
+            "bytes": 1470,
+            "tokenx": 450,
+            "o200k": 351
+          },
+          {
+            "label": "evaluate-clone-run (empty folder)",
+            "exit": 1,
+            "bytes": 2065,
+            "tokenx": 658,
+            "o200k": 593
+          },
+          {
+            "label": "evaluate-clone-run round 1",
+            "exit": 1,
+            "bytes": 3739,
+            "tokenx": 1194,
+            "o200k": 986
+          },
+          {
+            "label": "capture 1 (original)",
+            "exit": 0,
+            "bytes": 25478,
+            "tokenx": 8256,
+            "o200k": 6938
+          },
+          {
+            "label": "capture 2 (original)",
+            "exit": 0,
+            "bytes": 25478,
+            "tokenx": 8256,
+            "o200k": 6935
+          },
+          {
+            "label": "capture 3 (clone)",
+            "exit": 0,
+            "bytes": 25985,
+            "tokenx": 8416,
+            "o200k": 7100
+          },
+          {
+            "label": "capture 4 (clone)",
+            "exit": 0,
+            "bytes": 25985,
+            "tokenx": 8416,
+            "o200k": 7091
+          },
+          {
+            "label": "evaluate-clone-run round 2",
+            "exit": 0,
+            "bytes": 4948,
+            "tokenx": 1368,
+            "o200k": 1189
+          }
+        ]
+      },
+      "what": "Standard output of one scenario's clone-run loop on the fixture pair: init, every evaluation, every printed capture command",
+      "metric": "o200k",
+      "plan": "Clone loop stdout per scenario",
+      "timing": "the browser's captures vary by a few bytes, and a reply body lost in a capture adds a round"
+    },
+    {
+      "id": "clone.verdict.ten-items",
+      "status": "measured",
+      "value": 8050,
+      "units": {
+        "bytes": 8050,
+        "tokenx": 2531,
+        "o200k": 2000,
+        "chars": 8050
+      },
+      "detail": {
+        "exit": 1,
+        "worklist_items": 10,
+        "note": "the verdict lists 10 items (the audit's had ten)"
+      },
+      "what": "`rea evaluate-clone-run --exit-code --json` stdout for a run with a ten-item worklist",
+      "metric": "chars",
+      "plan": "Ten-item verdict",
+      "timing": "depends on the captures taken before it"
+    },
+    {
+      "id": "clone.behavior",
+      "status": "measured",
+      "value": 81011,
+      "units": {
+        "bytes": 81011,
+        "tokenx": null,
+        "o200k": null
+      },
+      "detail": null,
+      "what": "Size of behavior/ after the fixture loop (one scenario)",
+      "metric": "bytes",
+      "plan": "behavior/ on the trial replay",
+      "timing": "written from the captures"
+    },
+    {
+      "id": "clone.step-read",
+      "status": "measured",
+      "value": 1511,
+      "units": {
+        "bytes": 6185,
+        "tokenx": 1656,
+        "o200k": 1511
+      },
+      "detail": {
+        "exit": 0
+      },
+      "what": "The playbook's read-one-step command (text of step 1) on a capture from the loop",
+      "metric": "o200k",
+      "plan": "One step read",
+      "timing": "reads one capture"
+    }
+  ]
+}
