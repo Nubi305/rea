@@ -649,9 +649,7 @@ describe("canonical skill transaction", () => {
         /filesystem-write permission grant|native_mount_approved|only with explicit approval|Obtain the per-call/u,
       );
     }
-    expect(installedSkill).toContain(
-      "use normal repository tools and do not run REA",
-    );
+    expect(installedSkill).toContain("use ordinary repository tools, not REA");
     expect(installedSkill).toContain(
       `tool_count: ${String(TOOL_CONTRACTS.length)}`,
     );
@@ -687,9 +685,12 @@ describe("canonical skill transaction", () => {
       "references/desktop-build.md",
       "references/environments.md",
       "references/evidence-workflows.md",
+      "references/format-inspectors.md",
       "references/javascript-applications.md",
       "references/native-and-artifacts.md",
       "references/runtime-observation.md",
+      "references/target-routes.md",
+      "references/working-with-rea.md",
     ];
     const records = await Promise.all(
       paths.map(async (path) => {

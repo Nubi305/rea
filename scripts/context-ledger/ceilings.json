@@ -75,11 +75,19 @@
     },
     "guidance.search.mean": {
       "metric": "o200k",
-      "ceiling": 1737,
+      "ceiling": 1876,
       "target": "at most 600",
       "target_value": 600,
       "tolerance": 0.01,
-      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)"
+      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)",
+      "raised": [
+        {
+          "from": 1737,
+          "to": 1876,
+          "commit": "e7b7c0d128156511d1941206e80c69efa32fffd3",
+          "reason": "The skill router (ctx/skill) splits the old 8,161-token route section into 65 sections, one per route, and adds working-with-rea.md with the rest of upstream's old body. A search now also returns the one route section that answers it, often first, so replies carry about one more match: mean 1,737 to 1,876 o200k over the twenty queries, no new empty reply. The guidance package (short locators, three matches by default) is the owner of this row's target."
+        }
+      ]
     },
     "guidance.search.no-match": {
       "metric": "count",
@@ -169,7 +177,7 @@
     },
     "skill.body": {
       "metric": "o200k",
-      "ceiling": 10879,
+      "ceiling": 1496,
       "target": "at most 1,500",
       "target_value": 1500,
       "raised": [
@@ -183,7 +191,7 @@
     },
     "skill.lines-lost-at-carry-over": {
       "metric": "lines",
-      "ceiling": 383,
+      "ceiling": 0,
       "target": "0 (implied: a body under 1,500 tokens survives the carry-over whole)",
       "target_value": 0,
       "raised": [
@@ -197,13 +205,13 @@
     },
     "skill.loaded-per-request": {
       "metric": "o200k",
-      "ceiling": 14115,
+      "ceiling": 2876,
       "target": "at most 2,000",
       "target_value": 2000
     },
     "skill.routes-clear": {
       "metric": "count",
-      "ceiling": 7,
+      "ceiling": 15,
       "better": "higher",
       "target": "at least 13",
       "target_value": 13

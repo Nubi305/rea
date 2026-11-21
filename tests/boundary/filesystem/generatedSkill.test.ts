@@ -177,3 +177,36 @@ it("rejects body-only versions instead of generating metadata inside examples", 
     stderr: expect.stringContaining("Missing authored skill version"),
   });
 });
+
+it("ships long references with a contents list and no link off the package", async () => {
+  const f = await fixture();
+  const sections = Array.from(
+    { length: 30 },
+    (_, index) => `## Part ${String(index)}\n\nText ${String(index)}.\n\n`,
+  ).join("");
+  const long = `# Long guide\n\n${sections}See the [guide](https://github.com/morluto/rea/blob/main/docs/guide.md#use) and [JADX](https://example.test/jadx.jar).\n`;
+  await writeFile(join(f.sourceRoot, "references/long.md"), long);
+  await f.generate();
+  const shipped = await readFile(
+    join(f.outputRoot, "references/long.md"),
+    "utf8",
+  );
+  const contents = Array.from(
+    { length: 30 },
+    (_, index) => `- Part ${String(index)}`,
+  ).join("\n");
+  expect(shipped.startsWith(`Contents:\n\n${contents}\n\n# Long guide\n`)).toBe(
+    true,
+  );
+  expect(shipped).toContain(
+    "See the guide (REA repository: `docs/guide.md#use`) and JADX (`https://example.test/jadx.jar`).",
+  );
+  expect(shipped).not.toMatch(/\]\(https?:/u);
+  expect(await readFile(join(f.sourceRoot, "references/long.md"), "utf8")).toBe(
+    long,
+  );
+  expect(
+    await readFile(join(f.outputRoot, "references/guide.md"), "utf8"),
+  ).toBe("# Guide\nPreserve evidence.\n");
+  await f.generate("--check");
+});

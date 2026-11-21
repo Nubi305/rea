@@ -2,6 +2,7 @@ import { mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import { ensureGeneratedFile } from "./generated-file.mjs";
+import { packagedSkillFile } from "./skill-contents.mjs";
 
 // Identity fields follow the shared plugin manifest checked for local Cursor
 // publication (name, release version, repository, skill, and icon). The
@@ -140,9 +141,13 @@ export const syncCursorPluginSkill = async ({ root, check }) => {
     );
   if (!check) await rm(outputRoot, { recursive: true, force: true });
   for (const relativePath of sourcePaths) {
-    const source = (
-      await readFile(join(sourceRoot, relativePath), "utf8")
-    ).replaceAll("\r\n", "\n");
+    const source = packagedSkillFile(
+      relativePath,
+      (await readFile(join(sourceRoot, relativePath), "utf8")).replaceAll(
+        "\r\n",
+        "\n",
+      ),
+    );
     if (!check)
       await mkdir(dirname(join(outputRoot, relativePath)), { recursive: true });
     try {
