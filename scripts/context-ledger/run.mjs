@@ -6,13 +6,13 @@
 // node scripts/context-ledger/run.mjs --rea <built checkout> [--only <ids>]
 //   [--out <dir>] [--check <ceilings.json>] [--full] [--require-real-tokens]
 //   [--work <dir>] [--tokenizer-dir <dir>] [--census-inputs <dir>]
-//   [--browser <chromium>] [--port <first of two free ports>]
-//   [--keep-raw <dir>]
+//   [--browser <chromium>] [--port <first of two free ports>] [--node <file>]
+//   [--keep-raw <dir>] [--write-ceilings <file> [--raise-reason <text>]]
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
-import { checkCeilings } from "./lib/ceilings.mjs";
+import { checkCeilings, updateCeilings } from "./lib/ceilings.mjs";
 import { freshDirectory } from "./lib/inputs.mjs";
 import { run } from "./lib/process.mjs";
 import { renderMarkdown } from "./lib/report.mjs";
@@ -29,7 +29,7 @@ import { MCP_ROWS, mcpRows } from "./rows/mcp.mjs";
 import { SKILL_ROWS, skillRows } from "./rows/skill.mjs";
 
 const USAGE =
-  "usage: node scripts/context-ledger/run.mjs --rea <built checkout> [--only <row ids or prefixes>] [--out <dir>] [--check <ceilings.json>] [--full] [--require-real-tokens] [--work <dir>] [--tokenizer-dir <dir>] [--census-inputs <dir>] [--browser <executable>] [--port <n>] [--keep-raw <dir>]";
+  "usage: node scripts/context-ledger/run.mjs --rea <built checkout> [--only <row ids or prefixes>] [--out <dir>] [--check <ceilings.json>] [--full] [--require-real-tokens] [--work <dir>] [--tokenizer-dir <dir>] [--census-inputs <dir>] [--browser <executable>] [--port <n>] [--node <file>] [--keep-raw <dir>] [--write-ceilings <file> [--raise-reason <text>]]";
 
 const FLAGS = new Set(["--full", "--require-real-tokens", "--help"]);
 
@@ -106,6 +106,58 @@ const measureAll = async (context, wanted) => {
   return rows.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 };
 
+/** One fixed default path where /tmp exists, so answers that print paths have the same length on every machine. */
+const workFolder = (options) =>
+  resolve(
+    options.work ??
+      join(existsSync("/tmp") ? "/tmp" : tmpdir(), "rea-context-ledger"),
+  );
+
+/** What every section reads: the checkout, the counter, where to work and report. */
+const buildContext = (
+  options,
+  { checkout, reaScript, work, encode, started },
+) => ({
+  checkout,
+  reaScript,
+  node: options.node ?? process.execPath,
+  work: join(work, "run"),
+  full: options.full === true,
+  censusInputs:
+    options["census-inputs"] === undefined
+      ? undefined
+      : resolve(options["census-inputs"]),
+  browser: options.browser ?? process.env.REA_BROWSER_EXECUTABLE,
+  port: Number(options.port ?? 5380),
+  count: counter(encode),
+  keep: (name, text) => {
+    if (options["keep-raw"] === undefined) return;
+    const file = join(resolve(options["keep-raw"]), name);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, text);
+  },
+  progress: (message) =>
+    console.error(
+      `[ledger ${Math.round((Date.now() - started) / 1000)}s] ${message}`,
+    ),
+});
+
+/** Lower the ceilings in a file to this run's values; raise only with a reason. */
+const writeCeilings = (options, ledger) => {
+  const file = resolve(options["write-ceilings"]);
+  const existing = existsSync(file)
+    ? JSON.parse(readFileSync(file, "utf8"))
+    : { rows: {} };
+  const { ceilings, refused } = updateCeilings(ledger, existing, {
+    raiseReason: options["raise-reason"],
+    tolerance: 0.02,
+  });
+  writeFileSync(file, `${JSON.stringify(ceilings, null, 2)}\n`);
+  for (const line of refused)
+    console.error(`ceiling kept (pass --raise-reason to raise it): ${line}`);
+  console.error(`ceilings written to ${file}`);
+};
+
 const main = async () => {
   const options = parseArguments(process.argv.slice(2));
   if (options.help === true || options.rea === undefined) {
@@ -129,33 +181,16 @@ const main = async () => {
     console.error(`--require-real-tokens: ${tokenizer.reason}`);
     return 3;
   }
-  const work = resolve(options.work ?? join(tmpdir(), "rea-context-ledger"));
+  const work = workFolder(options);
   const out = resolve(options.out ?? join(work, "report"));
   const started = Date.now();
-  const context = {
+  const context = buildContext(options, {
     checkout,
     reaScript,
-    node: options.node ?? process.execPath,
-    work: join(work, "run"),
-    full: options.full === true,
-    censusInputs:
-      options["census-inputs"] === undefined
-        ? undefined
-        : resolve(options["census-inputs"]),
-    browser: options.browser ?? process.env.REA_BROWSER_EXECUTABLE,
-    port: Number(options.port ?? 5380),
-    count: counter(tokenizer.encode),
-    keep: (name, text) => {
-      if (options["keep-raw"] === undefined) return;
-      const file = join(resolve(options["keep-raw"]), name);
-      mkdirSync(dirname(file), { recursive: true });
-      writeFileSync(file, text);
-    },
-    progress: (message) =>
-      console.error(
-        `[ledger ${Math.round((Date.now() - started) / 1000)}s] ${message}`,
-      ),
-  };
+    work,
+    encode: tokenizer.encode,
+    started,
+  });
   freshDirectory(context.work);
   const rows = await measureAll(context, wanted);
   const ledger = {
@@ -169,7 +204,7 @@ const main = async () => {
       o200k:
         tokenizer.encode === undefined
           ? `not measured: ${tokenizer.reason}`
-          : `real BPE tokens, o200k_base through gpt-tokenizer ${TOKENIZER_VERSION} (a proxy: no Claude tokenizer exists offline)`,
+          : `real BPE tokens, o200k_base through gpt-tokenizer ${TOKENIZER_VERSION} (a proxy: no tokenizer for Anthropic's models exists offline)`,
     },
     work: context.work,
     full_census: context.full,
@@ -193,6 +228,7 @@ const main = async () => {
         );
   writeFileSync(join(out, "ledger.md"), renderMarkdown(ledger, verdict));
   console.error(`ledger written to ${join(out, "ledger.json")} and ledger.md`);
+  if (options["write-ceilings"] !== undefined) writeCeilings(options, ledger);
   if (verdict !== undefined) {
     for (const line of verdict.lines) console.error(line);
     return verdict.failed ? 1 : 0;

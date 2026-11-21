@@ -180,6 +180,11 @@ export const measuredRow = (id, { units, value, detail } = {}) => {
     status: primary === null ? "partial" : "measured",
     value: primary ?? null,
     units: units ?? null,
+    ...(primary === null
+      ? {
+          reason: `${definition.metric} not measured on this run (no tokenizer)`,
+        }
+      : {}),
     detail: detail ?? null,
   };
 };

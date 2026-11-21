@@ -1,7 +1,7 @@
 // The three units every ledger row is counted in: UTF-8 bytes, REA's own token
 // estimate (tokenx, the estimator behind `rea --token-count`) and real BPE
-// tokens (o200k_base through gpt-tokenizer, the audit's proxy). No Claude
-// tokenizer exists offline, so none is counted.
+// tokens (o200k_base through gpt-tokenizer, the audit's proxy). No tokenizer
+// for Anthropic's models exists offline, so their counts are not taken.
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";

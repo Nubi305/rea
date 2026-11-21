@@ -44,3 +44,70 @@ export const checkCeilings = (ledger, ceilings, { requireRealTokens }) => {
   }
   return { failed, results, lines };
 };
+
+/**
+ * Ceilings from a ledger: a row's ceiling moves down to its value, never up
+ * unless `raiseReason` is given, which is then recorded beside the entry.
+ * Targets and other fields already in the file are kept.
+ */
+export const updateCeilings = (
+  ledger,
+  existing,
+  { raiseReason, tolerance },
+) => {
+  const rows = { ...existing.rows };
+  const refused = [];
+  for (const row of ledger.rows) {
+    if (typeof row.value !== "number") continue;
+    const entry = rows[row.id] ?? {};
+    const better = row.better ?? "lower";
+    const fresh = entry.ceiling === undefined;
+    const worse =
+      !fresh &&
+      (better === "higher"
+        ? row.value < entry.ceiling
+        : row.value > entry.ceiling);
+    if (worse && raiseReason === undefined) {
+      refused.push(
+        `${row.id}: ${row.value} is worse than the ceiling ${entry.ceiling}`,
+      );
+      continue;
+    }
+    const next = {
+      metric: row.metric,
+      ...entry,
+      ceiling:
+        fresh || worse
+          ? row.value
+          : better === "higher"
+            ? Math.max(row.value, entry.ceiling)
+            : Math.min(row.value, entry.ceiling),
+    };
+    if (better === "higher") next.better = "higher";
+    if (row.timing !== undefined) next.tolerance = entry.tolerance ?? tolerance;
+    if (worse)
+      next.raised = [
+        ...(entry.raised ?? []),
+        {
+          from: entry.ceiling,
+          to: row.value,
+          commit: ledger.checkout.commit,
+          reason: raiseReason,
+        },
+      ];
+    rows[row.id] = next;
+  }
+  return {
+    ceilings: {
+      ...existing,
+      schema: "rea.context-ledger.ceilings/1",
+      measured_on: {
+        ...ledger.checkout,
+        node: ledger.node,
+        full_census: ledger.full_census,
+      },
+      rows,
+    },
+    refused,
+  };
+};

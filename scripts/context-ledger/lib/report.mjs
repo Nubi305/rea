@@ -8,7 +8,7 @@ const cell = (text) =>
 
 /** What the ledger cannot measure without a model or outside material. */
 export const NOT_MEASURABLE = [
-  "Claude's own token counts: no Claude tokenizer exists offline; o200k is the proxy and tokenx is REA's estimate (off by +23% to -39% against o200k in the audit).",
+  "Token counts in Anthropic's own tokenizer: none exists offline; o200k is the proxy and tokenx is REA's estimate (off by +23% to -39% against o200k in the audit).",
   "Whether an agent succeeds, how many calls it needs, its peak context or total tokens: those are the agent benchmarks (J2, J3), which need a model in the loop.",
   "Which route the skill gives for a request and whether it is clear: a reading judgment. The ledger takes it from inputs/skill-routes.json, a trace recorded against one SKILL.md body; when the body changes, the routing rows say so and stay unmeasured until the trace is redone.",
   "behavior/ on the blind trial's run folder (the plan's 2.28 MB): that folder is not in the repository. The ledger measures behavior/ after the fixture loop instead, a different and much smaller run.",
