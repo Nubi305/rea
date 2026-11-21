@@ -1,0 +1,8 @@
+const { fetchNotes, saveNote } = require("./api");
+const tiny = require("tinylib");
+async function start() {
+  const notes = await fetchNotes();
+  console.log(tiny.format(notes.length));
+  await saveNote({ title: "hello", body: "world" });
+}
+start();
