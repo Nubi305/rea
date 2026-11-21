@@ -1,3 +1,5 @@
+import { presentFindings } from "./summaryFindings.js";
+import { browserScenarioSummaryFindings } from "./browserScenarioSummaryFindings.js";
 import type { z } from "zod";
 import type { AnalysisError } from "../analysisErrorBase.js";
 import {
@@ -353,6 +355,7 @@ export const projectBrowserScenarioView = (
     return ok({
       kind: "summary" as const,
       view,
+      ...presentFindings(browserScenarioSummaryFindings(capture)),
       ...shared,
       summary: {
         browser: capture.browser,

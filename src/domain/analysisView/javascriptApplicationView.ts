@@ -38,6 +38,9 @@ import {
   type SummaryAnalysisView,
 } from "./analysisViewShape.js";
 
+import { presentFindings } from "./summaryFindings.js";
+import { javascriptSummaryFindings } from "./javascriptSummaryFindings.js";
+
 const OPERATION = "inspect_analysis_view";
 
 const inputError = (
@@ -391,6 +394,7 @@ export const projectJavaScriptApplicationView = (
     return ok({
       kind: "summary" as const,
       view,
+      ...presentFindings(javascriptSummaryFindings(analysis.graph.nodes)),
       summary: {
         input_path: analysis.input_path,
         format: analysis.format,

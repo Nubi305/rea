@@ -331,6 +331,7 @@ import {
   summaryViewSchema,
 } from "./analysisViewShape.js";
 import { recordedArrayViewSchema } from "./analysisViewRequest.js";
+import { summaryFindingSchema } from "./summaryFindings.js";
 import {
   SUMMARY_NAMED_VIEW_LIMIT,
   summaryNamedViewSchema,
@@ -431,12 +432,15 @@ const viewResultBase = {
 const summaryViewResultBase = {
   kind: z.literal("summary"),
   view: summaryViewSchema,
-  ...viewResultBase,
+  // Findings and the views that page them lead the summary, ahead of counts.
+  /** The first findings themselves, one line per row, capped with a count. */
+  findings: z.array(summaryFindingSchema).exactOptional(),
   /** The views of the same parent that run as written and return rows. */
   views: z
     .array(summaryNamedViewSchema)
     .max(SUMMARY_NAMED_VIEW_LIMIT)
     .exactOptional(),
+  ...viewResultBase,
 } as const;
 
 export const webSourceLocationSummaryViewResultSchema = z.strictObject({

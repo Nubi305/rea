@@ -36,6 +36,8 @@ import {
   projectQlogCapturePage,
 } from "./qlogCaptureView.js";
 import { evidenceFileTarget } from "../evidence.js";
+import { presentFindings } from "./summaryFindings.js";
+import { captureSummaryFindings } from "./captureSummaryFindings.js";
 import { sha256Hex } from "../../kernel/sha256Hex.js";
 
 /** Offsets page the parent's retained record order, preserving producer ordinals. */
@@ -548,6 +550,11 @@ export const projectWebNetworkCaptureView = (
     return ok({
       kind: "summary" as const,
       view,
+      ...presentFindings(
+        captureSummaryFindings(
+          report.records.map((record) => preview(record, report.format)),
+        ),
+      ),
       ...shared,
       summary: {
         artifact: report.artifact,

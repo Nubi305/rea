@@ -1,3 +1,5 @@
+import { presentFindings } from "./summaryFindings.js";
+import { artifactSummaryFindings } from "./artifactSummaryFindings.js";
 import {
   artifactGraphManifestSchema,
   artifactInventoryCoverageSchema,
@@ -344,6 +346,9 @@ export const projectArtifactInventoryView = (
     return ok({
       kind: "summary" as const,
       view,
+      ...presentFindings(
+        artifactSummaryFindings(inventory.occurrences, inventory.nodes),
+      ),
       summary: {
         ...(inventory.effectiveLimits === undefined
           ? {}

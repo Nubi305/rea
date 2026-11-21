@@ -503,6 +503,46 @@ const shellWords = (command: string): string[] => {
 };
 
 cliTest(
+  "states a JavaScript application's endpoints in its summary",
+  async ({ cli }) => {
+    const root = await createTestTempDirectory("rea-summary-endpoints-cli-");
+    const application = join(root, "webapp");
+    await mkdir(application);
+    await writeFile(
+      join(application, "app.js"),
+      'fetch("/api/v1/items").then((r) => r.json());\nconst socket = new WebSocket("wss://live.example.test/feed");\n',
+    );
+    const summary = await cli.run({
+      arguments: [
+        "analyze-javascript-application",
+        application,
+        "--detail",
+        "summary",
+        "--evidence_output",
+        join(root, "analysis.json"),
+        "--json",
+      ],
+    });
+    expect(summary.exitCode).toBe(0);
+    expect(summary.json).toMatchObject({
+      summary: {
+        normalized_result: {
+          findings: expect.arrayContaining([
+            expect.objectContaining({
+              name: "endpoints",
+              rows: expect.arrayContaining([
+                "fetch /api/v1/items",
+                "WebSocket wss://live.example.test/feed",
+              ]),
+            }),
+          ]),
+        },
+      },
+    });
+  },
+);
+
+cliTest(
   "prints each named view of a summary as a command that runs as printed",
   async ({ cli }) => {
     const root = await createTestTempDirectory("rea-named-views-cli-");
@@ -510,6 +550,7 @@ cliTest(
     const writer = new ZipWriter(new Uint8ArrayWriter());
     await writer.add("main.js", new TextReader("console.log('named');\n"));
     await writer.add("data/notes.txt", new TextReader("notes\n"));
+    await writer.add("data/copy.txt", new TextReader("notes\n"));
     await writeFile(archive, await writer.close());
     const bundlePath = join(root, "it's a bundle.json");
     const summary = await cli.run({
@@ -524,6 +565,29 @@ cliTest(
       ],
     });
     expect(summary.exitCode).toBe(0);
+    // The summary states the entries themselves, largest first.
+    expect(summary.json).toMatchObject({
+      summary: {
+        normalized_result: {
+          findings: [
+            {
+              name: "entries_largest_first",
+              rows: [
+                expect.stringMatching(/^main\.js 22 B sha256 [0-9a-f]{64}$/u),
+                expect.stringMatching(
+                  /^data\/copy\.txt 6 B sha256 [0-9a-f]{64}$/u,
+                ),
+                expect.stringMatching(
+                  /^data\/notes\.txt 6 B sha256 [0-9a-f]{64} same content as data\/copy\.txt$/u,
+                ),
+              ],
+              total: 3,
+              omitted: 0,
+            },
+          ],
+        },
+      },
+    });
     const commands = (summary.json as { views?: unknown }).views;
     if (!Array.isArray(commands)) throw new Error("Expected named views");
     expect(commands.length).toBeGreaterThan(0);

@@ -750,6 +750,18 @@ named only after it ran against that record and returned rows, so the first
 one runs as written; a record with no paged collection names none. The CLI
 prints the same views under `views` as `rea inspect-analysis-view` commands
 that read the parent from the bundle `--evidence_output` saved.
+Summaries of the commands agents call first lead with
+`normalized_result.findings`: for each kind of finding, its `name`, at most
+20 `rows` of one line each, the `total`, the number `omitted`, and the `view`
+of the same parent that pages all of them.
+`analyze_javascript_application` states its `endpoints` (mechanism and
+address, observed before inferred), `ipc_channels` and `entry_points`;
+`inspect_web_network_capture` one line per HTTP record (ordinal, method,
+address, status, time), failed records first and then the slowest;
+`inspect_artifact` and `inventory_artifact` the archive's entries with their
+unpacked size and SHA-256, largest first, marking repeated content; and
+`capture_browser_scenario` each step's outcome with the method, address and
+status of every request it issued. A kind with no rows is left out.
 A view is never more certain than its parent: a summary or other view of
 `inferred` Evidence is `inferred`. Other views are `derived`, unless the
 view kind itself infers, as described below.
