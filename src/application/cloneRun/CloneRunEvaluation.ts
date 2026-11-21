@@ -837,7 +837,7 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
         side: "clone",
         file: scenarioFile,
         command: context.evaluate,
-        message: `${differs} Both replies are HTML pages, and a request step compares a reply byte for byte: the markup itself, which a clone written as new code does not repeat and may not copy. A page is compared by its on-screen text, through a goto step. The prober replaces ${several ? "these request steps" : "this request step"} in ${scenarioFile} with a goto to the same path (or ${asSetup} when the page is only passed through); both sides are then captured again and the command is run. A difference in what the page shows is then reported as on-screen text, and that one is the builder's.`,
+        message: `${differs} Both replies are HTML pages, and a request step compares a reply byte for byte: the markup itself, which a clone written as new code does not repeat and may not copy. A page is compared by its on-screen text, through a goto step. The prober replaces ${several ? "these request steps" : "this request step"} in ${scenarioFile} with a goto to the same path, or removes ${several ? "them" : "it"} when the page is only passed through; a setup- name does not help, because a difference blocks on every step. Both sides are then captured again and the command is run. A difference in what the page shows is then reported as on-screen text, and that one is the builder's.`,
       };
     return {
       ...common,

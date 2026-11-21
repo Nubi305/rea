@@ -1604,9 +1604,11 @@ it("tells a download and a page fetched by a request step from a difference to b
   for (const text of [
     "Both replies are HTML pages, and a request step compares a reply byte for byte",
     "A page is compared by its on-screen text, through a goto step",
+    "a setup- name does not help, because a difference blocks on every step",
     "that one is the builder's",
   ])
     expect(page.message).toContain(text);
+  expect(page.message).not.toContain("renames it setup-");
   expect(page.message).not.toContain("Change the clone");
   // The same difference in a reply that is not a page stays the builder's.
   const data = item(
