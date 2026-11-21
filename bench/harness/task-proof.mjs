@@ -156,6 +156,21 @@ const record = (task, proof, facts) => ({
       }),
 });
 
+// What a task's own definition gets wrong, whatever REA prints: an answer
+// that does not satisfy its facts, or a reference route that does not begin
+// with the command the task expects first.
+const definitionProblems = (task) => {
+  const problems = [];
+  if (!judgeAnswer(task, task.reference_answer ?? null).right)
+    problems.push("reference_answer does not satisfy the task's facts");
+  const first = task.proof.steps.find((step) => step.args !== undefined);
+  if (first !== undefined && first.args[0] !== task.first_command.expected)
+    problems.push(
+      `the reference route begins with ${first.args[0]}, not with first_command.expected`,
+    );
+  return problems;
+};
+
 const main = async () => {
   const values = options();
   const facts = checkoutFacts(values.rea, values.node);
@@ -184,11 +199,9 @@ const main = async () => {
       continue;
     }
     const entry = record(task, await proveTask(task, settings), facts);
-    if (!judgeAnswer(task, task.reference_answer ?? null).right) {
+    for (const problem of definitionProblems(task)) {
       entry.route_ok = false;
-      console.error(
-        `  ${id}: reference_answer does not satisfy the task's facts`,
-      );
+      console.error(`  ${id}: ${problem}`);
     }
     records.push(entry);
     const naive = entry.naive_first_call?.stdout_bytes;

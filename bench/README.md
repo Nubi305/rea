@@ -129,7 +129,8 @@ node bench/harness/results-table.mjs --tasks bench/results
 `task-proof.mjs` is a deterministic companion to the task benchmark: it runs
 each task's reference route (`proof.steps` in `task.json`) and its naive first
 call, checks that REA's output still holds every expected value, and prints the
-bytes. `--write` records the result as `proof.json` beside each task; the
+bytes. It also checks each task against itself: its reference answer must
+satisfy its facts, and its route must begin with the expected first command. `--write` records the result as `proof.json` beside each task; the
 committed ones were measured on 0e089b3.
 
 ### Things that bite
