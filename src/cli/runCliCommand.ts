@@ -9,6 +9,7 @@ import {
   renderCliOutputArgumentError,
 } from "../cliOutput.js";
 import { PRODUCT_IDENTITY } from "../identity.js";
+import { FORK_IDENTITY } from "../domain/forkIdentity.js";
 import { errorMessage } from "../kernel/errorMessage.js";
 import {
   cliArgumentFailure,
@@ -96,7 +97,12 @@ export const runCliCommand = async (
   const started = performance.now();
   const human = process.stdout.isTTY === true && !controls.formatExplicit;
   const update = human
-    ? availableUpdate(cli.name, PRODUCT_IDENTITY.packageVersion, environment)
+    ? availableUpdate(
+        cli.name,
+        PRODUCT_IDENTITY.packageVersion,
+        environment,
+        FORK_IDENTITY,
+      )
     : undefined;
   const cta =
     update === undefined ? undefined : updateNoticeCta(cli.name, update);

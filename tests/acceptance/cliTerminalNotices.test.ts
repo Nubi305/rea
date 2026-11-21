@@ -4,7 +4,7 @@ import { PRODUCT_IDENTITY } from "../../src/identity.js";
 import { workspaceCliTest } from "../support/cli/workspaceCliFixture.js";
 
 workspaceCliTest.skipIf(process.platform === "win32")(
-  "keeps terminal update notices outside selected result documents",
+  "prints no update notice on a fork build, in any result document",
   async ({ cli, workspace }) => {
     await workspace.write("sample.bin", Buffer.from("notice fixture"));
     await workspace.write(
@@ -33,8 +33,10 @@ workspaceCliTest.skipIf(process.platform === "win32")(
     };
     const entropy = ["inspect-byte-entropy", workspace.path("sample.bin")];
     const notice = "Update available for rea-agents:";
-    expect(await run(entropy)).toContain(notice);
-    expect(await run([...entropy, "--full-output"])).toContain(notice);
+    // This build is a fork: npm's newer release is upstream's build, which
+    // would remove the fork's commands, so no notice offers it.
+    expect(await run(entropy)).not.toContain(notice);
+    expect(await run([...entropy, "--full-output"])).not.toContain(notice);
     for (const flags of [[], ["--full-output"], ["--token-limit", "10"]]) {
       const output = await run([
         ...entropy,
@@ -45,12 +47,11 @@ workspaceCliTest.skipIf(process.platform === "win32")(
       expect(output).toContain("offset");
       expect(output).not.toContain(notice);
     }
-    // Suppressed agent-only output leaves the terminal notice visible.
     expect(
       await run(
         ["setup", "--dry-run", "--client", "codex", "--token-limit", "1"],
         "Dry run complete. No changes were made.",
       ),
-    ).toContain(notice);
+    ).not.toContain(notice);
   },
 );

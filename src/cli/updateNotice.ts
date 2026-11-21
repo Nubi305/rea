@@ -26,6 +26,8 @@ import { mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { dirname, join } from "node:path";
 
+import type { ForkIdentity } from "../domain/forkIdentity.js";
+
 /**
  * The terminal update notice. On a terminal without an explicit format, a
  * command's output (and an unknown-command error) ends with "Update available"
@@ -271,14 +273,18 @@ const scheduleRefresh = (
 /**
  * A newer cached version, or undefined. Schedules a detached refresh when the
  * cache is missing or older than a day. Callers ask only for terminal output
- * without an explicit format.
+ * without an explicit format. A fork build never gets the notice and never
+ * asks the registry: npm's release is upstream's build, and installing it
+ * would remove the fork's commands (`rea update` refuses it for that reason).
  */
 export const availableUpdate = (
   cli: string,
   version: string,
   environment: UpdateEnvironment,
+  fork: ForkIdentity | undefined,
 ): AvailableUpdate | undefined => {
-  if (notificationsDisabled(environment)) return undefined;
+  if (fork !== undefined || notificationsDisabled(environment))
+    return undefined;
   const target = updatePackage(cli, version);
   if (target === undefined) return undefined;
   const file = cacheFile(environment, target.name);

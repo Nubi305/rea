@@ -30,6 +30,7 @@ import {
   renderSetupProgress,
 } from "./interactiveSetup.js";
 import { PRODUCT_IDENTITY } from "../identity.js";
+import { FORK_IDENTITY } from "../domain/forkIdentity.js";
 import { logCliCommand } from "../cliLogging.js";
 import { CLI_COMMANDS } from "../contracts/cliCommandNames.js";
 import type { Logger } from "pino";
@@ -219,7 +220,15 @@ const registerMaintenanceCommands = (
   registerCliCommand(cli, CLI_COMMANDS.update, {
     description:
       "Update this REA installation and verify the installed release",
-    run: ({ formatExplicit }) =>
+    options: z.object({
+      upstream: z
+        .boolean()
+        .default(false)
+        .describe(
+          "Replace this fork build with npm's upstream release, which lacks the fork's clone-run commands",
+        ),
+    }),
+    run: ({ formatExplicit, options }) =>
       logCliCommand(
         logger,
         CLI_COMMANDS.update,
@@ -237,6 +246,7 @@ const registerMaintenanceCommands = (
               HOST_PLATFORM.platform,
             ),
             formatExplicit ? "structured" : "human",
+            { fork: FORK_IDENTITY, replaceWithUpstream: options.upstream },
           );
         },
         isUpdateFailure,

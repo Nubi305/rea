@@ -20,6 +20,7 @@ import { estimateTokenCount } from "tokenx";
 import { jsonLinesErrorRecord } from "./jsonLines.js";
 import { sliceTextByTokenWindow } from "./tokenWindow.js";
 import { PRODUCT_IDENTITY } from "../identity.js";
+import { FORK_IDENTITY } from "../domain/forkIdentity.js";
 import {
   commandSchemaDocument,
   formatLlmsFull,
@@ -373,7 +374,12 @@ const unknownCommandAnswer = (
     "mcp",
   ]);
   const update = human
-    ? availableUpdate(cli.name, PRODUCT_IDENTITY.packageVersion, environment)
+    ? availableUpdate(
+        cli.name,
+        PRODUCT_IDENTITY.packageVersion,
+        environment,
+        FORK_IDENTITY,
+      )
     : undefined;
   const notice =
     update === undefined ? [] : updateNoticeCta(cli.name, update).commands;

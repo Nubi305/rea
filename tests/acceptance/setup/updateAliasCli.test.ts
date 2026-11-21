@@ -4,20 +4,19 @@ import { expect } from "vitest";
 
 import { PRODUCT_IDENTITY } from "../../../src/identity.js";
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
-import { cliTest } from "../../support/cli/cliFixture.js";
+import { cliTest, type TestCli } from "../../support/cli/cliFixture.js";
 
-cliTest(
-  "root update flag uses the verified workflow and preserves executable output policies",
-  async ({ cli }) => {
-    const home = await createTestTempDirectory("rea-update-alias-");
-    const bin = join(home, "bin");
-    const script = join(home, "npm-fixture.mjs");
-    const log = join(home, "commands.jsonl");
-    await mkdir(bin);
-    await writeFile(log, "");
-    await writeFile(
-      script,
-      `
+/** A home whose npm answers lookups and refuses installs, logging every call. */
+const updateFixture = async (cli: TestCli) => {
+  const home = await createTestTempDirectory("rea-update-alias-");
+  const bin = join(home, "bin");
+  const script = join(home, "npm-fixture.mjs");
+  const log = join(home, "commands.jsonl");
+  await mkdir(bin);
+  await writeFile(log, "");
+  await writeFile(
+    script,
+    `
     import {appendFileSync} from 'node:fs';
     import {join} from 'node:path';
     const args=process.argv.slice(2);
@@ -30,57 +29,75 @@ cliTest(
       else console.log(JSON.stringify(${JSON.stringify(PRODUCT_IDENTITY.packageVersion)}));
     } else {process.stderr.write('No installation or unexpected package-manager commands are allowed');process.exitCode=97;}
   `,
-    );
-    await writeFile(
-      join(bin, process.platform === "win32" ? "npm.cmd" : "npm"),
-      process.platform === "win32"
-        ? '@echo off\r\n"%REA_TEST_NODE%" "%REA_TEST_NPM_SCRIPT%" %*\r\n'
-        : '#!/bin/sh\nexec "$REA_TEST_NODE" "$REA_TEST_NPM_SCRIPT" "$@"\n',
-      { mode: 0o700 },
-    );
-    const run = (
-      arguments_: readonly string[],
-      failure = false,
-      oversized = false,
-    ) =>
-      cli.run({
-        arguments: arguments_,
-        cwd: home,
-        environment: {
-          USERPROFILE: home,
-          PATH: [
-            bin,
-            ...(process.platform === "win32"
-              ? [join(process.env.SystemRoot ?? "C:\\Windows", "System32")]
-              : ["/usr/bin", "/bin"]),
-          ].join(delimiter),
-          npm_config_prefix: join(home, "prefix"),
-          npm_config_cache: join(home, "cache"),
-          npm_config_user_agent: "npm/test",
-          REA_TEST_NODE: process.execPath,
-          REA_TEST_NPM_SCRIPT: script,
-          REA_TEST_NPM_LOG: log,
-          REA_TEST_NPM_FAILURE: failure ? "1" : "0",
-          REA_TEST_NPM_OVERSIZED: oversized ? "1" : "0",
-          CI: "1",
-          NO_UPDATE_NOTIFIER: "1",
-        },
-      });
-    const canonical = await run(["update", "--json"]);
-    expect(canonical.exitCode, canonical.stderr).toBe(0);
-    expect(canonical.json).toMatchObject({
+  );
+  await writeFile(
+    join(bin, process.platform === "win32" ? "npm.cmd" : "npm"),
+    process.platform === "win32"
+      ? '@echo off\r\n"%REA_TEST_NODE%" "%REA_TEST_NPM_SCRIPT%" %*\r\n'
+      : '#!/bin/sh\nexec "$REA_TEST_NODE" "$REA_TEST_NPM_SCRIPT" "$@"\n',
+    { mode: 0o700 },
+  );
+  const run = (
+    arguments_: readonly string[],
+    failure = false,
+    oversized = false,
+  ) =>
+    cli.run({
+      arguments: arguments_,
+      cwd: home,
+      environment: {
+        USERPROFILE: home,
+        PATH: [
+          bin,
+          ...(process.platform === "win32"
+            ? [join(process.env.SystemRoot ?? "C:\\Windows", "System32")]
+            : ["/usr/bin", "/bin"]),
+        ].join(delimiter),
+        npm_config_prefix: join(home, "prefix"),
+        npm_config_cache: join(home, "cache"),
+        npm_config_user_agent: "npm/test",
+        REA_TEST_NODE: process.execPath,
+        REA_TEST_NPM_SCRIPT: script,
+        REA_TEST_NPM_LOG: log,
+        REA_TEST_NPM_FAILURE: failure ? "1" : "0",
+        REA_TEST_NPM_OVERSIZED: oversized ? "1" : "0",
+        CI: "1",
+        NO_UPDATE_NOTIFIER: "1",
+      },
+    });
+  return { run, log };
+};
+
+cliTest(
+  "root update flag uses the verified workflow and preserves executable output policies",
+  async ({ cli }) => {
+    const { run, log } = await updateFixture(cli);
+    // This build is a fork: upstream's release would remove its commands, so
+    // the update is refused unless upstream's release is asked for by name.
+    const upstream = await run(["update", "--json", "--upstream"]);
+    expect(upstream.exitCode, upstream.stderr).toBe(0);
+    expect(upstream.json).toMatchObject({
       status: "current",
       currentVersion: PRODUCT_IDENTITY.packageVersion,
       latestVersion: PRODUCT_IDENTITY.packageVersion,
     });
+    const beforeRefusals = await readFile(log, "utf8");
+    const canonical = await run(["update", "--json"]);
+    expect(canonical.exitCode, canonical.stderr).toBe(1);
+    expect(canonical.json).toMatchObject({
+      status: "failed",
+      reason: "fork-build",
+      latestVersion: null,
+      remediation: expect.stringContaining("rea update --upstream"),
+    });
     const alias = await run(["--json", "--update"]);
-    expect(alias.exitCode, alias.stderr).toBe(0);
+    expect(alias.exitCode, alias.stderr).toBe(1);
     expect(alias.json).toEqual(canonical.json);
     for (const flag of ["--no-timings", "--timings=false", "--timings=true"]) {
       const canonicalTimed = await run(["update", "--json", flag]);
       const aliasTimed = await run([flag, "--update", "--json"]);
-      expect(canonicalTimed.exitCode, canonicalTimed.stdout).toBe(0);
-      expect(aliasTimed.exitCode, aliasTimed.stdout).toBe(0);
+      expect(canonicalTimed.exitCode, canonicalTimed.stdout).toBe(1);
+      expect(aliasTimed.exitCode, aliasTimed.stdout).toBe(1);
       expect(aliasTimed.json).toEqual(canonicalTimed.json);
       expect(aliasTimed.json).toEqual(canonical.json);
       for (const result of [canonicalTimed, aliasTimed]) {
@@ -91,14 +108,28 @@ cliTest(
         else expect(result.stderr).toBe("");
       }
     }
+    // A refusal asks no package manager anything.
+    expect(await readFile(log, "utf8")).toBe(beforeRefusals);
     const filtered = await run([
       "--update",
       "--format=json",
       "--full-output",
       "--filter-output=status",
     ]);
-    expect(filtered.exitCode, filtered.stderr).toBe(0);
+    expect(filtered.exitCode, filtered.stderr).toBe(1);
     expect(filtered.json).toMatchObject({
+      ok: false,
+      meta: { command: expect.stringContaining("update") },
+    });
+    const upstreamFiltered = await run([
+      "update",
+      "--upstream",
+      "--format=json",
+      "--full-output",
+      "--filter-output=status",
+    ]);
+    expect(upstreamFiltered.exitCode, upstreamFiltered.stderr).toBe(0);
+    expect(upstreamFiltered.json).toMatchObject({
       ok: true,
       data: "current",
       meta: { command: expect.stringContaining("update") },
@@ -115,21 +146,40 @@ cliTest(
         type: "error",
         ok: false,
         result: {
-          code: "invalid_request",
-          remediation: { action: expect.stringContaining("--format json") },
+          remediation: expect.stringContaining("rea update --upstream"),
         },
       });
       if (canonicalJsonl === undefined) canonicalJsonl = result.stdout;
       else expect(result.stdout).toBe(canonicalJsonl);
     }
-    const failed = await run(["--update", "--json"], true);
+    const upstreamJsonl = await run([
+      "update",
+      "--upstream",
+      "--format",
+      "jsonl",
+    ]);
+    expect(upstreamJsonl.exitCode, upstreamJsonl.stderr).toBe(1);
+    expect(JSON.parse(upstreamJsonl.stdout)).toMatchObject({
+      $rea: "jsonl/v1",
+      type: "error",
+      ok: false,
+      result: {
+        code: "invalid_request",
+        remediation: { action: expect.stringContaining("--format json") },
+      },
+    });
+    const failed = await run(["update", "--upstream", "--json"], true);
     expect(failed.exitCode).toBe(1);
     expect(failed.json).toMatchObject({
       status: "failed",
       reason: "version-check",
       remediation: expect.stringContaining("owned fake registry denied"),
     });
-    const oversized = await run(["update", "--json"], false, true);
+    const oversized = await run(
+      ["update", "--upstream", "--json"],
+      false,
+      true,
+    );
     expect(oversized.exitCode).toBe(1);
     expect(oversized.json).toMatchObject({
       status: "failed",

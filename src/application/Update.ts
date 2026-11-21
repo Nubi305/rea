@@ -1,6 +1,7 @@
 import { gt, valid } from "semver";
 
 import { PRODUCT_IDENTITY } from "../identity.js";
+import type { ForkIdentity } from "../domain/forkIdentity.js";
 import type { Result } from "../domain/result.js";
 import {
   unresolvedMaintenanceClients,
@@ -84,6 +85,7 @@ export type UpdateResult = (
       readonly currentVersion: string;
       readonly latestVersion: string | null;
       readonly reason:
+        | "fork-build"
         | "unknown-install-method"
         | "version-check"
         | "install"
@@ -150,17 +152,45 @@ const versionCheckRemediation = (
   }
 };
 
+/**
+ * A build that carries a fork marker. The release this workflow installs is
+ * npm's upstream package, which lacks the fork's commands, so the update is
+ * refused unless the caller asks for upstream's release by name.
+ */
+export interface UpdateForkPolicy {
+  readonly fork: ForkIdentity;
+  /** The caller asked to replace this build with upstream's release. */
+  readonly replaceWithUpstream: boolean;
+}
+
+/** The flag of `rea update` that performs upstream's update over a fork build. */
+export const UPDATE_UPSTREAM_FLAG = "--upstream";
+
+/** Why a fork build refuses upstream's update, and how to update it instead. */
+export const forkUpdateRemediation = (fork: ForkIdentity): string =>
+  `This build is ${fork.name}, a fork of ${PRODUCT_IDENTITY.packageName}. rea update would install npm's ${PRODUCT_IDENTITY.packageName}, the upstream build, over it and remove ${fork.commands.join(", ")}. Update this build from its own source checkout (pull it, then npm run build:cached) instead. To replace it with upstream's release anyway, run rea update ${UPDATE_UPSTREAM_FLAG}.`;
+
 /** Identify, resolve, install, and verify REA without applying setup changes. */
 export const runUpdate = async (
   currentVersion: string,
   host: UpdateHost,
   output: UpdateOutput = "human",
+  forkPolicy?: UpdateForkPolicy,
 ): Promise<UpdateResult> => {
   let result: UpdateResult | undefined;
   let primaryFailure: unknown;
   let failed = false;
   try {
-    result = await runUpdateWorkflow(currentVersion, host, output);
+    result =
+      forkPolicy !== undefined && !forkPolicy.replaceWithUpstream
+        ? {
+            status: "failed",
+            currentVersion,
+            latestVersion: null,
+            reason: "fork-build",
+            remediation: forkUpdateRemediation(forkPolicy.fork),
+          }
+        : await runUpdateWorkflow(currentVersion, host, output);
   } catch (cause: unknown) {
     failed = true;
     primaryFailure = cause;
