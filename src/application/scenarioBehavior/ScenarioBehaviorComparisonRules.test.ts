@@ -142,10 +142,7 @@ it("finds a list and an object different whatever is declared volatile beneath t
     ).verdict,
   ).toBe("unchanged");
   // A side that answers with either kind disagrees with itself: unstable, declared or not, never a match.
-  const either = [
-    ids(["0a1b", "2c3d"]),
-    ids({ "0": "0a1b", "1": "2c3d" }),
-  ];
+  const either = [ids(["0a1b", "2c3d"]), ids({ "0": "0a1b", "1": "2c3d" })];
   for (const volatile_fields of [
     [],
     [{ step_id: "read", pointer: "/ids/*" }],
@@ -810,9 +807,13 @@ it("judges a list in varying order position by position, declared or not", async
   ]);
   expect(shuffled.limitations).toContainEqual(hint);
   // Two right captures, one of which agrees at the coinciding position: the right disagrees with itself there, with the same advice.
-  const twice = await compare(left, [items("b", "c", "a"), items("a", "b", "c")], {
-    volatile_fields,
-  });
+  const twice = await compare(
+    left,
+    [items("b", "c", "a"), items("a", "b", "c")],
+    {
+      volatile_fields,
+    },
+  );
   expect(brief(twice, "read")).toEqual([
     "unstable",
     "body/repeats-differ right /*/id",
@@ -1129,11 +1130,7 @@ it("honours a declaration for every step only at the steps and requests where th
     line,
     reply: { json: { slug: value } },
   });
-  const steps = (
-    fresh: string,
-    second: string,
-    third = "steady",
-  ): Step[] => [
+  const steps = (fresh: string, second: string, third = "steady"): Step[] => [
     { id: "fp-notes", calls: [slug("GET /api/notes", fresh)] },
     { id: "one", calls: [slug("GET /api/a", fresh)] },
     {
@@ -1286,9 +1283,7 @@ it("never lets a value one capture lacks hide a wrong value in another", async (
     {
       id: "act",
       text,
-      calls: [
-        { line: "POST /api/thing", reply: { json: { a: 1 } }, ...call },
-      ],
+      calls: [{ line: "POST /api/thing", reply: { json: { a: 1 } }, ...call }],
     },
   ];
   const good = act();

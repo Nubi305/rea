@@ -71,7 +71,8 @@ const addressMapper = (
   return (text) => {
     const changed = new Set<AppliedAddress>();
     const mapped = text.replaceAll(pattern, (match) => {
-      const form = match === origin ? forms.origin : (forms.host ?? forms.origin);
+      const form =
+        match === origin ? forms.origin : (forms.host ?? forms.origin);
       changed.add(form);
       return form.to;
     });

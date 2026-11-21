@@ -431,9 +431,9 @@ it("honours a declared pattern only at the positions where the left's own repeat
     varies: [],
   });
   // A right side that holds the steady value there is equal.
-  expect(
-    judge(left, [[{ id: "u-3" }, { id: "seed-1" }]], ["/*/id"]),
-  ).toEqual([{ pointer: "/0/id", outcome: "honoured", varies: ["left"] }]);
+  expect(judge(left, [[{ id: "u-3" }, { id: "seed-1" }]], ["/*/id"])).toEqual([
+    { pointer: "/0/id", outcome: "honoured", varies: ["left"] },
+  ]);
   // A list in varying order: the position where two captures coincide is not covered by its neighbours.
   const shuffled = [
     [{ id: "a" }, { id: "b" }, { id: "c" }],
