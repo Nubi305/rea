@@ -226,6 +226,13 @@ every step it cites is `unchanged`, `disagrees` when one is `changed`, and is
 - The start page counts as a step. The first trial's clone reworded the About
   page, so `scenario_start` is `changed` in both scenarios (77 of 79 steps
   unchanged) and no rule cites it.
+- `hidden.steps` counts every step, cited by a rule or not. varnholt's rules
+  cite 63 of the 79 steps a comparison has; a difference on the two start
+  pages or on one of the other 14 moves the step count and no rule
+  (`clone-check-app.mjs` lists the uncited steps).
+- The clone's reset command is given 90 seconds and its output is not waited
+  for. One that starts the clone in the foreground costs those 90 seconds on
+  each of four captures.
 - The judge is pinned so that a change in the comparer cannot move this
   number between two rows. Change the judge and every row has to be scored
   again.
@@ -317,12 +324,15 @@ bytes. Every tool result falls into one of three buckets:
 shim saw: the number to quote. `in_transcript_text` counts them in command
 text and is a lower bound. `evidence_files_in_run` is what the run folder
 holds at the end. The first trial predates the shim: its row says "at least
-28", and 48 Evidence files were left.
+28", and 48 Evidence files were left. Counting the lines its own two capture
+scripts printed gives about 74 captures.
 
 ### Rule breaks
 
 `rule_breaks` lists every tool call that names a path under a forbidden root:
-a REA checkout, the cell directory, the original's source. Running the
+the checkout under test and this repository (`rea-checkout`), every path
+given with `--forbid` (`off-limits`), and the cell directory with the
+original's source in it (`cell-private`). Running the
 original's control script is the one allowed use; reading it is not. A
 recursive search rooted above a forbidden path is listed as
 `search-covering-...`. A listed break is a mention to look at, not proof of a

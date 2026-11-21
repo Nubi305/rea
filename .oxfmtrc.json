@@ -20,6 +20,7 @@
     "bench/clone/apps/**",
     "bench/tasks/*/src/**",
     "bench/tasks/*/origin/**",
-    "bench/tasks/*/site/**"
+    "bench/tasks/*/site/**",
+    "bench/results/**"
   ]
 }
