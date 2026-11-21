@@ -305,3 +305,40 @@ can then silence. An unticked box is a finding that is still open.
       order. It is not printed, because the same round makes that finding block on a `setup-` step.
 - [ ] The corrected playbook has still not been followed by a fresh agent, and no verifier case pads a clone reply
       past the body limit at a `setup-` step: that rule rests on the referee's unit tests and its author's run.
+
+### Verification of the second fix round
+
+On the feature branch after the comparer's and the referee's packages were joined, in a container with Chromium and
+no native provider, with up to three other agents at work on the same four CPUs:
+
+- `node scripts/verify-clone-run.mjs` three times in a row on the final runtime: each run exited 0 and printed twenty
+  `pass` lines and no other, with 202 to 239 s of case time. The lines were the same in all three apart from the
+  ports. Three earlier runs in a row, on the runtime before the `--exit-code` refusal was added, gave the same lines.
+- `npm run test:local` over the comparer, step gate, referee, parity gate, stall, address, tree digest, tree walk,
+  workspace and schema tests, the environment comparison, scenario, source and capture-record tests and the two
+  conformance tests: 23 files, 399 tests passed. `CloneRunParityGate.test.ts`, which runs the referee's blocking
+  rule against the real comparer, passed against the joined comparer.
+- `npm run test:focused` over `tests/boundary/cli/cloneRunCli.test.ts`, `cloneRunVerifier.test.ts`,
+  `argvParser.test.ts`, `cliDecimalArguments.test.ts`, `cliContractCommandParity.test.ts`, `cliSetup.test.ts`,
+  `savedCaptureBundleCli.test.ts`, `tests/boundary/process/processCli.test.ts` and
+  `tests/boundary/filesystem/setupSkill.test.ts`: 9 files, 1181 tests passed and 5 skipped.
+- Every command the playbook's cards print, run as printed from a copy of the fixtures on two loopback ports, with
+  the bytes each wrote to standard output: the crawl 7,476; `export-web-scripts` 8,842; the script analysis in its
+  summary form 10,802, where the form the card printed before wrote 3,295,886; the routes view on the saved analysis
+  5,032 (an empty list for these scripts); the text view of one step 5,496; the manifest view 6,117; the first
+  evaluation 4,513; each of the worklist's four capture commands about 26,000, for an Evidence file of 274,000; the
+  prober's preview 5,433; the evaluation that read `done` 4,805.
+- The blind trial's run folder and clone, copied, with `target.json` pointed at the copy: exit 1, `not_done`, one
+  blocking finding, `unknown_open`; 640 steps unchanged, none changed, 25 unstable and ungated. The item says that
+  only the user, or a person the user names, can accept the gap, and prints no waiver. On that folder
+  `--exit-code=1`, `=0`, `=no` and an empty value were each refused with exit 1.
+- `rea setup` under a throwaway `HOME` installed the playbook byte for byte with skill version 66, and
+  `rea guidance --query "clone a web application"` returned the playbook first.
+- `npm run check:fast`, `npm run verify:test-discovery` (3,847 files), `npm run docs:check`, `npx knip --cache`,
+  `npx oxfmt --check .` and the checks of the package metadata, the editor plugin copy of the skill and the
+  third-party inventory passed. The format check first failed on three comparer files, which were then formatted.
+
+Not verified: the full test suite, coverage and mutation runs were not run. The proof round's and the verifiers'
+reproduction scripts were run by the two packages on their own branches and not again after the join, where the
+verifier's twenty cases, the unit tests and the trial replay stand for them. The spec writer's, builder's and
+verifier's cards print no command of their own and were not followed by a fresh agent.
