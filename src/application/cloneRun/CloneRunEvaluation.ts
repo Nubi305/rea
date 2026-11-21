@@ -2006,13 +2006,13 @@ export const evaluateCloneRun = async <
   const notJudgedBecause = judged
     ? undefined
     : target === null
-      ? `${CLONE_RUN_PATHS.target} is refused (check scope, reason target_invalid), so nothing was rendered, admitted or compared`
+      ? `${CLONE_RUN_PATHS.target} is refused (check scope, reason target_invalid) and nothing was rendered, admitted or compared`
       : workspace.scenarios.size === 0
-        ? `${CLONE_RUN_PATHS.scenarios}/ holds no valid scenario (check inputs), so there is nothing to capture or compare`
+        ? `${CLONE_RUN_PATHS.scenarios}/ holds no valid scenario (check inputs) and there is nothing to capture or compare`
         : !everyScenarioRendered
-          ? "a scenario could not be rendered (check inputs, reason scenario_invalid), so its captures cannot be admitted"
+          ? "a scenario could not be rendered (check inputs, reason scenario_invalid) and its captures cannot be admitted"
           : tree === null
-            ? "the clone root is missing (check scope, reason clone_root_missing), so no capture of the clone can be admitted"
+            ? "the clone root is missing (check scope, reason clone_root_missing) and no capture of the clone can be admitted"
             : "a scenario lacks admitted captures on a side (check evidence)";
   const maxRounds =
     target?.limits.max_rounds ?? CLONE_RUN_DEFAULT_LIMITS.max_rounds;

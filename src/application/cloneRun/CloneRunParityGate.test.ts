@@ -80,9 +80,11 @@ it("blocks a setup step whose steady wrong reply field is declared volatile", as
   // The declaration is honoured where the original really varies: nothing blocks, and a clone of another shape still does.
   const varying = [json({ plan: "a1" }), json({ plan: "b2" })];
   expect(
-    await gated(varying, [json({ plan: "c3" }), json({ plan: "d4" })], [
-      "/plan",
-    ]),
+    await gated(
+      varying,
+      [json({ plan: "c3" }), json({ plan: "d4" })],
+      ["/plan"],
+    ),
   ).toMatchObject({ status: "unchanged", blocking: [] });
   expect(
     await gated(varying, [json({ plan: 7 }), json({ plan: 7 })], ["/plan"]),

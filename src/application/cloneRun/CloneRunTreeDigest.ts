@@ -200,10 +200,11 @@ export const readCloneTreeFile = async (
 /** Hash one regular file as a stream. */
 const hashFile = async (
   path: string,
+  read: typeof readCloneTreeFile = readCloneTreeFile,
 ): Promise<{ readonly sha256: string; readonly bytes: number }> => {
   const hash = createHash("sha256");
   let bytes = 0;
-  await readCloneTreeFile(path, (chunk) => {
+  await read(path, (chunk) => {
     hash.update(chunk);
     bytes += chunk.length;
     return undefined;
@@ -244,7 +245,11 @@ const NAME_NOT_TEXT =
 export const digestCloneTree = async (
   root: string,
   exclude: readonly string[],
-  options: { readonly signal?: AbortSignal } = {},
+  options: {
+    readonly signal?: AbortSignal;
+    /** How a file's bytes are read: `readCloneTreeFile`, unless a test stands in front of it to change the tree between the listing and the read. */
+    readonly readFile?: typeof readCloneTreeFile;
+  } = {},
 ): Promise<Result<CloneTreeSnapshot, AnalysisError>> => {
   let resolvedRoot: string;
   try {
@@ -326,7 +331,11 @@ export const digestCloneTree = async (
           const cause = await linkCause(path, absolute, text);
           if (cause !== undefined) unsafeLinks.push({ path, cause });
         } else if (entry.isFile())
-          files.push({ path, kind: "file", ...(await hashFile(absolute)) });
+          files.push({
+            path,
+            kind: "file",
+            ...(await hashFile(absolute, options.readFile)),
+          });
       } catch (cause: unknown) {
         failed(path, cause);
       }

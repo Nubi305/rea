@@ -137,9 +137,9 @@ it("lets a gap pass on a setup or fingerprint step only when both sides show it"
     expect(blocking([body("right")])).toEqual([body("right")]);
     expect(blocking([body("left")])).toEqual([body("left")]);
     // The same gap of another request, or of another dimension, is not the same gap.
-    expect(blocking([body("left"), body("right", "GET /other#1")])).toHaveLength(
-      2,
-    );
+    expect(
+      blocking([body("left"), body("right", "GET /other#1")]),
+    ).toHaveLength(2);
     expect(
       blocking([
         body("left"),
@@ -208,8 +208,6 @@ it("matches a declaration to the pattern a finding reports, erring towards a mat
   expect(volatileDeclarationCovers("/items/0/id", "/items/*/id")).toBe(true);
   expect(volatileDeclarationCovers("/plan", "/plan")).toBe(true);
   expect(volatileDeclarationCovers("/plan", "/plans")).toBe(false);
-  expect(volatileDeclarationCovers("/items/*/id", "/items/*/name")).toBe(
-    false,
-  );
+  expect(volatileDeclarationCovers("/items/*/id", "/items/*/name")).toBe(false);
   expect(volatileDeclarationCovers("/items", "/items/*/id")).toBe(false);
 });

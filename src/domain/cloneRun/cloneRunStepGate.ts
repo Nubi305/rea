@@ -76,7 +76,7 @@ import {
  * ranks every gap last, so a blocking gap, or the other side of a gap that
  * would otherwise read as shared, can be among those it left out.
  */
-export type CloneRunFindingGate = "blocks" | "ungated" | "ungated-on-both";
+type CloneRunFindingGate = "blocks" | "ungated" | "ungated-on-both";
 
 /**
  * What each named category does on a `setup-` or `fp-` step.
@@ -135,12 +135,7 @@ const gapSubject = (finding: ScenarioBehaviorFinding): string =>
   JSON.stringify(
     finding.category === "other-origin"
       ? [finding.category, otherOrigin(finding)]
-      : [
-          finding.category,
-          finding.dimension,
-          finding.request,
-          finding.pointer,
-        ],
+      : [finding.category, finding.dimension, finding.request, finding.pointer],
   );
 
 /**

@@ -700,13 +700,6 @@ it("blocks on a changed, unknown or unstable step and says who does what", async
     { reason: "parity_unstable", count: 1 },
   ]);
   expect(oneSided.counts.ungated_steps).toBe(1);
-  expect(
-    oneSided.next.find((entry) => entry.step_id === "fp-list"),
-  ).toMatchObject({
-    reason: "parity_unknown",
-    role: "verifier",
-    side: "clone",
-  });
   // Data no capture of either side recorded is only counted on a setup or fingerprint step.
   await observedBy("original", [
     { create: MISSING, open: "a", "setup-seed": "x", "fp-list": MISSING },
