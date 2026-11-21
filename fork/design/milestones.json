@@ -1,0 +1,122 @@
+[
+  {
+    "name": "1. Referee and playbook for web apps (day one)",
+    "outcome": "Any agent with a shell can take a web app that can be run and reset locally from scouting to a verdict issued by REA, and a wrong business rule can no longer pass. Delivers: `rea compare-scenario-behavior` (several captures per side, address ignored, JSON bodies by pointer, page address, on-screen text with declared renames, pass/fail/unknown/unstable per step, exit codes 0/1/2), built on parseCaptureEvidence, probeRequests and compareAnswers; `rea init-clone-run` and `rea evaluate-clone-run` (done checks 1, 2, 3, 5, 6, 7 and the step-and-obligation half of 4; rendered capture inputs; admission records with a whole-clone-tree digest; the behaviour table; the `next` worklist); step_id carried on scenario capture records; the skill reference with seven role cards and the web playbook; a fixture trio (original, renamed clone, slug mutant) and a real-browser verifier. All three commands are CLI-only. Four parallel work packages: comparer; run folder and referee; CLI wiring, fixture and verifier; guidance and docs. The capture defects are not fixed here: a lost body reads as unknown and blocks done.",
+    "files": [
+      "src/domain/scenarioBehaviorComparison.ts (new, with test)",
+      "src/application/scenarioBehavior/ScenarioBehaviorComparisonService.ts (new, with test)",
+      "src/domain/analysisView/scenarioCaptureRecords.ts (carry step_id)",
+      "src/application/environment/environmentCompareProbe.ts (carry step_id on ProbeStep)",
+      "src/domain/cloneRun/cloneRunSchemas.ts (new)",
+      "src/application/cloneRun/CloneRunWorkspace.ts (new)",
+      "src/application/cloneRun/CloneRunTreeDigest.ts (new)",
+      "src/application/cloneRun/CloneRunEvaluation.ts (new, with test)",
+      "src/cli/cloneRunCommands.ts (new)",
+      "src/contracts/cliCommandNames.ts",
+      "src/cli/cliCommandRegistrations.ts",
+      "src/cli.ts",
+      "tests/boundary/cli/cliContractSchemaParity.uncomparable.json",
+      "tests/boundary/cli/cloneRunCli.test.ts (new)",
+      "tests/fixtures/cloneRun/ (new: original, renamed clone, mutant switch, scenario)",
+      "scripts/verify-clone-run.mjs (new)",
+      "scripts/lib/clone-run-e2e.mjs (new)",
+      "scripts/verify-clone-run-live.mjs (new)",
+      "package.json (scripts verify:clone-run and verify:clone-run:live)",
+      ".agents/skills/reverse-engineer-anything/references/clone-runs.md (new)",
+      ".agents/skills/reverse-engineer-anything/SKILL.md (pointer replacing the one build sentence, metadata.version bump)",
+      "src/application/SetupSkill.ts (MANAGED_SKILL_FILES)",
+      "tests/boundary/filesystem/setupSkill.test.ts (path list)",
+      "src/generatedPackageMetadata.ts (regenerated)",
+      ".cursor-plugin/skills/reverse-engineer-anything/ (regenerated copy)",
+      "tests/conformance/cloneRunGuidance.test.ts (new: every command and reason code named in the reference exists)",
+      "docs/specs/reconstruction/clone-runs/spec.md, plan.md, tasks.md (new)",
+      "docs/reference/clone-runs.md (new)",
+      "docs/getting-started/cli.md"
+    ],
+    "acceptance": "All in this container, no native provider. (a) `npm run test:local -- src/domain/scenarioBehaviorComparison.test.ts src/application/cloneRun/CloneRunEvaluation.test.ts tests/conformance/cloneRunGuidance.test.ts` passes. (b) `npm run build:cached && REA_BROWSER_EXECUTABLE=/opt/pw-browsers/chromium REA_BROWSER_NO_SANDBOX=true node scripts/verify-clone-run.mjs` starts the fixture original, renamed clone and slug mutant on loopback ports, captures with real Chromium and must print: matching clone -> `rea evaluate-clone-run --exit-code` exits 0; mutant -> exit 1 with a `next` item whose pointer ends in /slug; one capture per side with an unobserved body -> not done (unknown); one line appended to a clone file after a pass -> stale; an edited evidence file -> rejected; a capture taken from the other side's address -> rejected; the original's name left in the clone -> forbidden name; two captures with no reset between them -> stale start state. (c) `HOME=<throwaway> node scripts/rea.mjs setup --yes --json --client claude_code` installs references/clone-runs.md, and `node scripts/rea.mjs guidance --query \"clone parity\" --json` returns matches (it returns no_matches today; I ran it). (d) Live smoke, because REA's tool-design guide says a scripted sequence does not show an agent will use a tool: `node scripts/verify-clone-run-live.mjs` serves the fixture original from a directory outside the agent's workspace, starts one headless `claude -p` session (Claude Code 2.1.329 is installed here) with helpers disallowed, then runs the referee itself. Pass is exit 0 within 8 rounds, with tokens and wall time printed. Expect to revise the playbook once or twice before (d) passes.",
+    "depends_on": "Nothing"
+  },
+  {
+    "name": "2. Trustworthy captures and a bar that is hard to lower",
+    "outcome": "Runs against real apps stop stalling on unknown, and done also means the probes were sufficient. Fix response bodies lost on request steps when the server sends Cache-Control: no-store, by recording the body the page itself read under its own representation label. Reproduce the two pilot hangs and make the step deadline bound every action. Add surfaces.json and done check 4 in full: every in-scope surface cited, every input field probed with its boundary classes or waived, unresolved static call sites listed as probe targets. Add the screenshot dimension with a declared changed-pixel tolerance. Add the coverage report the critic reads. Only if the owner approves decision 2: supervised start, reset and stop of the approved argv in target.json.",
+    "files": [
+      "src/browser/PlaywrightScenarioRequest.ts",
+      "src/browser/PlaywrightScenarioEvents.ts",
+      "scripts/lib/browser-request-e2e.mjs (no-store regression)",
+      "src/domain/cloneRun/cloneRunSchemas.ts (surfaces, screenshot policy)",
+      "src/application/cloneRun/CloneRunCoverage.ts (new)",
+      "src/application/cloneRun/CloneRunEvaluation.ts",
+      "src/domain/scenarioBehaviorComparison.ts (screenshot dimension)",
+      "src/application/scenarioBehavior/ScenarioBehaviorComparisonService.ts",
+      "scripts/lib/clone-run-e2e.mjs",
+      "scripts/verify-clone-run.mjs (--soak)",
+      "tests/fixtures/cloneRun/ (no-store variant, rebranded clone, layout mutant)",
+      ".agents/skills/reverse-engineer-anything/references/clone-runs.md",
+      "docs/reference/clone-runs.md"
+    ],
+    "acceptance": "(a) `npm run build:cached && REA_BROWSER_EXECUTABLE=/opt/pw-browsers/chromium REA_BROWSER_NO_SANDBOX=true node scripts/verify-browser-request.mjs` with a new case: a fixture answering Cache-Control: no-store, 60 back-to-back request steps, zero unavailable bodies. The research captures I inspected show 5 and 4 of 62 unavailable before any fix. (b) `REA_BROWSER_EXECUTABLE=/opt/pw-browsers/chromium REA_BROWSER_NO_SANDBOX=true node scripts/verify-clone-run.mjs --soak 200` runs the pilot's UI scenario 200 times under a 60-second outer limit: no run is killed by the outer limit, and any run that exceeds its own deadline returns REA's deadline error with cleanup complete. (c) `node scripts/verify-clone-run.mjs` gains these cases: a mapped route no obligation cites -> not done; an input field with no boundary probe -> not done until probed or waived; a rebranded clone passes only with the declared rename and tolerance; a layout mutant fails on the screenshot dimension. (d) Only if lifecycle is approved: the script kills the fixture between captures and the next capture still starts from a clean instance; a busy port is refused.",
+    "depends_on": "Milestone 1"
+  },
+  {
+    "name": "3. Packaged crew for Claude Code, proven by live runs",
+    "outcome": "One command starts the team. Ships `/rea:clone <target>`; seven agent files (scout, mapper, prober, spec writer, critic, builder, verifier; the lead is the main conversation), none naming REA MCP tools so both install routes work; a workflow script that schedules scout, per-family map/probe/spec, critic rounds, builders in git worktrees, verify and fix; and a hook that denies builders any read under the run's evidence and scout folders. A `clone_application` guided workflow gives other clients the same entry point. Packaging is pinned so the new folders cannot silently fall out of the npm package.",
+    "files": [
+      "agents/clone-scout.md",
+      "agents/clone-mapper.md",
+      "agents/clone-prober.md",
+      "agents/clone-spec-writer.md",
+      "agents/clone-critic.md",
+      "agents/clone-builder.md",
+      "agents/clone-verifier.md",
+      "workflows/clone-crew.js",
+      "commands/clone.md",
+      "hooks/hooks.json",
+      "hooks/clone-wall.mjs",
+      "package.json (files: agents, commands, workflows, hooks)",
+      "tests/conformance/releaseConfiguration.test.ts",
+      "scripts/verify-package-pack.mjs",
+      "scripts/ci/change-plan.mjs",
+      "src/contracts/promptContracts.ts (clone_application entry)",
+      "tests/boundary/mcp/promptMcp.test.ts",
+      "docs/getting-started/mcp-prompts.md",
+      ".agents/skills/reverse-engineer-anything/references/clone-runs.md",
+      "scripts/verify-clone-run-live.mjs (--mode single|team|resume)",
+      "tests/fixtures/cloneRun/blind/ (written by a different agent from the one that runs it)"
+    ],
+    "acceptance": "(a) `HOME=<throwaway> claude plugin validate /home/user/rea --strict` lists the seven rea:clone-* agents, workflow rea:clone-crew, command rea:clone and the hook. The Claude-native draft plugin already validates this way on 2.1.329; I ran it. (b) `npm run test:local -- tests/conformance/releaseConfiguration.test.ts` passes, and in a scratch copy with the scripts block removed `npm pack --dry-run --json` lists agents/, commands/, workflows/ and hooks/. Never run npm pack in the tree: `prepare` runs even with --ignore-scripts. (c) `node scripts/verify-clone-run-live.mjs --mode single`, `--mode team` and `--mode resume` run three headless sessions with `claude --plugin-dir /home/user/rea -p` on the blind fixture, served from outside the workspace: one agent with helpers off; the workflow team; the team killed mid-run and restarted with only \"continue the clone run at <path>\". Each passes when the script's own referee call exits 0, the hook log shows every builder read under evidence/ denied, and journal.jsonl shows no item done twice after the resume. The script then replays a held-out scenario the agents never saw against both sides and prints its agreement, with tokens, cost and wall time per mode.",
+    "depends_on": "Milestone 1. Independent of milestone 2, but do 2 first for apps that send no-store."
+  },
+  {
+    "name": "4. JavaScript, Electron and command-line targets",
+    "outcome": "The same run folder and referee handle targets with no web page. Two new claim kinds: process transcript (a deterministic harness under capture-process on both sides, one digest line, pass only when the terminal and exit dimensions are both unchanged, since the top-level status reads unknown even for a match) and JavaScript surface (set equality of IPC channel plus mode and of bridge member paths between two analyze-javascript-application Evidence files). Obligations known only from reading code are `inferred` and block done until the original side is executed or the owner waives them. Fix silent stdout loss in capture-process. Add the JavaScript and command-line section of the playbook.",
+    "files": [
+      "src/domain/cloneRun/cloneRunSchemas.ts (claim kinds)",
+      "src/application/cloneRun/ProcessTranscriptClaim.ts (new)",
+      "src/application/cloneRun/JavascriptSurfaceClaim.ts (new)",
+      "src/application/cloneRun/CloneRunEvaluation.ts",
+      "src/process/capture/ProcessCaptureLifecycle.ts (stdout retention)",
+      "tests/fixtures/cloneRun/asar/ (original and clone ASAR, node harness)",
+      "tests/fixtures/cloneRun/cli/ (small C program, reimplementation, mutant)",
+      "scripts/verify-clone-run.mjs (--lane process)",
+      "scripts/lib/clone-run-e2e.mjs",
+      ".agents/skills/reverse-engineer-anything/references/clone-runs.md",
+      "docs/reference/clone-runs.md"
+    ],
+    "acceptance": "`npm run build:cached && node scripts/verify-clone-run.mjs --lane process`, with no browser and no native provider: (a) a small C program built with gcc against a reimplementation: matching output over the argument and stdin matrix -> referee exits 0; a mutant -> exit 1 naming the first diverging case. (b) An ASAR fixture pair modelled on the JavaScript pilot: matching store and settings modules under a node harness -> exit 0; a clone missing one IPC channel -> exit 1 naming the channel; an obligation marked inferred with no original-side run -> not done until waived. (c) A capture-process regression: a 10 KB stdout is retained in full or reported as truncated (the pilot saw 10,483 bytes kept as 6,262 with truncated: false).",
+    "depends_on": "Milestone 1"
+  },
+  {
+    "name": "5. Close REA's own obligation ledger",
+    "outcome": "REA's existing scoreboard can reach verified for a clone run. A proof producer derives rea.reconstruction-proof Evidence from the referee's comparisons and the clone-tree digest; a canonical bundle merge lets separately produced Evidence be pooled; obligations project into the ledger's reviewed_obligations. This needs the owner's scope decision first, because an honest proof step has to run both sides itself.",
+    "files": [
+      "src/application/ReconstructionObligationProofService.ts (new)",
+      "src/application/ReconstructionObligationAuthority.ts",
+      "src/application/EvidenceBundleCommands.ts (merge)",
+      "src/application/cloneRun/CloneRunLedgerProjection.ts (new)",
+      "docs/reference/reconstruction-obligation-ledgers.md",
+      "tests/boundary/cli/reconstructionObligationProofCli.test.ts (new)"
+    ],
+    "acceptance": "On the milestone 1 fixture run: `node scripts/rea.mjs build-reconstruction-obligation-ledger <projected-request.json> --json` reports summary.verified equal to the number of obligations (the web pilot got verified 0 with shipped tools); the same request built from the mutant clone reports none verified for the slug obligation; and `node scripts/rea.mjs evidence-import <merged-bundle.json>` accepts a bundle merged from two separately produced captures (the pilots' hand-merged bundles were rejected as not canonical).",
+    "depends_on": "Milestones 1 and 4, plus the owner's scope decision (decision 6)"
+  }
+]
