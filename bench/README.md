@@ -180,10 +180,19 @@ can write to the real home. Before that it appends one line to
 or a schema call.
 
 The prompts are in `harness/lib/prompts.mjs`. The clone prompt is the first
-trial's cloner prompt with two differences that the task set: the skill is
-already installed (the first agent installed it itself and read 25,295 bytes
-of setup output), and the original is running when the agent starts. Change
-anything else in it and later rows stop being comparable with earlier ones.
+trial's cloner prompt, sentence for sentence, with the cell's paths in it and
+four differences:
+
+- the skill is already installed (the first agent installed it itself and
+  read 25,295 bytes of setup output);
+- the original is running when the agent starts (it was stopped then);
+- the agent gets one port for its clone, where the first got twenty
+  (`--spare-ports` adds more);
+- the off-limits paths are the cell's, and the original is controlled through
+  one script that carries the cell's port.
+
+Change anything else in it and later rows stop being comparable with earlier
+ones.
 
 An agent under test reaches REA through the CLI and the installed skill files
 only. Workflow agents cannot be given a private MCP server, so nothing here
@@ -221,9 +230,10 @@ every step it cites is `unchanged`, `disagrees` when one is `changed`, and is
   run's own `target.json` records (`clone.commands.reset` and `stop`). A run
   that recorded none is `measured: false`.
 - Agreement is only as wide as the held-out scenarios. The first trial's clone
-  agrees on 23 of 23 rules here, while a person probing by hand found two
-  rules it only partly matched (a rounding at exact half-way values, the text
-  of one error message), neither on a step the scenarios take.
+  agrees on 23 of 23 rules here, while that trial's judge, probing with
+  requests of its own, found two rules it only partly matched (a rounding at
+  exact half-way values, the text of one error message), neither on a step
+  the scenarios take.
 - The start page counts as a step. The first trial's clone reworded the About
   page, so `scenario_start` is `changed` in both scenarios (77 of 79 steps
   unchanged) and no rule cites it.
@@ -233,7 +243,7 @@ every step it cites is `unchanged`, `disagrees` when one is `changed`, and is
   (`clone-check-app.mjs` lists the uncited steps).
 - The clone's reset command is given 90 seconds and its output is not waited
   for. One that starts the clone in the foreground costs those 90 seconds on
-  each of four captures.
+  every capture of the clone, two per scenario.
 - The judge is pinned so that a change in the comparer cannot move this
   number between two rows. Change the judge and every row has to be scored
   again.
