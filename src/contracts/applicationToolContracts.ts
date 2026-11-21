@@ -107,7 +107,7 @@ export const APPLICATION_TOOL_CONTRACTS = [
     name: "search_guidance",
     ...toolContractMetadata("search_guidance", toolEffects()),
     description:
-      "Find installed REA workflow guidance by query words. Returns ranked sections, pages and locators for read_guidance_section; every non-generic word must match, with direct section matches ranked before matches spread across children. Reads documentation only, without accessing a target or provider.",
+      "Find installed REA workflow guidance by query words. Returns three sections by default, ranked by how many query words each covers (shown as a count; heading and keyword words weigh more), with short locators for read_guidance_section. A whole guide is replaced by its matching sections. Reads documentation only, without accessing a target or provider.",
     kind: "application",
     inputSchema: searchGuidanceInputSchema,
     outputSchema: searchGuidanceOutputSchema,
@@ -146,11 +146,16 @@ export const APPLICATION_TOOL_CONTRACTS = [
     name: "read_guidance_section",
     ...toolContractMetadata("read_guidance_section", toolEffects()),
     description:
-      "Retrieve a section selected by search_guidance from the installed REA guidance bundle. Reports stale locators and unavailable bundles explicitly. Returns documentation, not target observations or Evidence.",
+      'Retrieve a section selected by search_guidance from the installed REA guidance bundle, or with locator "contents" the guides and their headings ("contents:<guide>" for one guide\'s headings), each with its locator. Reports stale locators and unavailable bundles explicitly. Returns documentation, not target observations or Evidence.',
     kind: "application",
     inputSchema: readGuidanceSectionInputSchema,
     outputSchema: readGuidanceSectionOutputSchema,
-    examples: [],
+    examples: [
+      {
+        title: "List the guides and their headings",
+        input: { locator: "contents" },
+      },
+    ],
   },
   {
     name: "trace_application_feature",

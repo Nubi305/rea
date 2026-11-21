@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const searchGuidanceLimitSchema = z.number().int().min(1).max(20);
 
-/** Pointers that locate scattered terms; one term per pointer is the worst case. */
-export const MAX_SUBSECTION_POINTERS = 8;
+/** The locator that reads the list of guides and headings instead of a section. */
+export const GUIDANCE_CONTENTS_LOCATOR = "contents";
 
 export const searchGuidanceInputSchema = z.strictObject({
   query: z
@@ -11,15 +11,21 @@ export const searchGuidanceInputSchema = z.strictObject({
     .min(1)
     .max(2048)
     .describe(
-      "Lexical query: every non-generic word must occur in the section or its subsections; generic-only queries return no matches.",
+      "Lexical query: sections are ranked by how many non-generic words they cover (more than half), heading and keyword words weighing more; generic-only queries return no matches.",
     )
     .refine((value) => value.trim().length > 0),
-  limit: searchGuidanceLimitSchema.default(8),
+  limit: searchGuidanceLimitSchema.default(3),
   cursor: z.string().min(1).max(4096).optional(),
 });
 
 export const readGuidanceSectionInputSchema = z.strictObject({
-  locator: z.string().min(1).max(4096),
+  locator: z
+    .string()
+    .min(1)
+    .max(4096)
+    .describe(
+      `A locator from search_guidance (short or earlier long form), ${GUIDANCE_CONTENTS_LOCATOR} for every guide and its headings, or ${GUIDANCE_CONTENTS_LOCATOR}:<guide> for all headings of one guide.`,
+    ),
 });
 
 export const searchGuidanceOutputSchema = z.discriminatedUnion("status", [
@@ -35,13 +41,11 @@ export const searchGuidanceOutputSchema = z.discriminatedUnion("status", [
         guide: z.string(),
         heading: z.string(),
         locator: z.string(),
-        match_scope: z
-          .enum(["section", "subsections"])
+        matched: z
+          .string()
           .describe(
-            "section: every term is in this section's own text. subsections: terms are only spread across subsections.",
+            "How many of the query's non-generic words the section covers, and which.",
           ),
-        matched_terms: z.array(z.string()),
-        relevance: z.string(),
         context: z.string(),
         content_length: z
           .number()
@@ -50,21 +54,6 @@ export const searchGuidanceOutputSchema = z.discriminatedUnion("status", [
           .describe(
             "UTF-16 length of the complete section read_guidance_section returns.",
           ),
-        own_text_terms: z.array(z.string()).optional(),
-        subsections: z
-          .array(
-            z.strictObject({
-              heading: z.string(),
-              locator: z.string(),
-              matched_terms: z.array(z.string()),
-            }),
-          )
-          .max(MAX_SUBSECTION_POINTERS)
-          .optional()
-          .describe(
-            "Subsections whose own text holds the terms this section's own text lacks.",
-          ),
-        omitted_subsections: z.number().int().positive().optional(),
       }),
     ),
     total_matches: z.number().int().nonnegative(),
@@ -106,6 +95,26 @@ export const readGuidanceSectionOutputSchema = z.discriminatedUnion("status", [
     heading: z.string(),
     locator: z.string(),
     content: z.string(),
+  }),
+  z.strictObject({
+    status: z.literal("contents"),
+    source: z.literal("installed_rea_guidance"),
+    content_kind: z.literal("documentation"),
+    package: z.string(),
+    bundle_sha256: z.string().length(64),
+    guides: z.array(
+      z.strictObject({
+        guide: z.string(),
+        sections: z.array(
+          z.strictObject({
+            locator: z.string(),
+            depth: z.number().int().nonnegative(),
+            heading: z.string(),
+          }),
+        ),
+      }),
+    ),
+    more: z.string().optional(),
   }),
   z.strictObject({
     status: z.enum(["stale_locator", "bundle_unavailable"]),
