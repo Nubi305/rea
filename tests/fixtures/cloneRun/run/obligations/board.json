@@ -1,0 +1,26 @@
+{
+  "obligations": [
+    {
+      "id": "where-served",
+      "statement": "The Where page names the host and port the board is served from and gives a link to the board at that address.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "board",
+          "step_ids": ["where-page"]
+        }
+      ]
+    },
+    {
+      "id": "board-facts",
+      "statement": "GET /api/board answers the board's own address and its host and port, the plan free, two tokens made anew for every request, and two sessions: the current one, whose id is new for every request, then the seeded one, whose id is seed-session.",
+      "basis": "observed",
+      "cases": [
+        {
+          "scenario": "board",
+          "step_ids": ["board-facts"]
+        }
+      ]
+    }
+  ]
+}

@@ -53,6 +53,37 @@ export const captureComplete = ({ gate }) =>
       reason.startsWith("evidence_") || reason.startsWith("start_state_"),
   );
 
+/**
+ * Captures are complete and no step lacks data another capture could still
+ * supply, apart from the steps named: a reply body is sometimes lost in every
+ * capture of a side, and the worklist then asks for one more.
+ */
+export const settled =
+  (...expectedUnknown) =>
+  (result) =>
+    captureComplete(result) &&
+    !result.gate.next.some(
+      ({ reason, step_id: id, step_ids: ids }) =>
+        reason === "parity_unknown" &&
+        (ids ?? [id]).some((step) => !expectedUnknown.includes(step)),
+    );
+
+export const readJson = async (file) =>
+  JSON.parse(await readFile(file, "utf8"));
+
+/** The comparison the referee wrote for a scenario, every step included. */
+export const parityOf = (context, scenario) =>
+  readJson(join(context.run, "parity", `${scenario}.json`));
+
+/** Each step's status in the comparison the referee wrote for a scenario. */
+export const stepStatuses = async (context, scenario) =>
+  Object.fromEntries(
+    (await parityOf(context, scenario)).steps.map(({ step_id: id, status }) => [
+      id,
+      status,
+    ]),
+  );
+
 /** Run owned commands, reading an exit status as a result and anything else as a failure. */
 const commandRunner = (commands, signal) => {
   const env = {
@@ -220,10 +251,10 @@ export const initArguments = (context, directory, cloneAddress) => [
   "--rea-command",
   context.reaCommand,
   // A round is a judged clone tree. This one folder judges the matching
-  // clone, three mutants and the clone again after each, more trees than the
+  // clone, seven mutants and the clone again after each, more trees than the
   // default of 8 allows a team before every result reads stalled.
   "--max-rounds",
-  "20",
+  "30",
 ];
 
 export const addFixtureScenario = async (context, scenario) => {

@@ -26,9 +26,10 @@ export const EVERY_STEP = "*";
 export const FINGERPRINT_STEP_PREFIX = "fp-";
 /**
  * Steps with this prefix prepare state and need no citation. They are
- * compared like any other step; which of their findings block a clone run is
- * the referee's rule, and a `changed` one always does, so renaming a failing
- * step cannot hide a difference.
+ * compared like any other step. Which of their findings block a clone run is
+ * the referee's rule (`CLONE_RUN_PREPARED_STEP_GATES`): every finding in
+ * which the left is steady and the right differs does, so neither renaming a
+ * failing step nor declaring its field volatile hides a difference.
  */
 export const SETUP_STEP_PREFIX = "setup-";
 /** Step ids REA owns; an authored scenario cannot use the prefix. */
@@ -135,6 +136,12 @@ export const volatileValueShape = (value: JsonValue): string => {
 
 /** Volatile field entries kept per step in a comparison. */
 export const STEP_VOLATILE_FIELD_LIMIT = 20;
+/**
+ * Findings kept per step in a comparison: the most severe are listed and the
+ * rest are counted in `limitations`. A step that lists this many may have had
+ * more, which is what the clone-run referee reads the limit for.
+ */
+export const STEP_FINDING_LIMIT = 20;
 
 /** A changed step outranks an unknown or unstable one; missing data never yields `unchanged`. */
 export const scenarioBehaviorVerdict = (

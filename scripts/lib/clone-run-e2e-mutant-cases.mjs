@@ -7,18 +7,18 @@ import {
   addFixtureScenario,
   applyMutant,
   assertNotDone,
-  captureComplete,
   compareMain,
   describeGate,
+  readJson,
   reasonsOf,
+  settled,
+  stepStatuses,
   withdrawScenario,
 } from "./clone-run-e2e-context.mjs";
 
 const DOWNLOAD_SCENARIO = "download";
 const DOWNLOAD_LINK_STEP = "download-link";
 const DOWNLOAD_FETCH_STEP = "download-fetched";
-
-const readJson = async (file) => JSON.parse(await readFile(file, "utf8"));
 
 /** The referee's own outputs for the main scenario, which no verdict reads back. */
 const refereeOutputs = (context) => ({
@@ -27,29 +27,6 @@ const refereeOutputs = (context) => ({
   records: join(context.run, "records", "clone", `${MAIN_SCENARIO}.json`),
   rendered: join(context.run, "rendered", "clone", `${MAIN_SCENARIO}.json`),
 });
-
-/** Each step's status in the comparison the referee wrote for a scenario. */
-const stepStatuses = async (context, scenario) =>
-  Object.fromEntries(
-    (await readJson(join(context.run, "parity", `${scenario}.json`))).steps.map(
-      ({ step_id: id, status }) => [id, status],
-    ),
-  );
-
-/**
- * Captures are complete and no step lacks data another capture could still
- * supply, apart from the steps named: a reply body is sometimes lost in every
- * capture of a side, and the worklist then asks for one more.
- */
-const settled =
-  (...expectedUnknown) =>
-  (result) =>
-    captureComplete(result) &&
-    !result.gate.next.some(
-      ({ reason, step_id: id, step_ids: ids }) =>
-        reason === "parity_unknown" &&
-        (ids ?? [id]).some((step) => !expectedUnknown.includes(step)),
-    );
 
 /**
  * The cases about a clone that behaves differently. Each starts from a run

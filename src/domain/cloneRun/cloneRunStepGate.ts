@@ -1,5 +1,6 @@
 import {
   scenarioStepStatus,
+  STEP_FINDING_LIMIT,
   type ScenarioBehaviorFinding,
   type ScenarioStepKind,
   type ScenarioStepStatus,
@@ -100,11 +101,8 @@ export const CLONE_RUN_PREPARED_STEP_GATES: Readonly<
   "undeclared-volatile": "ungated",
 };
 
-/**
- * Findings the comparer keeps per step (`STEP_FINDING_LIMIT` of the comparer
- * service). A step that lists this many may have had more.
- */
-export const CLONE_RUN_STEP_FINDING_LIMIT = 20;
+/** Findings the comparer keeps per step. A step that lists this many may have had more. */
+export const CLONE_RUN_STEP_FINDING_LIMIT = STEP_FINDING_LIMIT;
 
 /** Whether the comparer may have left findings of this step out of its list. */
 export const cloneRunStepFindingsCut = (

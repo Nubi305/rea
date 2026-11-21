@@ -4,6 +4,7 @@
 // rules a rebuild has to discover by probing are in `store`: how a slug is
 // made and kept, how titles are normalised and compared, list order, and
 // which topics cannot be deleted. Node standard library only.
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -198,6 +199,30 @@ function aboutPage() {
   );
 }
 
+// The host and port the browser asked for, as the board prints them.
+function wherePage(host) {
+  return layout(
+    "Where",
+    "<h2>Where</h2>\n<p>Served from " +
+      escapeHtml(host) +
+      "</p>\n<p>Link to this board: http://" +
+      escapeHtml(host) +
+      "/</p>\n",
+  );
+}
+
+// What the board says about itself. The tokens and the id of the current
+// session are made anew for every request; the seeded session never changes.
+function boardFacts(host) {
+  return {
+    address: "http://" + host + "/api/board",
+    host: host,
+    plan: "free",
+    tokens: [randomUUID(), randomUUID()],
+    sessions: [{ id: randomUUID() }, { id: "seed-session" }],
+  };
+}
+
 function missingPage() {
   return layout(
     "Not found",
@@ -295,6 +320,8 @@ async function handleApi(store, request, response, url) {
   const parts = url.pathname.split("/").filter(Boolean);
   if (parts[1] === "export" && parts.length === 2 && request.method === "GET")
     return sendJson(response, 200, exportDocument(store));
+  if (parts[1] === "board" && parts.length === 2 && request.method === "GET")
+    return sendJson(response, 200, boardFacts(request.headers.host));
   if (parts[1] !== "topics" || parts.length > 3)
     return sendJson(response, 404, { error: "not_found" });
 
@@ -334,6 +361,8 @@ async function handle(store, request, response) {
   if (request.method !== "GET") return sendHtml(response, 405, missingPage());
   if (url.pathname === "/") return sendHtml(response, 200, homePage(store));
   if (url.pathname === "/about") return sendHtml(response, 200, aboutPage());
+  if (url.pathname === "/where")
+    return sendHtml(response, 200, wherePage(request.headers.host));
   if (url.pathname === "/app.js")
     return sendFile(response, "app.js", "text/javascript; charset=utf-8");
   if (url.pathname === "/style.css")

@@ -435,6 +435,38 @@ const sidesText = (shown: ScenarioBehaviorFinding | undefined): string => {
   );
 };
 
+/**
+ * Says that the original's value is shown the way it was compared, when the
+ * comparer read the original's own address in it as the clone's. Without it
+ * an item would say the original gave the clone's address.
+ */
+const addressNote = (
+  comparison: ScenarioBehaviorComparison | undefined,
+  shown: ScenarioBehaviorFinding | undefined,
+): string => {
+  const expected = shown?.expected ?? null;
+  const read =
+    expected === null
+      ? undefined
+      : comparison?.addresses_applied?.find(({ to }) => expected.includes(to));
+  return read === undefined
+    ? ""
+    : ` The original's value is shown as it was compared: its own address ${read.from} is read as the clone's, ${read.to}, so a clone that prints its own address there matches.`;
+};
+
+/** Whether a reply pointer names a position of a list, or a pattern over them. */
+const isListPosition = (pointer: string | null | undefined): boolean =>
+  pointer != null &&
+  pointer.split("/").some((token) => token === "*" || /^\d+$/u.test(token));
+
+/**
+ * What a list in varying order looks like to a comparison by position, and
+ * the remedy that works. A setup- name is not offered: a difference from a
+ * steady original blocks on every step.
+ */
+const listOrderHint = (scenarioFile: string): string =>
+  ` A list is compared position by position, also under a declared "*" pointer. If this is a list whose order varies between captures, a position where the original's captures happened to agree reads like a steady value, and more captures do not settle it: the prober makes the step request the list in a fixed order in ${scenarioFile} (a sort parameter, one page), and both sides are captured again.`;
+
 /** How the comparer ends a value it cut to an excerpt (`ellipsisExcerpt`). */
 const EXCERPT_CUT = "…";
 /** How many characters two cut values must share after a name for its end to be no coincidence. */
@@ -796,7 +828,7 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
       message: `${steps} of scenario ${scenario}: the comparison found more at ${several ? "these steps" : "this step"} than it lists (${CLONE_RUN_PATHS.parity}/${scenario}.json lists the most severe findings of a step only), so whether a finding it left out is a difference between the sides is not known. A setup- or fp- step may be unsteady or lack data, but not this much at once: the prober makes the step observe less in ${scenarioFile} (a request for one resource, a page without the varying parts) or splits it; both sides are then captured again.`,
     };
   if (status === "changed") {
-    const differs = `${steps} of scenario ${scenario} ${several ? "differ" : "differs"} from the original at ${at}: ${sidesText(shown)}.`;
+    const differs = `${steps} of scenario ${scenario} ${several ? "differ" : "differs"} from the original at ${at}: ${sidesText(shown)}.${addressNote(state.comparison, shown)}`;
     const renames =
       shown?.expected == null || shown.actual == null
         ? undefined
@@ -860,7 +892,9 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
         side: "original",
         file: `${CLONE_RUN_PATHS.evidence}/original/${scenario}`,
         command: original.sharedCaptureCommand(),
-        message: `${steps} of scenario ${scenario}: ${at} is declared volatile in ${CLONE_RUN_PATHS.intendedDifferences}, but the original's captures all gave ${shown.expected ?? "one value"} and the clone gave ${shown.actual ?? "another"}. A declaration is honoured only where the original's own captures differ, so nothing was ignored, and the difference blocks on every step, a setup- step included. A value that changes by the day or the hour looks steady in captures taken together: capture the original again now. ${resetHint(target, "original")}, then run the command and evaluate again. If the original still gives one value, the lead removes the entry from volatile_fields, and the difference is then the builder's to fix.`,
+        message: `${steps} of scenario ${scenario}: ${at} is declared volatile in ${CLONE_RUN_PATHS.intendedDifferences}, but the original's captures all gave ${shown.expected ?? "one value"} and the clone gave ${shown.actual ?? "another"}. A declaration is honoured only where the original's own captures differ, so nothing was ignored, and the difference blocks on every step, a setup- step included. A value that changes by the day or the hour looks steady in captures taken together: capture the original again now. ${resetHint(target, "original")}, then run the command and evaluate again. If the original still gives one value, the lead removes the entry from volatile_fields, and the difference is then the builder's to fix.${
+          isListPosition(shown.pointer) ? listOrderHint(scenarioFile) : ""
+        }`,
       };
     if (
       shown?.category === "not-recorded" &&
@@ -1037,7 +1071,11 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
         : ` (${several ? `at ${stepId}: ` : ""}${shown.actual})`
     } where the original holds one value${
       shown?.expected == null ? "" : ` (${shown.expected})`
-    }. Nothing says yet that the clone is wrong: a snapshot may have been taken before the page settled, or ${ONE_AT_A_TIME}. Captures fold, so a new capture cannot outvote an old one: the verifier runs the command to remove the clone's captures of this scenario, evaluates for the capture commands and captures again, one at a time. ${resetHint(target, "clone")}. Only if the same difference returns is it the builder's (make the clone answer the same every time; ${behavior} shows the original) or the prober's (a wait_for before the step in ${scenarioFile}).`,
+    }. Nothing says yet that the clone is wrong: a snapshot may have been taken before the page settled, or ${ONE_AT_A_TIME}. Captures fold, so a new capture cannot outvote an old one: the verifier runs the command to remove the clone's captures of this scenario, evaluates for the capture commands and captures again, one at a time. ${resetHint(target, "clone")}. Only if the same difference returns is it the builder's (make the clone answer the same every time; ${behavior} shows the original) or the prober's (a wait_for before the step in ${scenarioFile}).${
+      shown?.dimension === "body" && isListPosition(shown.pointer)
+        ? listOrderHint(scenarioFile)
+        : ""
+    }`,
   };
 };
 

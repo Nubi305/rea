@@ -1,0 +1,6 @@
+{
+  "description": "Turns the fixture clone into a mutant that answers another plan than the original, steadily: team where the original answers free.",
+  "file": "facts.mjs",
+  "find": "plan: \"free\",",
+  "replace": "plan: \"team\","
+}

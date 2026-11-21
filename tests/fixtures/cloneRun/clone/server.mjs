@@ -7,6 +7,7 @@ import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { pathToFileURL } from "node:url";
 
+import { addressOf, factsOf } from "./facts.mjs";
 import { sheetOf } from "./sheet.mjs";
 import { TopicBoard } from "./topics.mjs";
 import * as views from "./views.mjs";
@@ -57,6 +58,7 @@ const pages = (board) =>
   new Map([
     ["/", () => html(200, views.home(board.search()))],
     ["/about", () => html(200, views.about())],
+    ["/where", ({ host }) => html(200, views.where(host, addressOf(host)))],
     [
       "/topic",
       ({ url }) => {
@@ -111,6 +113,8 @@ const answerApi = async (board, api, request, url) => {
       topics: board.search(),
       archive: archive(),
     });
+  if (collection === "board" && id === undefined && request.method === "GET")
+    return json(200, factsOf(request.headers.host));
   if (collection !== "topics" || deeper.length > 0) return noSuch();
   const input = WRITES.has(request.method) ? await jsonBody(request) : {};
   if (input === undefined) return json(400, { error: "invalid_json" });
@@ -134,7 +138,9 @@ const answer = async (site, request) => {
       body: await readFile(new URL(`.${url.pathname}`, import.meta.url)),
     };
   const page = site.pages.get(url.pathname);
-  return page === undefined ? html(404, views.missing()) : page({ url });
+  return page === undefined
+    ? html(404, views.missing())
+    : page({ url, host: request.headers.host });
 };
 
 /**

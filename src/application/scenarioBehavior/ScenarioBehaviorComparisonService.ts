@@ -7,6 +7,7 @@ import { err, ok, type Result } from "../../domain/result.js";
 import {
   EVERY_STEP,
   SCENARIO_BEHAVIOR_OPERATION,
+  STEP_FINDING_LIMIT,
   STEP_VOLATILE_FIELD_LIMIT,
   judgeReplyLeaves,
   orderScenarioFindings,
@@ -64,8 +65,6 @@ import {
 
 export { readScenarioBehaviorCapture, type ScenarioBehaviorCapture };
 
-/** Findings kept per step; the most severe are kept and the rest counted in `limitations`. */
-const STEP_FINDING_LIMIT = 20;
 /** Characters of equal text shown before the first difference of two on-screen texts. */
 const TEXT_CONTEXT_CHARS = 30;
 /** Reply bodies larger than this are left out of the behaviour table, not out of the comparison. */

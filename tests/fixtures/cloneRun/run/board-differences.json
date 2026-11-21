@@ -1,0 +1,16 @@
+{
+  "volatile_fields": [
+    {
+      "scenario": "board",
+      "step_id": "*",
+      "pointer": "/tokens/*",
+      "reason": "tokens made anew for every request"
+    },
+    {
+      "scenario": "board",
+      "step_id": "*",
+      "pointer": "/sessions/*/id",
+      "reason": "the id of the current session is new for every request"
+    }
+  ]
+}

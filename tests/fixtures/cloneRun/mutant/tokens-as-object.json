@@ -1,0 +1,6 @@
+{
+  "description": "Turns the fixture clone into a mutant whose tokens are an object keyed by position (\"0\", \"1\") where the original answers an array. Every value beneath is new for every request and declared volatile (/tokens/*), so no steady leaf shows the difference: only the kind of the container does.",
+  "file": "facts.mjs",
+  "find": "tokens: fresh(2),",
+  "replace": "tokens: { ...fresh(2) },"
+}

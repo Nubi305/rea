@@ -78,6 +78,16 @@ export const about = () =>
     `,
   );
 
+export const where = (host, address) =>
+  page(
+    "Where",
+    `
+      <h2>Where</h2>
+      <p>Served from ${text(host)}</p>
+      <p>Link to this board: ${text(address)}/</p>
+    `,
+  );
+
 export const missing = () =>
   page(
     "Not found",

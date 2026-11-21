@@ -3,13 +3,14 @@ import { fileURLToPath } from "node:url";
 import { PrivateRuntimeRoot } from "../../dist/process/PrivateRuntimeRoot.js";
 import { EVIDENCE_CASES } from "./clone-run-e2e-cases.mjs";
 import { createContext, initialise } from "./clone-run-e2e-context.mjs";
+import { DECLARED_CASES } from "./clone-run-e2e-declared-cases.mjs";
 import { MUTANT_CASES } from "./clone-run-e2e-mutant-cases.mjs";
 import { runCloneRunCases } from "./clone-run-e2e-runner.mjs";
 import { withVerifierCleanup } from "./verifier-cleanup.mjs";
 import { createPackageVerifierCommands } from "./verify-package-commands.mjs";
 
 /** The acceptance cases, in the order one run folder lives through them. */
-const CASES = [...EVIDENCE_CASES, ...MUTANT_CASES];
+const CASES = [...EVIDENCE_CASES, ...MUTANT_CASES, ...DECLARED_CASES];
 
 /**
  * Drive the three clone-run commands against the fixture original, its

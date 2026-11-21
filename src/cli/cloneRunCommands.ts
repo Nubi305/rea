@@ -91,7 +91,7 @@ const captureFile = (side: string) =>
 const registerCompareCommand = (cli: CliInstance, logger: Logger): void => {
   registerCliCommand(cli, CLI_COMMANDS.compareScenarioBehavior, {
     description:
-      "Compare what one browser scenario did at two addresses, such as an application (left) and a rebuild of it (right). Steps are aligned by step id and the addresses are ignored. Each step is unchanged, changed, unknown (data missing on either side, which never counts as a match) or unstable (a side's own repeats disagree), judged on step outcome, requests, status, each field of a JSON reply by JSON pointer, page address and on-screen text. The result's verdict is changed, unknown or unchanged, and each finding gives the dimension, pointer, expected (left) and actual (right) value",
+      "Compare what one browser scenario did at two addresses, such as an application (left) and a rebuild of it (right). Steps are aligned by step id. Where the left prints its own address (its origin, or its bare host and port), that address is read as the right's, and addresses_applied counts those values; no other address is treated as equal. Each step is unchanged, changed, unknown (data missing on either side, which never counts as a match) or unstable (a side's own repeats disagree), judged on step outcome, requests, status, each field of a JSON reply by JSON pointer, page address and on-screen text. The result's verdict is changed, unknown or unchanged, and each finding gives the dimension, pointer, expected (left) and actual (right) value",
     options: z.object({
       left: captureFile("left"),
       right: captureFile("right"),

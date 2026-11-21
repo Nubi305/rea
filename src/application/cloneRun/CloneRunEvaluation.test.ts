@@ -39,6 +39,7 @@ import {
   scenarioStepKind,
   type ScenarioBehaviorCaptureFacts,
   type ScenarioBehaviorComparer,
+  type ScenarioBehaviorComparison,
   type ScenarioBehaviorFinding,
   type ScenarioStepStatus,
 } from "../../domain/scenarioBehaviorComparison.js";
@@ -73,6 +74,10 @@ interface FakeCapture extends ScenarioBehaviorCaptureFacts {
   >;
   /** What the capture recorded as the failure of a step, by step id. */
   readonly failures?: Readonly<Record<string, string>>;
+  /** The forms of the left's own address the comparison read as the right's. */
+  readonly addresses?: NonNullable<
+    ScenarioBehaviorComparison["addresses_applied"]
+  >;
 }
 
 const MISSING = "missing";
@@ -192,7 +197,11 @@ const fakeComparer = (
     });
     const count = (status: ScenarioStepStatus): number =>
       steps.filter((step) => step.status === status).length;
+    const addresses = [...left, ...right].find(
+      (capture) => capture.addresses !== undefined,
+    )?.addresses;
     return ok({
+      ...(addresses === undefined ? {} : { addresses_applied: addresses }),
       comparison: "scenario-behavior",
       verdict: scenarioBehaviorVerdict(steps.map(({ status }) => status)),
       left: side(left),
@@ -1014,6 +1023,105 @@ const PREPARED_STEP_ROWS: readonly {
     blocks: "parity_unknown",
   },
 ];
+
+it("says that a list is compared by position, and shows the original's value at the address it was compared at", async () => {
+  const { run } = await scaffold();
+  await evaluate(run);
+  const order = "A list is compared position by position";
+  const fixed =
+    "the prober makes the step request the list in a fixed order in scenarios/notes.json";
+  // A steady position under a declared "*" pointer: the declaration was not honoured there.
+  const held = item(
+    await scriptAlone(run, {
+      create: {
+        status: "unknown",
+        finding: {
+          category: "declared-not-shown",
+          pointer: "/items/1/id",
+          ...HELD_LEAF,
+        },
+      },
+    }),
+    "parity_unknown",
+  );
+  expect(held.message).toContain(order);
+  expect(held.message).toContain(fixed);
+  // Nothing offers the setup- name as a way out of a difference.
+  expect(held.message).not.toContain("renames it setup-");
+  // The clone's captures disagree at a list position the original holds: also what a shuffled list looks like.
+  const unsteady = item(
+    await scriptAlone(run, {
+      create: {
+        status: "unstable",
+        finding: {
+          category: "repeats-differ",
+          pointer: "/items/*/name",
+          expected: '"a"',
+          actual: '"a" | "b"',
+          side: "right",
+        },
+      },
+    }),
+    "parity_unstable",
+  );
+  expect(unsteady.role).toBe("verifier");
+  expect(unsteady.message).toContain(order);
+  expect(unsteady.message).toContain(fixed);
+  // A field that is no list position gets neither sentence.
+  const plain = item(
+    await scriptAlone(run, {
+      create: {
+        status: "unknown",
+        finding: { category: "declared-not-shown", ...HELD_LEAF },
+      },
+    }),
+    "parity_unknown",
+  );
+  expect(plain.pointer).toBe("/slug");
+  expect(plain.message).not.toContain(order);
+
+  // The comparer read the original's own address as the clone's: the item says so, in the form it replaced.
+  const scripted = {
+    create: {
+      status: "changed" as const,
+      finding: {
+        category: "value",
+        pointer: "/self",
+        expected: `"${CLONE}/api/notes"`,
+        actual: '"{origin}/api/notes"',
+      },
+    },
+  };
+  const addresses = [
+    { from: ORIGINAL, to: CLONE, values: 2 },
+    { from: new URL(ORIGINAL).host, to: new URL(CLONE).host, values: 1 },
+  ];
+  await rm(join(run, "journal.jsonl"), { force: true });
+  const address = item(
+    await evaluateScripted(run, scripted, { addresses }),
+    "parity_changed",
+  );
+  expect(address.role).toBe("builder");
+  expect(address.message).toContain(
+    `the original gave "${CLONE}/api/notes", the clone gave "{origin}/api/notes". The original's value is shown as it was compared: its own address ${ORIGINAL} is read as the clone's, ${CLONE}, so a clone that prints its own address there matches.`,
+  );
+  // Without a replaced address in the value, the item says nothing about addresses.
+  await rm(join(run, "journal.jsonl"), { force: true });
+  const other = item(
+    await evaluateScripted(
+      run,
+      {
+        create: {
+          status: "changed",
+          finding: { category: "value", expected: '"a"', actual: '"b"' },
+        },
+      },
+      { addresses },
+    ),
+    "parity_changed",
+  );
+  expect(other.message).not.toContain("is read as the clone's");
+});
 
 it("blocks a setup or fingerprint step wherever the clone differs from a steady original or one side alone lacks data", async () => {
   const { run } = await scaffold();

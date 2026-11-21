@@ -1,0 +1,6 @@
+{
+  "description": "Turns the fixture clone into a mutant that prints the literal text {origin} wherever the original prints its own address: an unrendered template, on the Where page and in the board's facts.",
+  "file": "facts.mjs",
+  "find": "export const addressOf = (host) => `http://${host}`;",
+  "replace": "export const addressOf = () => \"{origin}\";"
+}

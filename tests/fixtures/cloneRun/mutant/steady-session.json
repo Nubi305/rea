@@ -1,0 +1,6 @@
+{
+  "description": "Turns the fixture clone into a mutant that is steadily wrong at one position of a list whose other position varies: the seeded session, which the original always answers as seed-session, has another id of the same layout. The pattern /sessions/*/id is declared volatile, and the original varies at the first position only.",
+  "file": "facts.mjs",
+  "find": "{ id: \"seed-session\" }",
+  "replace": "{ id: \"lost-session\" }"
+}
