@@ -139,4 +139,41 @@ describe("parseCliArgv", () => {
     expect(bound(["file", "--yes=maybe"]).options.yes).toBe(false);
     expect(bound(["file", "--yes=true"]).options.yes).toBe(true);
   });
+
+  it("refuses any text but true or false for a dry run and for an exit status by verdict", () => {
+    const strict = {
+      options: z.object({
+        dryRun: z.boolean().default(false),
+        exitCode: z.boolean().default(false),
+        // Not a boolean here, so its text is the option's own to judge.
+        other: z.string().optional(),
+      }),
+    };
+    const parsed = (argv: readonly string[]) => parseCliArgv(argv, strict);
+    for (const [flag, key] of [
+      ["--dry-run", "dryRun"],
+      ["--exit-code", "exitCode"],
+    ] as const) {
+      // Reading "1" as off would run what was to be planned, or exit 0 on a failing verdict.
+      for (const value of ["1", "0", "no", "yes", "TRUE", "FALSE", ""]) {
+        for (const spelling of [flag, `--${key}`]) {
+          const result = parsed([`${spelling}=${value}`]);
+          expect(result.ok, `${spelling}=${value}`).toBe(false);
+          if (result.ok) continue;
+          expect(result.error).toEqual({
+            kind: "boolean_literal",
+            message: `Invalid ${flag} value; use true or false.`,
+          });
+        }
+        // A later valid occurrence does not hide the refused one.
+        expect(parsed([`${flag}=${value}`, flag]).ok).toBe(false);
+      }
+      expect(bound([flag], strict).options[key]).toBe(true);
+      expect(bound([`${flag}=true`], strict).options[key]).toBe(true);
+      expect(bound([`${flag}=false`], strict).options[key]).toBe(false);
+      expect(bound([`--no-${flag.slice(2)}`], strict).options[key]).toBe(false);
+      expect(bound([], strict).options[key]).toBe(false);
+    }
+    expect(bound(["--other=1"], strict).options.other).toBe("1");
+  });
 });

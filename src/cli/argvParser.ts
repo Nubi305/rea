@@ -39,7 +39,7 @@ export interface CliFieldError {
 export type CliArgvFailure =
   | { readonly kind: "parse"; readonly message: string }
   | { readonly kind: "surplus"; readonly message: string }
-  | { readonly kind: "dry_run"; readonly message: string }
+  | { readonly kind: "boolean_literal"; readonly message: string }
   | {
       readonly kind: "validation";
       readonly message: string;
@@ -139,6 +139,17 @@ export const validateCliInputs = (
 const stringField = (issue: object, key: string): string =>
   (Reflect.get(issue, key) as string | undefined) ?? "";
 
+/**
+ * Boolean options whose value after `=` must be the literal `true` or
+ * `false`, with the flag each is refused as. Any other text would be read as
+ * the option turned off, which for these is the unsafe reading: a dry run
+ * that runs, or an exit status that no longer follows the verdict.
+ */
+const STRICT_BOOLEAN_FLAGS: ReadonlyMap<string, string> = new Map([
+  ["dryRun", "--dry-run"],
+  ["exitCode", "--exit-code"],
+]);
+
 /** Bind and validate one command's argv. */
 export const parseCliArgv = (
   argv: readonly string[],
@@ -164,10 +175,10 @@ export const parseCliArgv = (
   );
   const positionals: string[] = [];
   const options: Record<string, unknown> = {};
-  let invalidDryRun = false;
+  let invalidBooleanFlag: string | undefined;
   const set = (name: string, value: string): void => {
-    if (name === "dryRun" && isBoolean(optionsSchema, name))
-      invalidDryRun ||= value !== "true" && value !== "false";
+    if (value !== "true" && value !== "false" && isBoolean(optionsSchema, name))
+      invalidBooleanFlag ??= STRICT_BOOLEAN_FLAGS.get(name);
     if (!isArray(optionsSchema, name)) {
       options[name] = value;
       return;
@@ -234,11 +245,11 @@ export const parseCliArgv = (
     }
   }
   // Check retained token facts before defaults or transforms can run. A later
-  // valid occurrence must not hide an earlier invalid dry-run literal.
-  if (invalidDryRun)
+  // valid occurrence must not hide an earlier invalid literal.
+  if (invalidBooleanFlag !== undefined)
     return err({
-      kind: "dry_run",
-      message: "Invalid --dry-run value; use true or false.",
+      kind: "boolean_literal",
+      message: `Invalid ${invalidBooleanFlag} value; use true or false.`,
     });
   const keys = Object.keys(argsSchema?.shape ?? {});
   const last = keys.at(-1);

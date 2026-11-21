@@ -44,7 +44,7 @@ const exitCodeOption = (meaning: string, caution = "") =>
     .boolean()
     .default(false)
     .describe(
-      `Exit by verdict: ${meaning}. Without it a completed command exits 0 whatever the verdict. Only the bare flag or =true turns it on: every other value after = (false, 0, 1, no, an empty value) leaves it off, as --no-exit-code does, so never write =1 to mean on. A refusal, an unknown flag included, exits 1 either way and its JSON has no verdict member${caution}`,
+      `Exit by verdict: ${meaning}. Without it a completed command exits 0 whatever the verdict. Write the flag bare. After = only true (on) and false (off, as --no-exit-code) are read; any other value, such as 1, 0, no or an empty one, is refused as an argument error and never read as off. A refusal, an unknown flag included, exits 1 either way and its JSON has no verdict member${caution}`,
     );
 
 interface CompareArguments {

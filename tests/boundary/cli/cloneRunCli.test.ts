@@ -327,6 +327,24 @@ describe("rea evaluate-clone-run", () => {
       expect(printed.exitCode, flag).toBe(0);
       expect(cloneRunGateSchema.parse(printed.json).verdict).toBe("not_done");
     }
+    // A value that is neither true nor false is refused, never read as off: =1 does not exit 0 on a failing run.
+    for (const flag of [
+      "--exit-code=1",
+      "--exit-code=0",
+      "--exit-code=no",
+      "--exit-code=FALSE",
+      "--exit-code=",
+      "--exitCode=1",
+    ]) {
+      const refused = await evaluate(flag);
+      expect(refused.exitCode, flag).toBe(1);
+      expect(refused.json, flag).toMatchObject({
+        code: "PARSE_ERROR",
+        message: "Invalid --exit-code value; use true or false.",
+      });
+      expect(refused.json, flag).not.toHaveProperty("verdict");
+    }
+    expect((await evaluate("--exit-code=true")).exitCode).toBe(1);
   });
 
   cliTest(
@@ -535,10 +553,10 @@ describe("clone-run command help", () => {
         "evaluate, do next, evaluate",
       ])
         expect(evaluate).toContain(text);
-      // The values that leave gating off are said where the flag is read: =1 does not mean on.
+      // What a value after = does is said where the flag is read: =1 is refused, not read as off.
       for (const text of [compare, evaluate])
         expect(text.replaceAll(/\s+/gu, " ")).toContain(
-          "Only the bare flag or =true turns it on",
+          "any other value, such as 1, 0, no or an empty one, is refused as an argument error",
         );
     },
   );
