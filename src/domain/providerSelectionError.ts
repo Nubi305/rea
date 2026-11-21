@@ -5,6 +5,12 @@ import {
   type AnalysisErrorOptions,
 } from "./analysisErrorBase.js";
 
+/** One call that reads a target without a deep provider. */
+export interface ProviderFreeCall {
+  readonly operation: string;
+  readonly arguments: Readonly<Record<string, string>>;
+}
+
 /** Stable failure classes for target-bound deep-provider selection. */
 export type ProviderSelectionFailureReason =
   | "unknown_provider"
@@ -41,8 +47,8 @@ export interface ProviderSelectionErrorOptions extends Pick<
   readonly requestedProviderId: string;
   readonly candidateIds: readonly string[];
   readonly rejections?: readonly ProviderSelectionRejection[];
-  /** Commands that read the target without a deep provider, for a missing one. */
-  readonly withoutProvider?: readonly string[];
+  /** Calls that read the target without a deep provider, for a missing one. */
+  readonly withoutProvider?: readonly ProviderFreeCall[];
 }
 
 /** No configured provider can satisfy a requested operation or target binding. */
@@ -53,7 +59,7 @@ export class ProviderSelectionError extends AnalysisError {
   readonly requestedProviderId: string;
   readonly candidateIds: readonly string[];
   readonly rejections: readonly ProviderSelectionRejection[];
-  readonly withoutProvider: readonly string[];
+  readonly withoutProvider: readonly ProviderFreeCall[];
   readonly remediationAction: string | undefined;
   override readonly userMessage: string;
 
@@ -114,7 +120,7 @@ const providerFreeRepair = (
 ): string | undefined =>
   options.reason === "provider_unavailable" &&
   (options.withoutProvider?.length ?? 0) > 0
-    ? "Apply one fix from details.rejections, or run a command from details.without_provider now."
+    ? "Apply one fix from details.rejections, or make a call from details.without_provider now (fill in SYMBOL or ADDRESS)."
     : undefined;
 
 /** True when every recorded rejection describes availability, not target support. */

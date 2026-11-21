@@ -1,3 +1,4 @@
+import { boundedList } from "../domain/boundedList.js";
 import { GENERIC_QUERY_WORDS, words } from "./GuidanceRanking.js";
 
 /** One command as a search reads it: its name and its one-line description. */
@@ -47,7 +48,7 @@ export const searchCommands = (
   const wanted = commandQueryWords(query);
   if (wanted.length === 0) return [];
   const needed = Math.ceil(wanted.length / 2);
-  return commands
+  const ranked = commands
     .map((command) => {
       const vocabulary = words(
         `${command.name.replaceAll("-", " ").replaceAll("_", " ")} ${command.description}`,
@@ -62,6 +63,6 @@ export const searchCommands = (
       (left, right) =>
         right.matched.length - left.matched.length ||
         left.name.localeCompare(right.name),
-    )
-    .slice(0, COMMAND_MATCH_LIMIT);
+    );
+  return boundedList(ranked, COMMAND_MATCH_LIMIT).items;
 };

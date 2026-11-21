@@ -586,11 +586,17 @@ const readOpenedBinaryTarget = async (
         ...(sniffed === undefined || routed === undefined
           ? {}
           : {
-              remediationAction: `Read this ${sniffed.label} with: ${routed.probes[0]!.command}`,
-              nextProbes: routed.probes.map(({ operation, command }) => ({
-                operation,
-                command,
-              })),
+              remediationAction: `Read this ${sniffed.label} with ${routed.probes[0]!.operation}; details.next_probes gives its arguments.`,
+              nextProbes: routed.probes.flatMap((probe) =>
+                probe.arguments === undefined
+                  ? []
+                  : [
+                      {
+                        operation: probe.operation,
+                        arguments: probe.arguments,
+                      },
+                    ],
+              ),
             }),
       }),
     );
@@ -965,6 +971,7 @@ const sha256Handle = async (
 const DIRECTORY_ROUTES: readonly PathRoute[] = [
   {
     operation: "analyze_javascript_application",
+    pathField: "input_path",
     rationale: "JavaScript or Electron application tree.",
     authority: "ast-static-analysis",
   },
@@ -1001,8 +1008,11 @@ const resolveAppBundle = async (
         constraint: "directory_requires_file",
         // A directory is read whole by these; the first fits a JavaScript or
         // Electron tree, the second names any desktop runtime it holds.
-        nextProbes: pathProbes(DIRECTORY_ROUTES, path).probes.map(
-          ({ operation, command }) => ({ operation, command }),
+        nextProbes: pathProbes(DIRECTORY_ROUTES, path).probes.flatMap(
+          (probe) =>
+            probe.arguments === undefined
+              ? []
+              : [{ operation: probe.operation, arguments: probe.arguments }],
         ),
       },
     ),

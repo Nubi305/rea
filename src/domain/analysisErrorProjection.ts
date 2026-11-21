@@ -847,7 +847,12 @@ const providerErrorDetails = (
       ),
       ...(error.withoutProvider.length === 0
         ? {}
-        : { without_provider: [...error.withoutProvider] }),
+        : {
+            without_provider: error.withoutProvider.map((probe) => ({
+              operation: probe.operation,
+              arguments: { ...probe.arguments },
+            })),
+          }),
     };
   if (error instanceof ProviderAdapterError)
     return {
@@ -974,9 +979,9 @@ const lifecycleErrorDetails = (
       ...(error.nextProbes === undefined
         ? {}
         : {
-            next_probes: error.nextProbes.map(({ operation, command }) => ({
-              operation,
-              command,
+            next_probes: error.nextProbes.map((probe) => ({
+              operation: probe.operation,
+              arguments: { ...probe.arguments },
             })),
           }),
       ...(error.systemCode === undefined

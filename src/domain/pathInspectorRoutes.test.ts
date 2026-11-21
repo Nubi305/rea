@@ -5,10 +5,9 @@ import {
   MACHO_ROUTES,
   NEXT_PROBE_LIMIT,
   pathProbes,
-  pathRouteCommand,
   PE_ROUTES,
+  providerFreeProbes,
   readElfRouteFacts,
-  shellWord,
   sniffPathFormat,
 } from "./pathInspectorRoutes.js";
 
@@ -18,38 +17,38 @@ const first = (head: Uint8Array, name = "input", size = head.length) =>
 
 describe("sniffPathFormat", () => {
   it.each([
-    ["SQLite", text("SQLite format 3\0rest"), "inspect_sqlite_database", []],
-    ["GGUF", text("GGUF\x03\0\0\0"), "inspect_model_artifact", []],
+    ["SQLite", text("SQLite format 3\0rest"), "inspect_sqlite_database", {}],
+    ["GGUF", text("GGUF\x03\0\0\0"), "inspect_model_artifact", {}],
     [
       "a HAR",
       text('{"log":{"version":"1.2","entries":[]}}'),
       "inspect_web_network_capture",
-      ["har"],
+      { format: "har" },
     ],
     [
       "a qlog",
       text('{"qlog_version":"0.3","traces":[]}'),
       "inspect_web_network_capture",
-      ["qlog"],
+      { format: "qlog" },
     ],
     [
       "OpenAPI",
       text('{"openapi":"3.1.0","paths":{}}'),
       "inspect_api_contract",
-      [],
+      {},
     ],
-    ["Swagger", text('{"swagger":"2.0"}'), "inspect_api_contract", []],
+    ["Swagger", text('{"swagger":"2.0"}'), "inspect_api_contract", {}],
     [
       "GraphQL SDL",
       text("schema { query: Query }\ntype Query { a: Int }\n"),
       "inspect_api_contract",
-      ["--contract-format", "graphql-sdl"],
+      { format: "graphql-sdl" },
     ],
     [
       "an Apple crash report",
       text('{"bug_type":"309","timestamp":"x"}'),
       "inspect_apple_ips",
-      [],
+      {},
     ],
     [
       "a Maven POM",
@@ -57,56 +56,61 @@ describe("sniffPathFormat", () => {
         '<?xml version="1.0"?><project xmlns="http://maven.apache.org/POM/4.0.0">',
       ),
       "inspect_maven_gradle_metadata",
-      [],
+      {},
     ],
     [
       "Gradle module metadata",
       text('{"formatVersion":"1.1","component":{"group":"g"}}'),
       "inspect_maven_gradle_metadata",
-      [],
+      {},
     ],
-    ["EVM hex", text("0x6080604052600436\n"), "inspect_evm_interface", ["hex"]],
+    [
+      "EVM hex",
+      text("0x6080604052600436\n"),
+      "inspect_evm_interface",
+      { encoding: "hex" },
+    ],
     [
       "raw EVM",
       Uint8Array.of(0x60, 0x80, 0x60, 0x40, 0x52, 0x00),
       "inspect_evm_interface",
-      ["raw"],
+      { encoding: "raw" },
     ],
     [
       "a pcap",
       Uint8Array.of(0xd4, 0xc3, 0xb2, 0xa1, 2, 0, 4, 0),
       "inspect_pcap_capture",
-      [],
+      {},
     ],
     [
       "a pcapng",
       Uint8Array.of(0x0a, 0x0d, 0x0d, 0x0a, 0x1c, 0, 0, 0),
       "inspect_pcap_capture",
-      [],
+      {},
     ],
-    ["a BEAM", text("FOR1\0\0\0\x10BEAMAtU8"), "inspect_erlang_beam", []],
+    ["a BEAM", text("FOR1\0\0\0\x10BEAMAtU8"), "inspect_erlang_beam", {}],
     [
       "a shortcut",
       Uint8Array.of(0x4c, 0, 0, 0, 0x01, 0x14, 0x02, 0, 0, 0),
       "inspect_windows_shortcut",
-      [],
+      {},
     ],
     [
       "a devicetree",
       Uint8Array.of(0xd0, 0x0d, 0xfe, 0xed, 0, 0, 0, 0x40),
       "inspect_devicetree",
-      [],
+      {},
     ],
     [
       "IL2CPP metadata",
       Uint8Array.of(0xaf, 0x1b, 0xb1, 0xfa, 0x1d, 0, 0, 0),
       "inspect_il2cpp_metadata",
-      [],
+      {},
     ],
   ] as const)("routes %s to its inspector", (_, head, operation, args) => {
     const route = first(head);
     expect(route?.operation).toBe(operation);
-    expect(route?.args ?? []).toEqual(args);
+    expect(route?.fields ?? {}).toEqual(args);
   });
 
   it("routes Python bytecode and a safetensors file by their headers", () => {
@@ -252,30 +256,59 @@ describe("readElfRouteFacts", () => {
   });
 });
 
-describe("commands", () => {
-  it("prints a command that runs as printed, quoting only when needed", () => {
-    expect(shellWord("/tmp/a.db")).toBe("/tmp/a.db");
-    expect(shellWord("/tmp/it's here")).toBe("'/tmp/it'\\''s here'");
-    expect(
-      pathRouteCommand(
+describe("pathProbes", () => {
+  it("binds each route to its path field and keeps fixed fields", () => {
+    const { probes } = pathProbes(
+      [
         {
           operation: "inspect_web_network_capture",
-          args: ["har"],
+          pathField: "capture_path",
+          fields: { format: "har" },
           rationale: "r",
           authority: "artifact-bytes",
         },
-        "/tmp/my capture.har",
-      ),
-    ).toBe("rea inspect-web-network-capture '/tmp/my capture.har' har");
-    expect(
-      pathRouteCommand(
+        {
+          operation: "extract_artifact",
+          pathField: null,
+          rationale: "r",
+          authority: "artifact-bytes",
+        },
         {
           operation: "open_binary",
+          unbound: true,
           rationale: "r",
           authority: "native-analysis-provider",
         },
-        "/bin/ls",
+      ],
+      "/tmp/c.har",
+    );
+    expect(
+      probes.map(({ operation, arguments: call }) => ({ operation, call })),
+    ).toEqual([
+      {
+        operation: "inspect_web_network_capture",
+        call: { capture_path: "/tmp/c.har", format: "har" },
+      },
+      { operation: "extract_artifact", call: {} },
+      { operation: "open_binary", call: undefined },
+    ]);
+  });
+
+  it("names objdump and a static GDB read when no provider is ready", () => {
+    expect(
+      providerFreeProbes("/w/licensed", "elf").map(
+        ({ operation, arguments: call }) => [operation, call],
       ),
-    ).toBe("rea analyze /bin/ls");
+    ).toEqual([
+      ["inspect_binary_hardening", { path: "/w/licensed" }],
+      ["inspect_elf_dependencies", { path: "/w/licensed" }],
+      ["inspect_with_objdump", { path: "/w/licensed", operation: "symbols" }],
+      [
+        "inspect_with_objdump",
+        { path: "/w/licensed", operation: "disassemble", symbol: "SYMBOL" },
+      ],
+      ["gdb_console", { executable: "/w/licensed", command: "x/s ADDRESS" }],
+    ]);
+    expect(providerFreeProbes("/w/db.hop", "analysis-database")).toEqual([]);
   });
 });

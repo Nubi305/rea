@@ -138,20 +138,22 @@ it("continues a CLI search with a query- and bundle-bound cursor", async () => {
 });
 
 it("answers a command's name or description word with its help, not with nothing", async () => {
-  const found = await run(["guidance", "--query", "openapi"]);
+  // No guide section covers these words; command names and descriptions do.
+  const found = await run(["guidance", "--query", "objdump architectures"]);
   expect(found.exitCode, found.stdout).toBe(0);
   expect(JSON.parse(found.stdout)).toMatchObject({
     status: "matches",
     matches: [],
-    commands: [
+    commands: expect.arrayContaining([
       {
-        command: "inspect-api-contract",
-        help: "rea inspect-api-contract --help",
+        command: "list-objdump-architectures",
+        description: expect.any(String),
+        help: "rea list-objdump-architectures --help",
       },
-    ],
+    ]),
   });
-  const named = JSON.parse(
-    (await run(["guidance", "--query", "inspect-sqlite-database"])).stdout,
+  const absent = JSON.parse(
+    (await run(["guidance", "--query", "qzxv"])).stdout,
   ) as { readonly status: string };
-  expect(named.status).toBe("matches");
+  expect(absent.status).toBe("no_matches");
 });

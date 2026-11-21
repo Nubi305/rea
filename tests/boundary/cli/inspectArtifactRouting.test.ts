@@ -6,6 +6,10 @@ import { DatabaseSync } from "node:sqlite";
 
 import { describe, expect } from "vitest";
 
+import { createCli } from "../../../src/cli.js";
+import { cliCommands } from "../../../src/cli/commandRegistry.js";
+import { probeCallToAction } from "../../../src/cli/probeCommands.js";
+import type { JsonValue } from "../../../src/domain/jsonValue.js";
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
 import { cliTest } from "../../support/cli/cliFixture.js";
 
@@ -302,20 +306,32 @@ const commandWords = (command: string): string[] =>
     match[1] === undefined ? match[2]! : match[1].replaceAll("'\\''", "'"),
   );
 
-interface Probe {
-  readonly operation: string;
-  readonly command: string;
-}
+const registered = createCli({});
+const spelling = { commands: cliCommands(registered), cliName: "rea" };
 
-const probesOf = (json: unknown): readonly Probe[] => {
+/**
+ * The command the CLI prints first: a refusal carries it on its first next
+ * probe; a result carries operation and arguments, which the CLI prints after
+ * the result as its next probes.
+ */
+const firstCommand = (json: unknown): string | undefined => {
+  const refusal = json as {
+    details?: { next_probes?: readonly { command?: string }[] };
+  };
+  const refused = refusal.details?.next_probes?.[0]?.command;
+  if (refused !== undefined) return refused;
+  return probeCallToAction(json as JsonValue, spelling)?.commands[0]?.command;
+};
+
+const probeCount = (json: unknown): number => {
   const document = json as {
-    normalized_result?: { next_probes?: Probe[] };
-    details?: { next_probes?: Probe[] };
+    normalized_result?: { next_probes?: readonly unknown[] };
+    details?: { next_probes?: readonly unknown[] };
   };
   return (
-    document.normalized_result?.next_probes ??
-    document.details?.next_probes ??
-    []
+    document.normalized_result?.next_probes?.length ??
+    document.details?.next_probes?.length ??
+    0
   );
 };
 
@@ -337,10 +353,11 @@ describe("inspect-artifact names the next inspector for a file it can place", ()
           arguments: ["inspect-artifact", path, "--json"],
           timeoutMs: 120_000,
         });
-        const probes = probesOf(inspected.json);
-        expect(probes.length).toBeGreaterThan(0);
-        expect(probes.length).toBeLessThanOrEqual(8);
-        const [rea, command, ...rest] = commandWords(probes[0]!.command);
+        const count = probeCount(inspected.json);
+        expect(count).toBeGreaterThan(0);
+        expect(count).toBeLessThanOrEqual(8);
+        const printed = firstCommand(inspected.json) ?? "";
+        const [rea, command, ...rest] = commandWords(printed);
         expect({ rea, command }).toEqual({
           rea: "rea",
           command: fixture.expected,
@@ -352,7 +369,7 @@ describe("inspect-artifact names the next inspector for a file it can place", ()
         const code = (followed.json as { code?: string } | undefined)?.code;
         expect(
           followed.exitCode === 0 || !FILE_REFUSALS.has(code ?? ""),
-          `${probes[0]!.command} -> exit ${followed.exitCode} ${code ?? ""}`,
+          `${printed} -> exit ${followed.exitCode} ${code ?? ""}`,
         ).toBe(true);
       },
       300_000,

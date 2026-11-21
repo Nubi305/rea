@@ -132,7 +132,7 @@ cliTest(
     expect(inspection.next_probes).toEqual([
       {
         operation: "extract_artifact",
-        command: `rea extract-artifact ${source}`,
+        arguments: {},
         authority: "artifact-bytes",
         rationale: expect.any(String),
       },

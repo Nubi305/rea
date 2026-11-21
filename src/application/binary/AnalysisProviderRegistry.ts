@@ -1,4 +1,4 @@
-import { providerFreeCommands } from "../../domain/pathInspectorRoutes.js";
+import { providerFreeProbes } from "../../domain/pathInspectorRoutes.js";
 import { ProviderInspectionScope } from "../../ports/ProviderInspectionScope.js";
 import {
   AnalysisCleanupLease,
@@ -939,11 +939,13 @@ const selectionError = (
     ),
     ...(reason === "provider_unavailable" && options.target !== undefined
       ? {
-          withoutProvider: providerFreeCommands(
+          withoutProvider: providerFreeProbes(
             options.target.callerInputPath ??
               options.target.sourcePath ??
               options.target.path,
             options.target.format,
+          ).flatMap(({ operation, arguments: call }) =>
+            call === undefined ? [] : [{ operation, arguments: call }],
           ),
         }
       : {}),

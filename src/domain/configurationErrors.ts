@@ -75,10 +75,10 @@ export interface BinaryTargetErrorOptions extends AnalysisErrorOptions {
   /** Bundle paths examined before resolution failed. */
   readonly probedPaths?: readonly string[];
   readonly remediationAction?: string;
-  /** Path inspectors that read the refused file, each with its CLI command. */
+  /** Path inspectors that read the refused file, each with its arguments. */
   readonly nextProbes?: readonly {
     readonly operation: string;
-    readonly command: string;
+    readonly arguments: Readonly<Record<string, string>>;
   }[];
 }
 

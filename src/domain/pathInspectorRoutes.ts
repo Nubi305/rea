@@ -3,8 +3,11 @@
  * the formats its inventory admits, and the target refusal names them for
  * files no executable or container reader admits (a SQLite file, a HAR, an
  * OpenAPI document, Python bytecode, a model file, EVM bytecode). Each probe
- * carries the CLI command that runs as printed for the inspected path.
+ * carries the contract arguments that run it on the inspected path; the CLI
+ * renders them as a command that runs as printed.
  */
+
+import { boundedList } from "./boundedList.js";
 
 /** How a probe reaches its answer, as `inspect_artifact` reports it. */
 export type PathProbeAuthority =
@@ -13,21 +16,31 @@ export type PathProbeAuthority =
   | "native-analysis-provider"
   | "ast-static-analysis";
 
-/** One next step for a path: the tool, its fixed extra arguments and why. */
+/** One next step for a path: the tool, its fixed arguments and why. */
 export interface PathRoute {
   readonly operation: string;
   readonly rationale: string;
   readonly authority: PathProbeAuthority;
-  /** CLI arguments after the path, such as a capture kind or a fixed flag. */
-  readonly args?: readonly string[];
+  /** Contract fields the step sets besides the path, such as a capture format. */
+  readonly fields?: Readonly<Record<string, string>>;
+  /**
+   * The contract field that takes the path (`path` unless named), or `null`
+   * for a tool that reads the open session's target instead.
+   */
+  readonly pathField?: string | null;
   /** Run the tool on this path instead of the inspected one. */
   readonly path?: string;
+  /** The step reads something other than the path (an extracted member). */
+  readonly unbound?: true;
 }
 
-/** A route with the CLI command that runs it as printed. */
+/**
+ * A route bound to one path: the operation and the contract arguments that
+ * run it as given. Adapters render the call (the CLI prints a command).
+ */
 export interface PathProbe {
   readonly operation: string;
-  readonly command: string;
+  readonly arguments?: Readonly<Record<string, string>>;
   readonly rationale: string;
   readonly authority: PathProbeAuthority;
 }
@@ -35,48 +48,39 @@ export interface PathProbe {
 /** At most this many probes per reply (about 20 tokens each without the path). */
 export const NEXT_PROBE_LIMIT = 8;
 
-/** Operations without a CLI command of their own name, by their CLI form. */
-const CLI_FORMS: Readonly<Record<string, string>> = {
-  // A deep provider opens the file for `analyze` on the CLI.
-  open_binary: "analyze",
-};
+/** The contract arguments that run `route` on `path`. */
+export const pathRouteArguments = (
+  route: PathRoute,
+  path: string,
+): Readonly<Record<string, string>> => ({
+  ...(route.pathField === null
+    ? {}
+    : { [route.pathField ?? "path"]: route.path ?? path }),
+  ...route.fields,
+});
 
-const SHELL_SAFE = /^[\w@%+=:,./-]+$/u;
-
-/** One shell word, quoted only when it needs to be. */
-export const shellWord = (value: string): string =>
-  SHELL_SAFE.test(value) ? value : `'${value.replaceAll("'", `'\\''`)}'`;
-
-/** The CLI command that runs `route` on `path` as printed. */
-export const pathRouteCommand = (route: PathRoute, path: string): string =>
-  [
-    "rea",
-    CLI_FORMS[route.operation] ?? route.operation.replaceAll("_", "-"),
-    shellWord(route.path ?? path),
-    ...(route.args ?? []).map(shellWord),
-  ].join(" ");
-
-/** Attach commands and keep the first {@link NEXT_PROBE_LIMIT} distinct operations. */
+/** Bind routes to a path and keep the first {@link NEXT_PROBE_LIMIT} distinct calls. */
 export const pathProbes = (
   routes: readonly PathRoute[],
   path: string,
 ): { readonly probes: readonly PathProbe[]; readonly omitted: number } => {
+  const key = (route: PathRoute) =>
+    `${route.operation} ${JSON.stringify(route.fields ?? {})}`;
   const distinct = routes.filter(
     (route, index) =>
-      routes.findIndex(
-        (other) =>
-          other.operation === route.operation &&
-          (other.args ?? []).join(" ") === (route.args ?? []).join(" "),
-      ) === index,
+      routes.findIndex((other) => key(other) === key(route)) === index,
   );
+  const bounded = boundedList(distinct, NEXT_PROBE_LIMIT);
   return {
-    probes: distinct.slice(0, NEXT_PROBE_LIMIT).map((route) => ({
+    probes: bounded.items.map((route) => ({
       operation: route.operation,
-      command: pathRouteCommand(route, path),
+      ...(route.unbound === true
+        ? {}
+        : { arguments: pathRouteArguments(route, path) }),
       rationale: route.rationale,
       authority: route.authority,
     })),
-    omitted: Math.max(0, distinct.length - NEXT_PROBE_LIMIT),
+    omitted: bounded.omitted,
   };
 };
 
@@ -87,7 +91,7 @@ const bytes = (route: Omit<PathRoute, "authority">): PathRoute => ({
 
 const OBJDUMP_SYMBOLS = bytes({
   operation: "inspect_with_objdump",
-  args: ["symbols"],
+  fields: { operation: "symbols" },
   rationale: "Symbol table without a provider.",
 });
 
@@ -401,7 +405,8 @@ const WEB_CAPTURE = (kind: string, label: string) =>
     label,
     bytes({
       operation: "inspect_web_network_capture",
-      args: [kind],
+      pathField: "capture_path",
+      fields: { format: kind },
       rationale: "Recorded requests and responses, offline.",
     }),
   );
@@ -418,7 +423,7 @@ const GRAPHQL_CONTRACT = sniffed(
   "GraphQL schema",
   bytes({
     operation: "inspect_api_contract",
-    args: ["--contract-format", "graphql-sdl"],
+    fields: { format: "graphql-sdl" },
     rationale: "Types, fields and operations.",
   }),
 );
@@ -437,7 +442,7 @@ const EVM = (encoding: "hex" | "raw") =>
     "EVM bytecode",
     bytes({
       operation: "inspect_evm_interface",
-      args: [encoding],
+      fields: { encoding },
       rationale: "Function selectors and interface candidates.",
     }),
   );
@@ -615,30 +620,40 @@ const NATIVE_FORMAT_ROUTES: Readonly<Record<string, readonly PathRoute[]>> = {
 };
 
 /**
- * Commands that read a native file when no analysis provider is ready: two
- * of its format's path inspectors, objdump for symbols and one function's
+ * Calls that read a native file when no analysis provider is ready: two of
+ * its format's path inspectors, objdump for symbols and one function's
  * disassembly, and GDB for reading code or data without running it. The
- * symbol and address are the caller's to fill in.
+ * symbol and address are the caller's to fill in. Empty for a target that is
+ * not a native file.
  */
-export const providerFreeCommands = (
+export const providerFreeProbes = (
   path: string,
   format: string,
-): readonly string[] => {
+): readonly PathProbe[] => {
   const routes = NATIVE_FORMAT_ROUTES[format];
   if (routes === undefined) return [];
-  const file = shellWord(path);
-  const inspectors = routes
-    .filter(
-      ({ authority, operation }) =>
-        authority !== "native-analysis-provider" &&
-        operation !== "inspect_with_objdump",
-    )
-    .slice(0, 2)
-    .map((route) => pathRouteCommand(route, path));
-  return [
-    ...inspectors,
-    `rea inspect-with-objdump ${file} symbols`,
-    `rea inspect-with-objdump ${file} disassemble --symbol SYMBOL`,
-    `rea debug-with-gdb 'x/s ADDRESS' --executable ${file}`,
-  ];
+  const inspectors = routes.filter(
+    ({ authority, operation }) =>
+      authority !== "native-analysis-provider" &&
+      operation !== "inspect_with_objdump",
+  );
+  return pathProbes(
+    [
+      ...boundedList(inspectors, 2).items,
+      OBJDUMP_SYMBOLS,
+      bytes({
+        operation: "inspect_with_objdump",
+        fields: { operation: "disassemble", symbol: "SYMBOL" },
+        rationale: "One function's disassembly; fill in SYMBOL.",
+      }),
+      bytes({
+        // start_gdb_session with this executable, then this console command.
+        operation: "gdb_console",
+        pathField: "executable",
+        fields: { command: "x/s ADDRESS" },
+        rationale: "Read a string or code at ADDRESS without running it.",
+      }),
+    ],
+    path,
+  ).probes;
 };

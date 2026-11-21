@@ -1917,8 +1917,14 @@ describe("analysis provider registry: reading without a provider", () => {
     );
     expect(projected.details).toMatchObject({
       without_provider: expect.arrayContaining([
-        "rea inspect-with-objdump /tmp/licensed symbols",
-        "rea debug-with-gdb 'x/s ADDRESS' --executable /tmp/licensed",
+        {
+          operation: "inspect_with_objdump",
+          arguments: { path: "/tmp/licensed", operation: "symbols" },
+        },
+        {
+          operation: "gdb_console",
+          arguments: { executable: "/tmp/licensed", command: "x/s ADDRESS" },
+        },
       ]),
     });
     // An analysis database has no file-level reading without its provider.

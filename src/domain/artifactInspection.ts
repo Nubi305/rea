@@ -75,8 +75,11 @@ const inspectionContradictionSchema = z.union([
 
 const nextProbeSchema = z.strictObject({
   operation: nonEmptyTextSchema,
-  /** The CLI command that runs this probe on the inspected path as printed. */
-  command: nonEmptyTextSchema.exactOptional(),
+  /**
+   * The contract arguments that run this probe on the inspected path; absent
+   * when the probe reads a member extract_artifact must first write.
+   */
+  arguments: z.record(z.string(), z.string()).exactOptional(),
   rationale: nonEmptyTextSchema,
   authority: z.enum([
     "artifact-bytes",
@@ -416,7 +419,8 @@ const zipRoutes = (
     return [
       {
         operation: "inspect_web_network_capture",
-        args: ["saz"],
+        pathField: "capture_path",
+        fields: { format: "saz" },
         rationale: "Recorded Fiddler sessions, offline.",
         authority: "artifact-bytes",
       },
@@ -457,19 +461,35 @@ const probesFor = (
       {
         operation: "analyze_javascript_application",
         path: parentDirectory(routing.path),
+        pathField: "input_path",
         rationale:
           "Analyze the directory that holds the file; a lone file is refused.",
         authority: "ast-static-analysis",
       },
       {
         operation: "recover_javascript_sources",
-        args: [`${routing.path}.recovered`],
+        fields: { output_directory: `${routing.path}.recovered` },
         rationale: "Readable modules from a minified file (needs Wakaru).",
         authority: "ast-static-analysis",
       },
     ];
   // The JavaScript analyzer selects extracted files by source suffix, so a
   // main script such as `main` has no follow-up it can read.
+  const extracted = extractedMemberProbes(inventory, format);
+  if (extracted !== undefined) return extracted.map(unbound);
+  return format === "directory"
+    ? directoryProbes(inventory)
+    : probesForFormat(format);
+};
+
+// These probes read a member that extract_artifact must first write, so
+// they name no arguments for the inspected path.
+const unbound = (route: PathRoute): PathRoute => ({ ...route, unbound: true });
+
+const extractedMemberProbes = (
+  inventory: ArtifactInventoryResult,
+  format: ArtifactInventoryResult["manifest"]["root_format"],
+): readonly PathRoute[] | undefined => {
   if (format === "node-sea")
     return inventory.occurrences.some(
       (row) =>
@@ -509,9 +529,7 @@ const probesFor = (
       : [];
   if (format === "esp-image") return espFlashDumpProbes(inventory);
   if (format === "fit") return fitProbes(inventory);
-  return format === "directory"
-    ? directoryProbes(inventory)
-    : probesForFormat(format);
+  return undefined;
 };
 
 // An ESP image that its reader found at the start of a flash dump read from
@@ -594,6 +612,13 @@ const DIRECTORY_MEMBER_FORMATS: readonly ArtifactInventoryResult["manifest"]["ro
     "plist",
   ];
 
+// A directory is the path these read; the other member probes read one file
+// inside it, which the caller chooses.
+const DIRECTORY_BOUND_OPERATIONS: ReadonlySet<string> = new Set([
+  "analyze_javascript_application",
+  "open_binary",
+]);
+
 const directoryProbes = (
   inventory: ArtifactInventoryResult,
 ): readonly PathRoute[] => {
@@ -611,11 +636,15 @@ const directoryProbes = (
     present.has(memberFormat),
   );
   const probes = members.flatMap(probesForFormat);
-  return probes.filter(
-    (probe, index) =>
-      probes.findIndex(({ operation }) => operation === probe.operation) ===
-      index,
-  );
+  return probes
+    .filter(
+      (probe, index) =>
+        probes.findIndex(({ operation }) => operation === probe.operation) ===
+        index,
+    )
+    .map((probe) =>
+      DIRECTORY_BOUND_OPERATIONS.has(probe.operation) ? probe : unbound(probe),
+    );
 };
 
 const probesForFormat = (
@@ -625,6 +654,7 @@ const probesForFormat = (
     return [
       {
         operation: "extract_artifact",
+        pathField: null,
         authority: "artifact-bytes",
         rationale:
           "Extract the stored module regions into a fresh owned directory, then inspect compatible source separately. Bytecode and source-map regions remain stored evidence; they are not decoded or executed.",
@@ -634,6 +664,7 @@ const probesForFormat = (
     return [
       {
         operation: "extract_artifact",
+        pathField: null,
         authority: "artifact-bytes",
         rationale:
           "Extract the stored virtual files into a fresh owned directory, then inspect compatible source separately. Environment-file values and CA certificate bytes remain in local Evidence with their counts and byte lengths, the npm snapshot stays undecoded, and the executable stays unrun.",
@@ -643,6 +674,7 @@ const probesForFormat = (
     return [
       {
         operation: "extract_artifact",
+        pathField: null,
         rationale:
           "Extract members into a fresh owned directory, then inspect candidate files separately; bundle declarations do not establish their format.",
         authority: "artifact-bytes",
@@ -652,6 +684,7 @@ const probesForFormat = (
     return [
       {
         operation: "analyze_javascript_application",
+        pathField: "input_path",
         rationale:
           "Recover bounded JavaScript modules, source maps, Electron boundaries, and application relationships.",
         authority: "ast-static-analysis",

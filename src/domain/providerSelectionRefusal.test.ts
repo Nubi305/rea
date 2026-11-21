@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { projectAnalysisError } from "./analysisErrorProjection.js";
-import { providerFreeCommands } from "./pathInspectorRoutes.js";
+import { providerFreeProbes } from "./pathInspectorRoutes.js";
 import { ProviderSelectionError } from "./providerSelectionError.js";
 
 const rejections = [
@@ -33,7 +33,12 @@ const refusal = (requestedProviderId: string) =>
       requestedProviderId,
       candidateIds: ["ghidra", "kuna"],
       rejections,
-      withoutProvider: providerFreeCommands("/work/licensed", "elf"),
+      withoutProvider: providerFreeProbes("/work/licensed", "elf").map(
+        ({ operation, arguments: call }) => ({
+          operation,
+          arguments: call ?? {},
+        }),
+      ),
     }),
   );
 
@@ -59,11 +64,30 @@ describe("the refusal for a missing analysis provider", () => {
         },
       ],
       without_provider: [
-        "rea inspect-binary-hardening /work/licensed",
-        "rea inspect-elf-dependencies /work/licensed",
-        "rea inspect-with-objdump /work/licensed symbols",
-        "rea inspect-with-objdump /work/licensed disassemble --symbol SYMBOL",
-        "rea debug-with-gdb 'x/s ADDRESS' --executable /work/licensed",
+        {
+          operation: "inspect_binary_hardening",
+          arguments: { path: "/work/licensed" },
+        },
+        {
+          operation: "inspect_elf_dependencies",
+          arguments: { path: "/work/licensed" },
+        },
+        {
+          operation: "inspect_with_objdump",
+          arguments: { path: "/work/licensed", operation: "symbols" },
+        },
+        {
+          operation: "inspect_with_objdump",
+          arguments: {
+            path: "/work/licensed",
+            operation: "disassemble",
+            symbol: "SYMBOL",
+          },
+        },
+        {
+          operation: "gdb_console",
+          arguments: { executable: "/work/licensed", command: "x/s ADDRESS" },
+        },
       ],
     });
     expect(JSON.stringify(projected.details)).not.toContain("java_command");
