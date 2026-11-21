@@ -12,6 +12,7 @@ import { digestCanonicalValue } from "../../domain/canonicalDigest.js";
 import {
   CLEAN_ROOM_MIN_IDENTICAL_BYTES,
   CLONE_RUN_CHECKS,
+  CLONE_RUN_DECLARATION_STEP_LIMIT,
   CLONE_RUN_DEFAULT_LIMITS,
   CLONE_RUN_NEXT_LIMIT,
   CLONE_RUN_PATHS,
@@ -25,6 +26,7 @@ import {
   type CloneRunCheck,
   type CloneRunEvidenceStatus,
   type CloneRunGate,
+  type CloneRunIntendedDifferences,
   type CloneRunJournalEntry,
   type CloneRunNextItem,
   type CloneRunObligation,
@@ -39,12 +41,23 @@ import {
   cloneRunStall,
   type CloneRunStall,
 } from "../../domain/cloneRun/cloneRunStall.js";
+import {
+  cloneRunBlockingFindings,
+  cloneRunBlockingStatus,
+  cloneRunGapShared,
+  cloneRunStepFindingsCut,
+  isDeclarationNotShown,
+  volatileDeclarationCovers,
+} from "../../domain/cloneRun/cloneRunStepGate.js";
 import { shellQuote } from "../../domain/desktop/shellQuote.js";
+import { ellipsisExcerpt } from "../../domain/excerpt.js";
 import type { JsonValue } from "../../domain/jsonValue.js";
 import { err, ok, type Result } from "../../domain/result.js";
 import {
   CLONE_TREE_STEP_PREFIX,
+  EVERY_STEP,
   SCENARIO_OMITTED_REQUESTS,
+  STEP_VOLATILE_FIELD_LIMIT,
   scenarioFindingStatus,
   scenarioStartState,
   scenarioStepKind,
@@ -111,7 +124,7 @@ export const CLONE_RUN_RESIDUAL_TRUST: readonly string[] = [
   "REA does not reset targets; a clean start is inferred from the fingerprint steps only.",
   "The journal is the referee's own output; removing it can hide a stall and cannot produce a pass.",
   "A step is compared on its outcome, its requests, their statuses, fetched reply bodies, the page address and the accessibility text only. Appearance, styles, images, fonts, response headers, the document title and timing are not compared.",
-  "Text inside an iframe and the text of alert, confirm and prompt dialogs are not compared.",
+  "Text inside an iframe, the text of alert, confirm and prompt dialogs and the content of a file saved through a download are not compared.",
 ];
 
 /** What the referee is given instead of reaching for it, so tests supply fakes. */
@@ -129,6 +142,21 @@ export interface CloneRunEvaluationDependencies<
   readonly now: () => Date;
   /** How host names resolve for the address check; production uses the system resolver. */
   readonly hostResolver?: CloneRunHostResolver;
+  /**
+   * The failure a capture recorded for a step that failed; production passes
+   * `readCloneRunStepFailure`. Without it an item names no recorded failure.
+   */
+  readonly stepFailure?: (
+    file: string,
+    stepId: string,
+    options?: { readonly signal?: AbortSignal },
+  ) => Promise<string | undefined>;
+  /**
+   * How this process was started, as a shell command prefix that runs this
+   * CLI again. Used for the worklist commands only when `target.json` cannot
+   * supply `rea_command`.
+   */
+  readonly invokedAs?: string;
 }
 
 /**
@@ -503,43 +531,196 @@ export const renamesThatSettle = (
     : undefined;
 };
 
+/**
+ * Who may accept a gap, in every item a waiver would clear. No entry is
+ * printed ready to paste: the person is the user's to name, never an agent's.
+ */
+const waiverRule = (waiver: string): string =>
+  `Otherwise only the user, or a person the user names, can accept the gap. An agent never writes that name: not its own, not a role's, not an invented one. Once the user has named the person and given the reason, the lead records ${waiver} with that person and that reason in waivers in ${CLONE_RUN_PATHS.waivers}.`;
+
 const ONE_AT_A_TIME =
   "something else was talking to the instance during a capture (one capture at a time per side)";
 
-/** Where and why a side's step did not complete, from the outcomes its captures recorded. */
-const incompleteStep = <Capture extends ScenarioBehaviorCaptureFacts>(
-  run: string,
+/** The first failed step of a side in its admitted captures, with the failure its capture recorded. */
+interface FailedStep {
+  readonly stepId: string;
+  /** The Evidence file, relative to the run folder. */
+  readonly file: string;
+  readonly action: string | undefined;
+  /** The capture's own failure text for the step; undefined when it could not be read. */
+  readonly recorded: string | undefined;
+}
+
+/** Characters of a recorded failure an item repeats. */
+const FAILURE_CHARS = 300;
+
+/** The first line of a recorded failure, bounded. */
+const failureLine = (text: string): string =>
+  ellipsisExcerpt(text.trim().split(/\r?\n/u)[0] ?? "", FAILURE_CHARS);
+
+const failedStep = async <Capture extends ScenarioBehaviorCaptureFacts>(
+  context: {
+    readonly run: string;
+    readonly stepFailure: CloneRunEvaluationDependencies<Capture>["stepFailure"];
+    readonly signal: AbortSignal | undefined;
+  },
   state: ScenarioState<Capture>,
   side: CloneRunSide,
-): string => {
+): Promise<FailedStep | undefined> => {
   for (const { file, capture } of state.sides[side]?.admitted ?? []) {
     const failed = capture.steps.find((step) => step.outcome === "failed");
     if (failed === undefined) continue;
+    const recorded = await context.stepFailure?.(
+      file,
+      failed.step_id,
+      context.signal === undefined ? {} : { signal: context.signal },
+    );
     const action = state.scenario.actions.find(
       (entry) => entry.step_id === failed.step_id,
     )?.action;
-    return ` Step ${failed.step_id} failed on the ${side} in ${runRelative(run, file)}, and every step after a failed one is cancelled.${
-      action === "request"
-        ? ` ${failed.step_id} is a request step: it fails when the application answers with a redirect (a 3xx reply, which a request step does not follow), with a status outside its expected_status, or after the page has left the ${side}'s address. A redirect is reached through the page (a form or a link), or the step requests the redirect's target instead.`
-        : ` ${failed.step_id} is ${action === undefined ? "the start of the scenario" : `a ${String(action)} step`}: it fails when the page it needs did not load, its locator matched nothing in time, or a reply it waits for did not answer 2xx.`
-    }`;
+    return {
+      stepId: failed.step_id,
+      file: runRelative(context.run, file),
+      action: typeof action === "string" ? action : undefined,
+      recorded:
+        recorded === undefined || recorded.trim() === ""
+          ? undefined
+          : failureLine(recorded),
+    };
   }
-  return "";
+  return undefined;
 };
+
+/**
+ * Where and why a side's step did not complete: the failure the capture
+ * recorded first, then advice that fits it. General causes are listed only
+ * when no failure text could be read, and a redirect is explained only when
+ * the recorded text names one.
+ */
+const incompleteStep = (
+  failed: FailedStep | undefined,
+  side: CloneRunSide,
+): string => {
+  if (failed === undefined) return "";
+  const where = ` Step ${failed.stepId} failed on the ${side} in ${failed.file}, and every step after a failed one is cancelled.`;
+  const kind =
+    failed.action === undefined
+      ? "the start of the scenario"
+      : `a ${failed.action} step`;
+  if (failed.recorded === undefined)
+    return `${where} The capture's failure text for it could not be read; the Evidence file holds it under the step's error member. ${failed.stepId} is ${kind}${
+      failed.action === "request"
+        ? `: it fails when the application answers with a redirect (which a request step does not follow), with a status outside its expected_status, or after the page has left the ${side}'s address.`
+        : ": it fails when the page it needs did not load, its locator matched no element or more than one, or a reply it waits for did not answer 2xx."
+    }`;
+  return `${where} The capture recorded: "${failed.recorded}"${
+    /redirect/iu.test(failed.recorded)
+      ? " A request step does not follow a redirect: reach it through the page (a form or a link), or have the step request the redirect's target instead."
+      : ""
+  }`;
+};
+
+/** Whether a recorded value is a text reply that starts as an HTML page (`bodyLeaves` shows a text body under "text body"). */
+const isHtmlReply = (value: string | null | undefined): boolean =>
+  value != null &&
+  /^\{"text body":"(?:\\[nrt]|\s)*<(?:!doctype html|html[\s>\\])/iu.test(value);
+
+/** A request line only the clone sent, where the original's own request lines vary: the finding carries the clone's line as its right value. */
+const isCloneOnlyRequest = (finding: ScenarioBehaviorFinding): boolean =>
+  finding.side === "left" &&
+  finding.dimension === "request" &&
+  finding.request !== null &&
+  finding.actual !== null;
+
+type DeclarationEffect =
+  CloneRunGate["declared"]["volatile_declarations"][number];
+
+/**
+ * The volatile declarations of one scenario that had an effect on a step of
+ * its comparison: honoured (a value was not compared) or not honoured where
+ * the clone differs from a steady original (the difference reads `unknown`
+ * instead of `changed`). Both are listed, so no declaration changes what a
+ * step reads without the gate naming it.
+ */
+const declarationEffects = (
+  scenario: string,
+  declared: CloneRunIntendedDifferences["volatile_fields"],
+  comparison: ScenarioBehaviorComparison,
+): DeclarationEffect[] =>
+  declared
+    .filter((field) => field.scenario === scenario)
+    .flatMap((field): DeclarationEffect[] => {
+      let honoured = 0;
+      let notShown = 0;
+      const steps: string[] = [];
+      for (const step of comparison.steps) {
+        if (field.step_id !== step.step_id && field.step_id !== EVERY_STEP)
+          continue;
+        const listed = comparison.volatile_fields.filter(
+          (entry) => entry.step_id === step.step_id,
+        );
+        const honouredHere =
+          listed.some(
+            (entry) =>
+              entry.honoured &&
+              volatileDeclarationCovers(field.pointer, entry.pointer),
+          ) ||
+          // A full list may have left the entry out: the declaration is then counted, never dropped. Declarations do not apply to fp- steps.
+          (listed.length >= STEP_VOLATILE_FIELD_LIMIT &&
+            scenarioStepKind(step.step_id) !== "fingerprint");
+        const notShownHere = step.findings.some(
+          (finding) =>
+            isDeclarationNotShown(finding) &&
+            finding.pointer !== null &&
+            volatileDeclarationCovers(field.pointer, finding.pointer),
+        );
+        if (honouredHere) honoured += 1;
+        if (notShownHere) notShown += 1;
+        if (honouredHere || notShownHere) steps.push(step.step_id);
+      }
+      return steps.length === 0
+        ? []
+        : [
+            {
+              scenario,
+              step_id: field.step_id,
+              pointer: field.pointer,
+              honoured_steps: honoured,
+              not_shown_steps: notShown,
+              // The two counts cover every step; the names are a sample.
+              steps: [
+                ...boundedList(steps, CLONE_RUN_DECLARATION_STEP_LIMIT).items,
+              ],
+            },
+          ];
+    });
+
+/** What `parityFinding` is told about the steps it writes one item for. */
+interface ParityGroup {
+  readonly stepIds: readonly [string, ...string[]];
+  readonly status: Exclude<ScenarioStepStatus, "unchanged">;
+  readonly shown: ScenarioBehaviorFinding | undefined;
+  /** Whether every step of the group names the same request in its finding. */
+  readonly sameRequest: boolean;
+  /** The comparer left findings of a setup or fingerprint step out of its list, and none it listed blocks. */
+  readonly cut?: boolean;
+  /** The other side shows the same gap at the step: data neither side's captures hold. */
+  readonly shared?: boolean;
+}
 
 /** The worklist item for steps of one scenario that share one finding and are not `unchanged`. */
 const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
   context: {
-    readonly run: string;
     readonly target: CloneRunTarget;
     readonly evaluate: string;
+    /** The failed step of the finding's side, for a step that did not complete. */
+    readonly failed: FailedStep | undefined;
   },
   state: ScenarioState<Capture>,
-  stepIds: readonly [string, ...string[]],
-  status: Exclude<ScenarioStepStatus, "unchanged">,
-  shown: ScenarioBehaviorFinding | undefined,
+  group: ParityGroup,
 ): Finding => {
-  const { target, run } = context;
+  const { target } = context;
+  const { stepIds, status, shown } = group;
   const scenario = state.id;
   const [stepId] = stepIds;
   const steps = stepsLabel(stepIds);
@@ -557,12 +738,28 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
           ...(shown.actual === null ? {} : { actual: shown.actual }),
         }),
   };
-  const at = shown === undefined ? "its result" : where(shown);
+  // Steps collapsed on one field name it without the first step's request when theirs differ.
+  const at =
+    shown === undefined
+      ? "its result"
+      : where(group.sameRequest ? shown : { ...shown, request: null });
   const behavior = `${CLONE_RUN_PATHS.behavior}/${scenario}.json`;
   const scenarioFile = `${CLONE_RUN_PATHS.scenarios}/${scenario}.json`;
   const asSetup = several
     ? `renames them with the setup- prefix (setup-${stepId}, …)`
     : `renames it setup-${stepId}`;
+  const action = state.scenario.actions.find(
+    (entry) => entry.step_id === stepId,
+  )?.action;
+  if (group.cut === true)
+    return {
+      ...common,
+      reason: "parity_unknown",
+      role: "prober",
+      file: scenarioFile,
+      command: context.evaluate,
+      message: `${steps} of scenario ${scenario}: the comparison found more at ${several ? "these steps" : "this step"} than it lists (${CLONE_RUN_PATHS.parity}/${scenario}.json lists the most severe findings of a step only), so whether a finding it left out is a difference between the sides is not known. A setup- or fp- step may be unsteady or lack data, but not this much at once: the prober makes the step observe less in ${scenarioFile} (a request for one resource, a page without the varying parts) or splits it; both sides are then captured again.`,
+    };
   if (status === "changed") {
     const differs = `${steps} of scenario ${scenario} ${several ? "differ" : "differs"} from the original at ${at}: ${sidesText(shown)}.`;
     const renames =
@@ -592,6 +789,21 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
             " and ",
           )} to renames in ${CLONE_RUN_PATHS.intendedDifferences}, then runs the command. The clone is not changed for this: it may not print the original's name.`,
       };
+    if (
+      action === "request" &&
+      shown?.dimension === "body" &&
+      isHtmlReply(shown.expected) &&
+      isHtmlReply(shown.actual)
+    )
+      return {
+        ...common,
+        reason: "parity_changed",
+        role: "prober",
+        side: "clone",
+        file: scenarioFile,
+        command: context.evaluate,
+        message: `${differs} Both replies are HTML pages, and a request step compares a reply byte for byte: the markup itself, which a clone written as new code does not repeat and may not copy. A page is compared by its on-screen text, through a goto step. The prober replaces ${several ? "these request steps" : "this request step"} in ${scenarioFile} with a goto to the same path (or ${asSetup} when the page is only passed through); both sides are then captured again and the command is run. A difference in what the page shows is then reported as on-screen text, and that one is the builder's.`,
+      };
     return {
       ...common,
       reason: "parity_changed",
@@ -613,7 +825,7 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
         side: "original",
         file: `${CLONE_RUN_PATHS.evidence}/original/${scenario}`,
         command: original.sharedCaptureCommand(),
-        message: `${steps} of scenario ${scenario}: ${at} is declared volatile in ${CLONE_RUN_PATHS.intendedDifferences}, but the original's captures all gave ${shown.expected ?? "one value"} and the clone gave ${shown.actual ?? "another"}. A declaration is honoured only where the original's own captures differ, so nothing was ignored and nothing is held against the clone yet. A value that changes by the day or the hour looks steady in captures taken together: capture the original again now. ${resetHint(target, "original")}, then run the command and evaluate again. If the original still gives one value, the lead removes the entry from volatile_fields, and the difference is then the builder's to fix.`,
+        message: `${steps} of scenario ${scenario}: ${at} is declared volatile in ${CLONE_RUN_PATHS.intendedDifferences}, but the original's captures all gave ${shown.expected ?? "one value"} and the clone gave ${shown.actual ?? "another"}. A declaration is honoured only where the original's own captures differ, so nothing was ignored, and the difference blocks on every step, a setup- step included. A value that changes by the day or the hour looks steady in captures taken together: capture the original again now. ${resetHint(target, "original")}, then run the command and evaluate again. If the original still gives one value, the lead removes the entry from volatile_fields, and the difference is then the builder's to fix.`,
       };
     if (
       shown?.category === "not-recorded" &&
@@ -631,6 +843,26 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
         }), so no step's requests are known to be all it made. Another capture of the same scenario leaves out the same, so no capture command is given: the prober splits ${scenarioFile} into shorter scenarios that each stay within the capture's limit; both sides are then captured again.`,
       };
     const sideState = state.sides[side];
+    const otherSide: CloneRunSide = side === "clone" ? "original" : "clone";
+    if (
+      shown?.category === "not-recorded" &&
+      shown.dimension === "body" &&
+      group.shared === true
+    )
+      // No capture of either side recorded the body: one more records as little, so no capture command is given.
+      return {
+        ...common,
+        reason: "parity_unknown",
+        role: "prober",
+        side,
+        file: scenarioFile,
+        command: context.evaluate,
+        message: `${steps} of scenario ${scenario}: ${at} was recorded by no capture of either side, so one more capture will not supply it and no capture command is given. A capture never records the body of a file the browser saves (a download), nor a body over its 64 KiB limit. ${
+          action === "request"
+            ? `A request step records its reply up to that limit, so this reply is larger on both sides. The prober makes the step request a smaller reply in ${scenarioFile} (one item, one page of a list), or ${asSetup}, and it no longer counts as behaviour.`
+            : `For a download, the prober adds a request step for the same path to ${scenarioFile}: a request step fetches the file itself, so its content is recorded up to the limit and compared. The prober then ${asSetup}, because a step that only starts the download (or loads a reply over the limit) cannot be compared and no longer counts as behaviour.`
+        } Both sides are captured again after the scenario change; then run the command.`,
+      };
     if (
       (shown?.category === "not-recorded" ||
         shown?.category === "single-observation") &&
@@ -645,27 +877,40 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
         command: sideState.sharedCaptureCommand(),
         message:
           shown.category === "single-observation"
-            ? `${steps} of scenario ${scenario}: only one capture of the ${side} recorded ${at}, so whether the ${side} holds that value steadily cannot be judged. One more capture settles it. ${resetHint(
+            ? `${steps} of scenario ${scenario}: only one capture of the ${side} recorded ${at}${
+                shown.expected === null || shown.actual === null
+                  ? ""
+                  : ` (${shown.expected}), and the clone gave ${shown.actual}`
+              }, so whether the ${side} holds that value steadily cannot be judged. One more capture settles it: a steady value makes this a difference, which blocks on every step. ${resetHint(
                 target,
                 side,
               )}, then run the command and evaluate again.`
-            : `${steps} of scenario ${scenario}: ${at} was not recorded on the ${side}. ${
+            : `${steps} of scenario ${scenario}: ${at} was not recorded on the ${side}${
+                group.shared === true
+                  ? ""
+                  : `, and the ${otherSide}'s captures recorded it`
+              }. ${
                 shown.dimension === "body"
                   ? "Captures fold, so one more can supply it."
                   : "One more capture may record it; only a reply body is supplied by another capture, so once a capture records it the next evaluation asks for the captures without it to be removed."
               } ${resetHint(
                 target,
                 side,
-              )}, then run the command and evaluate again. Data still missing after another capture will not arrive (a body over the capture's 64 KiB body limit is never recorded, nor is the body of a download): the prober then ${asSetup} in ${scenarioFile}, and it no longer counts as behaviour.`,
+              )}, then run the command and evaluate again. ${
+                group.shared === true
+                  ? `Data still missing on both sides after another capture will not arrive: the prober then ${asSetup} in ${scenarioFile}, and it no longer counts as behaviour.`
+                  : `If it is still missing on the ${side} alone after another capture, the two sides differ in what decides whether a capture can record it (a reply over the capture's 64 KiB body limit, a file the browser saves, a side that does not answer): that is a difference, it blocks on a setup- step too, and the builder makes the clone answer as the original does (${behavior} shows the original).`
+              }`,
       };
     if (shown?.category === "not-completed")
       return {
         ...common,
         reason: "parity_unknown",
+        role: "prober",
         side,
         file: scenarioFile,
         command: context.evaluate,
-        message: `${steps} of scenario ${scenario} cannot be compared: ${several ? "they" : "it"} did not complete on the ${side} (${shown.expected ?? shown.actual ?? "not completed"}).${incompleteStep(run, state, side)} A step that did not complete proves nothing. The prober changes the scenario in ${scenarioFile} so the step completes on the ${side} at its own address; both sides are then captured again.`,
+        message: `${steps} of scenario ${scenario} cannot be compared: ${several ? "they" : "it"} did not complete on the ${side} (${shown.expected ?? shown.actual ?? "not completed"}).${incompleteStep(context.failed, side)} A step that did not complete proves nothing on any step, a setup- step included. The prober changes the scenario in ${scenarioFile} so the step completes on the ${side} at its own address; both sides are then captured again.`,
       };
     return {
       ...common,
@@ -677,20 +922,27 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
         shown === undefined
           ? "the comparison reported no result for it"
           : `${shown.category} at ${at} on the ${side}`
-      }. A step that sends the browser or a request to another origin, or whose data is missing, proves nothing. Make the step stay on the ${side}'s own address, or have the prober change it in ${scenarioFile}; both sides are then captured again.`,
+      }.${
+        shown?.category === "other-origin"
+          ? group.shared === true
+            ? " Both sides send it to that other origin, and what a third party answers is not compared."
+            : ` Only the ${side} sends it there: the ${otherSide}'s captures sent nothing to that origin at ${several ? "these steps" : "this step"}, so the two sides do different things, which blocks on a setup- step too.`
+          : ""
+      } A step that sends the browser or a request to another origin, or whose data is missing, proves nothing. Make the step stay on the ${side}'s own address, or have the prober change it in ${scenarioFile}; both sides are then captured again.`,
     };
   }
   if (side === "original") {
-    // A request line only the clone sent, where the original's own request lines vary: the finding carries the clone's line as its right value.
-    const cloneOnlyRequest =
-      shown?.dimension === "request" &&
-      shown.request !== null &&
-      shown.actual !== null;
+    const cloneOnlyRequest = shown !== undefined && isCloneOnlyRequest(shown);
     const differs = cloneOnlyRequest
       ? `${steps} of scenario ${scenario}: the clone sent ${shown.request ?? ""}, which no capture of the original sent, but the original's own captures do not send the same requests as each other at ${several ? "these steps" : "this step"}, so the difference cannot be held against the clone.`
       : `${steps} of scenario ${scenario}: ${at} differs between the original's own captures${
-          shown?.expected == null ? "" : ` (${shown.expected})`
+          shown?.expected == null
+            ? ""
+            : ` (${several ? `at ${stepId}: ` : ""}${shown.expected})`
         }, so it cannot be held against the clone.`;
+    const removal = removeCommand(
+      (state.sides.original?.admitted ?? []).map(({ file }) => file),
+    );
     const declarable =
       shown?.dimension === "body" &&
       shown.pointer !== null &&
@@ -706,19 +958,24 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
         message: `${differs} Either the value differs by nature (a time, a generated id), or ${ONE_AT_A_TIME}. If it differs by nature, the lead adds ${JSON.stringify(
           {
             scenario,
-            step_id: stepId,
+            step_id: several ? EVERY_STEP : stepId,
             pointer: shown.pointer,
             reason: "<why it varies>",
           },
-        )} to volatile_fields in ${CLONE_RUN_PATHS.intendedDifferences} (step_id "*" covers every step of the scenario); its shape is still compared. If it should be steady, the prober removes the original's captures of this scenario and captures again, one at a time. Then run the command.`,
+        )} to volatile_fields in ${CLONE_RUN_PATHS.intendedDifferences}${
+          several
+            ? ` (step_id "*" covers every step of the scenario; it is honoured only at the steps where the original's captures differ)`
+            : ` (step_id "*" covers every step of the scenario)`
+        }; its shape is still compared. Then run the command. If it should be steady instead, the prober removes the original's captures of this scenario (${removal}) and captures again, one at a time.`,
       };
     return {
       ...common,
       reason: "parity_unstable",
       role: "prober",
+      awaitsCapture: true,
       side,
-      file: scenarioFile,
-      command: context.evaluate,
+      file: `${CLONE_RUN_PATHS.evidence}/original/${scenario}`,
+      command: removal,
       message: `${differs} ${
         shown?.dimension === "body"
           ? "A text reply cannot be declared volatile: only one field of a JSON reply can."
@@ -727,7 +984,7 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
         cloneOnlyRequest
           ? " (a generated id, a nonce or a time in the request line)"
           : ""
-      }, the snapshot was taken before the page settled, one capture lacks what another recorded, or ${ONE_AT_A_TIME}. If it should be steady, the prober first removes the original's captures of this scenario and captures again, one at a time. If the difference returns, the prober makes the step deterministic in ${scenarioFile} (a wait_for before it, a page without the varying part) or ${asSetup}, which stops it counting as behaviour. Then run the command; both sides are captured again after a scenario change.`,
+      }, the snapshot was taken before the page settled, one capture lacks what another recorded, or ${ONE_AT_A_TIME}. If it should be steady, the prober runs the command to remove the original's captures of this scenario, evaluates for the capture commands and captures again, one at a time. ${resetHint(target, "original")}. If the difference returns, the prober makes the step deterministic in ${scenarioFile} (a wait_for before it, a page without the varying part) or ${asSetup}, which stops it counting as behaviour; both sides are captured again after a scenario change.`,
     };
   }
   const clone = state.sides.clone;
@@ -740,7 +997,9 @@ const parityFinding = <Capture extends ScenarioBehaviorCaptureFacts>(
     file: `${CLONE_RUN_PATHS.evidence}/clone/${scenario}`,
     command: removeCommand((clone?.admitted ?? []).map(({ file }) => file)),
     message: `${steps} of scenario ${scenario}: ${at} differs between the clone's own captures${
-      shown?.actual == null ? "" : ` (${shown.actual})`
+      shown?.actual == null
+        ? ""
+        : ` (${several ? `at ${stepId}: ` : ""}${shown.actual})`
     } where the original holds one value${
       shown?.expected == null ? "" : ` (${shown.expected})`
     }. Nothing says yet that the clone is wrong: a snapshot may have been taken before the page settled, or ${ONE_AT_A_TIME}. Captures fold, so a new capture cannot outvote an old one: the verifier runs the command to remove the clone's captures of this scenario, evaluates for the capture commands and captures again, one at a time. ${resetHint(target, "clone")}. Only if the same difference returns is it the builder's (make the clone answer the same every time; ${behavior} shows the original) or the prober's (a wait_for before the step in ${scenarioFile}).`,
@@ -912,7 +1171,18 @@ export const evaluateCloneRun = async <
   if (!loaded.ok) return loaded;
   const workspace = loaded.value;
   const { run, target } = workspace;
-  const evaluate = cloneRunEvaluateCommand(run, workspace.reaCommand);
+  // Without a spelling from target.json the command is the one this process was started with, never one read back from an output.
+  const evaluate = cloneRunEvaluateCommand(
+    run,
+    workspace.reaCommandStated
+      ? workspace.reaCommand
+      : (dependencies.invokedAs ?? workspace.reaCommand),
+  );
+  const spelling = workspace.reaCommandStated
+    ? ""
+    : dependencies.invokedAs === undefined
+      ? ` ${CLONE_RUN_PATHS.target} could not be read for how this run spells the CLI (rea_command), so the command is printed with the default spelling; if that is not how this evaluation was started, run the same command that was just run.`
+      : ` ${CLONE_RUN_PATHS.target} could not be read for how this run spells the CLI (rea_command), so the command is spelled the way this evaluation was started.`;
   const findings: Finding[] = [];
   /** Whether each check was computed for everything it covers; a finding fails it either way. */
   const computed: Record<CloneRunCheck, boolean> = {
@@ -933,7 +1203,9 @@ export const evaluateCloneRun = async <
       file: issue.file,
       command: evaluate,
       pointer: issue.pointer,
-      message: `${issue.file}${issue.pointer === "" ? "" : ` ${issue.pointer}`}: ${issue.message}; ${issue.fix}`,
+      message: `${issue.file}${issue.pointer === "" ? "" : ` ${issue.pointer}`}: ${issue.message}; ${issue.fix}${
+        issue.reason === "target_invalid" ? `.${spelling}` : ""
+      }`,
     });
   const refused = (reason: CloneRunReasonCode): boolean =>
     workspace.issues.some((issue) => issue.reason === reason);
@@ -1288,6 +1560,7 @@ export const evaluateCloneRun = async <
   const stepCounts = { unchanged: 0, changed: 0, unknown: 0, unstable: 0 };
   let ungatedSteps = 0;
   let honouredVolatile = 0;
+  const declarations: DeclarationEffect[] = [];
   const renamesApplied = new Map<
     string,
     { readonly from: string; readonly to: string; values: number }
@@ -1335,6 +1608,12 @@ export const evaluateCloneRun = async <
       honouredVolatile += comparison.volatile_fields.filter(
         (field) => field.honoured && field.side === "left",
       ).length;
+      for (const effect of declarationEffects(
+        state.id,
+        workspace.intendedDifferences.volatile_fields,
+        comparison,
+      ))
+        declarations.push(effect);
       const reported = new Set<string>();
       /** Steps that share one finding become one worklist item, in the order first found. */
       const groups = new Map<
@@ -1343,22 +1622,56 @@ export const evaluateCloneRun = async <
           readonly stepIds: [string, ...string[]];
           readonly status: Exclude<ScenarioStepStatus, "unchanged">;
           readonly shown: ScenarioBehaviorFinding | undefined;
+          sameRequest: boolean;
+          readonly cut: boolean;
+          readonly shared: boolean;
         }
       >();
       const report = (
         stepId: string,
         status: Exclude<ScenarioStepStatus, "unchanged">,
         observations: readonly ScenarioBehaviorFinding[],
+        /** Every finding the comparison lists for the step, to tell a gap both sides show. */
+        stepFindings: readonly ScenarioBehaviorFinding[] = observations,
+        cut = false,
       ): void => {
-        const shown =
-          observations.find(
-            (finding) => scenarioFindingStatus(finding) === status,
-          ) ?? observations[0];
-        const key = JSON.stringify([status, shown ?? stepId]);
+        const shown = cut
+          ? undefined
+          : (observations.find(
+              (finding) => scenarioFindingStatus(finding) === status,
+            ) ?? observations[0]);
+        const shared =
+          shown !== undefined && cloneRunGapShared(shown, stepFindings);
+        const key = JSON.stringify(
+          cut
+            ? ["cut"]
+            : status === "unstable" && shown !== undefined
+              ? // One unsteady field or dimension of one side is one line of work, whatever each step's values are.
+                [
+                  status,
+                  shown.side,
+                  shown.dimension,
+                  shown.pointer,
+                  shown.category,
+                  isCloneOnlyRequest(shown) ? shown.request : null,
+                ]
+              : [status, shown ?? stepId, shared],
+        );
         const group = groups.get(key);
         if (group === undefined)
-          groups.set(key, { stepIds: [stepId], status, shown });
-        else group.stepIds.push(stepId);
+          groups.set(key, {
+            stepIds: [stepId],
+            status,
+            shown,
+            sameRequest: true,
+            cut,
+            shared,
+          });
+        else {
+          group.stepIds.push(stepId);
+          if (group.shown?.request !== shown?.request)
+            group.sameRequest = false;
+        }
       };
       for (const step of comparison.steps) {
         const kind = scenarioStepKind(step.step_id);
@@ -1367,12 +1680,22 @@ export const evaluateCloneRun = async <
         stepCounts[step.status] += 1;
         stepStatus.set(stepKey(state.id, step.step_id), step.status);
         if (step.status === "unchanged") continue;
-        // A difference blocks on every step; missing or unsteady data only on behaviour steps.
-        if (step.status !== "changed" && kind !== "behavior") {
-          ungatedSteps += 1;
-          continue;
-        }
-        report(step.step_id, step.status, step.findings);
+        // Which findings block is one table: `cloneRunStepGate.ts`.
+        const blocking = cloneRunBlockingFindings(kind, step.findings);
+        if (kind === "behavior" || step.status === "changed")
+          // A behaviour step must be unchanged, and a difference blocks on every step.
+          report(step.step_id, step.status, step.findings);
+        else if (blocking.length > 0)
+          report(
+            step.step_id,
+            cloneRunBlockingStatus(blocking),
+            blocking,
+            step.findings,
+          );
+        else if (cloneRunStepFindingsCut(step.findings))
+          // The comparer lists the most severe findings only: one it left out may block.
+          report(step.step_id, "unknown", step.findings, step.findings, true);
+        else ungatedSteps += 1;
       }
       // A behaviour step the comparison does not report is missing data, never a match.
       for (const action of state.scenario.actions)
@@ -1384,16 +1707,28 @@ export const evaluateCloneRun = async <
           stepStatus.set(stepKey(state.id, action.step_id), "unknown");
           report(action.step_id, "unknown", []);
         }
-      for (const { stepIds, status, shown } of groups.values())
+      for (const group of groups.values()) {
+        const failedSide: CloneRunSide =
+          group.shown?.side === "right" ? "clone" : "original";
         findings.push(
           parityFinding(
-            { run, target, evaluate },
+            {
+              target,
+              evaluate,
+              failed:
+                group.shown?.category === "not-completed"
+                  ? await failedStep(
+                      { run, stepFailure: dependencies.stepFailure, signal },
+                      state,
+                      failedSide,
+                    )
+                  : undefined,
+            },
             state,
-            stepIds,
-            status,
-            shown,
+            group,
           ),
         );
+      }
     }
 
   // coverage: every behaviour step is cited, every citation names a step the original completed.
@@ -1444,14 +1779,9 @@ export const evaluateCloneRun = async <
           obligation: obligation.id,
           file,
           command: evaluate,
-          message: `${file}: obligation ${obligation.id} is inferred, so no recorded step shows it. The prober adds a step that exercises it to a scenario; the spec writer then cites the step and sets basis to "observed". Or the lead accepts the gap by adding ${JSON.stringify(
-            {
-              kind: "obligation",
-              id: obligation.id,
-              person: "<name>",
-              reason: "<why this gap is accepted>",
-            },
-          )} to waivers in ${CLONE_RUN_PATHS.waivers}.`,
+          message: `${file}: obligation ${obligation.id} is inferred, so no recorded step shows it. First, show it: the prober adds a step that exercises it to a scenario; the spec writer then cites the step and sets basis to "observed". ${waiverRule(
+            `a waiver of kind "obligation" for id "${obligation.id}"`,
+          )} When nobody can be asked, the lead reports this inferred obligation and the run ends not done.`,
         });
       for (const {
         scenario: scenarioId,
@@ -1604,14 +1934,9 @@ export const evaluateCloneRun = async <
         closing.length > 0
           ? ` It is listed as closed, and the cited steps of the closing obligation are not all unchanged yet.`
           : ""
-      } The lead settles it in ${CLONE_RUN_PATHS.waivers}: add ${JSON.stringify(
-        {
-          kind: "unknown",
-          id,
-          person: "<name>",
-          reason: "<why this gap is accepted>",
-        },
-      )} to waivers, or once an observed obligation shows the answer add {"unknown":"${id}","obligation":"<obligation id>"} to closed.`,
+      } First, close it: once a step shows the answer and an observed obligation cites that step, the lead adds {"unknown":"${id}","obligation":"<obligation id>"} to closed in ${CLONE_RUN_PATHS.waivers}; it counts when every step the obligation cites is unchanged. ${waiverRule(
+        `a waiver of kind "unknown" for id "${id}"`,
+      )} When nobody can be asked, the lead reports this open unknown and the run ends not done.`,
     });
   }
 
@@ -1669,6 +1994,18 @@ export const evaluateCloneRun = async <
     "Clone run Evidence",
   );
   const treeSha256 = tree?.sha256 ?? null;
+  // The first check that did not get as far as comparing, in the order the checks run.
+  const notJudgedBecause = judged
+    ? undefined
+    : target === null
+      ? `${CLONE_RUN_PATHS.target} is refused (check scope, reason target_invalid), so nothing was rendered, admitted or compared`
+      : workspace.scenarios.size === 0
+        ? `${CLONE_RUN_PATHS.scenarios}/ holds no valid scenario (check inputs), so there is nothing to capture or compare`
+        : !everyScenarioRendered
+          ? "a scenario could not be rendered (check inputs, reason scenario_invalid), so its captures cannot be admitted"
+          : tree === null
+            ? "the clone root is missing (check scope, reason clone_root_missing), so no capture of the clone can be admitted"
+            : "a scenario lacks admitted captures on a side (check evidence)";
   const maxRounds =
     target?.limits.max_rounds ?? CLONE_RUN_DEFAULT_LIMITS.max_rounds;
   const stall: CloneRunStall = cloneRunStall(
@@ -1679,6 +2016,7 @@ export const evaluateCloneRun = async <
       cloneTreeSha256: treeSha256,
       evidenceSha256,
       awaitsCapture: findings.some((finding) => finding.awaitsCapture === true),
+      ...(notJudgedBecause === undefined ? {} : { notJudgedBecause }),
     },
     maxRounds,
   );
@@ -1741,6 +2079,7 @@ export const evaluateCloneRun = async <
     declared: {
       renames: [...renamesApplied.values()],
       volatile_fields: honouredVolatile,
+      volatile_declarations: declarations,
     },
     blocking: CLONE_RUN_REASON_CODES.flatMap((reason) => {
       const count = findings

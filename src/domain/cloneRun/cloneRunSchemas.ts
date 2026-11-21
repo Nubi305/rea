@@ -171,6 +171,8 @@ export const CLONE_RUN_DEFAULT_EXCLUDES = [".git", "node_modules"] as const;
 export const CLEAN_ROOM_MIN_IDENTICAL_BYTES = 64;
 /** At most this many worklist items are returned; `blocking` still counts every finding. */
 export const CLONE_RUN_NEXT_LIMIT = 10;
+/** Step ids the gate names per volatile declaration that had an effect; its counts cover every step. */
+export const CLONE_RUN_DECLARATION_STEP_LIMIT = 5;
 /**
  * The placeholder a scenario writes at the start of a `goto` step's
  * `destination.url`, the one place it is replaced by the side's address.
@@ -641,6 +643,27 @@ export const cloneRunGateSchema = z.strictObject({
     ),
     /** Reply fields whose value was not compared because a declaration was honoured. */
     volatile_fields: z.int().min(0),
+    /**
+     * Every volatile declaration of `intended-differences.json` that had an
+     * effect on a step, as declared. Honoured, it kept a value from being
+     * compared; not honoured, it held a difference back as `unknown`
+     * (`declared-not-shown`, `single-observation`), which blocks on every
+     * step. A declaration with neither effect is not listed.
+     */
+    volatile_declarations: z.array(
+      z.strictObject({
+        scenario: z.string().min(1),
+        /** One step, or `*` for every step of the scenario. */
+        step_id: z.string().min(1),
+        pointer: z.string(),
+        /** Steps at which it was honoured: the value was not compared there, only its shape. */
+        honoured_steps: z.int().min(0),
+        /** Steps at which it was not honoured where the original gave one value and the clone another. */
+        not_shown_steps: z.int().min(0),
+        /** The first steps, in scenario order, at which it had either effect. */
+        steps: z.array(z.string().min(1)).max(CLONE_RUN_DECLARATION_STEP_LIMIT),
+      }),
+    ),
   }),
   /** Every blocking reason with its total; `next` holds at most ten of them. */
   blocking: z.array(

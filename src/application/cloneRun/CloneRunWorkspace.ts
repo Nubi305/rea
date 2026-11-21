@@ -581,6 +581,8 @@ export interface CloneRunWorkspace {
   readonly target: CloneRunTarget | null;
   /** How worklist commands spell the CLI: `target.json`'s `rea_command`, also read from a refused file that still states one. */
   readonly reaCommand: string;
+  /** Whether `target.json` stated that spelling; false when the file could not supply one and `reaCommand` is the default. */
+  readonly reaCommandStated: boolean;
   /** Valid scenarios by id (the file's base name), in id order. */
   readonly scenarios: ReadonlyMap<string, CloneRunScenario>;
   /** Valid obligation files by area (the file's base name), in area order. */
@@ -1143,12 +1145,14 @@ export const loadCloneRunWorkspace = async (
           await listEvidenceEntries(join(sideDirectory, scenario)),
         );
     }
+    const statedCommand =
+      target?.rea_command ??
+      (typeof stated === "string" && stated.trim() !== "" ? stated : undefined);
     const workspace = {
       run,
       target,
-      reaCommand:
-        target?.rea_command ??
-        (typeof stated === "string" && stated.trim() !== "" ? stated : "rea"),
+      reaCommand: statedCommand ?? "rea",
+      reaCommandStated: statedCommand !== undefined,
       scenarios: scenarios.value.valid,
       obligations: obligations.value.valid,
       unknowns: unknowns.value.valid,
@@ -1512,9 +1516,12 @@ export const readCloneRunJournal = async (
   run: string,
   options: { readonly signal?: AbortSignal } = {},
 ): Promise<readonly CloneRunJournalEntry[]> => {
+  const path = join(run, CLONE_RUN_PATHS.journal);
   let text: string;
   try {
-    text = await readFile(join(run, CLONE_RUN_PATHS.journal), {
+    // Never opened unless it is a regular file: reading a FIFO an agent left there would wait for a writer forever, and a link is not the referee's own output.
+    if (!(await lstat(path)).isFile()) return [];
+    text = await readFile(path, {
       encoding: "utf8",
       ...(options.signal === undefined ? {} : { signal: options.signal }),
     });

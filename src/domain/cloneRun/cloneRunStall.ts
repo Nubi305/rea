@@ -22,6 +22,12 @@ export interface CloneRunStallState {
    * captures with the same findings is the remedy being tried, not a stall.
    */
   readonly awaitsCapture: boolean;
+  /**
+   * What kept an evaluation that is not judged from being judged, as the
+   * outlook words it: the check that did not get as far as comparing.
+   * Without it the outlook names captures that are not admitted yet.
+   */
+  readonly notJudgedBecause?: string;
 }
 
 export interface CloneRunStall {
@@ -154,7 +160,7 @@ const outlook = (
       ? ` The next changed clone tree is round ${round + 1}, the limit, and reads stalled unless it passes.`
       : "";
   if (!state.judged)
-    return `Not judged: a scenario lacks admitted captures on a side, so this evaluation counts as no round and no attempt (${round} of ${maxRounds} rounds used). Evaluating again is free.${nextRound}`;
+    return `Not judged: ${state.notJudgedBecause ?? "a scenario lacks admitted captures on a side"}, so this evaluation counts as no round and no attempt (${round} of ${maxRounds} rounds used). Evaluating again is free.${nextRound}`;
   const left = limit - attempts;
   return `Round ${round} of ${maxRounds}, judged, attempt ${attempts} of ${limit} with these findings on this clone tree. Evaluating this state again is free. ${
     left === 1
