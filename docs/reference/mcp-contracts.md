@@ -752,8 +752,9 @@ prints the same views under `views` as `rea inspect-analysis-view` commands
 that read the parent from the bundle `--evidence_output` saved.
 Summaries of the commands agents call first lead with
 `normalized_result.findings`: for each kind of finding, its `name`, at most
-20 `rows` of one line each, the `total`, the number `omitted`, and the `view`
-of the same parent that pages all of them.
+20 `rows` of one line each, the `total`, the number `omitted`, and `view`:
+the index in `views` of the view that pages all of them (or that view's input
+when it is not among the named views).
 `analyze_javascript_application` states its `endpoints` (mechanism and
 address, observed before inferred), `ipc_channels` and `entry_points`;
 `inspect_web_network_capture` one line per HTTP record (ordinal, method,
