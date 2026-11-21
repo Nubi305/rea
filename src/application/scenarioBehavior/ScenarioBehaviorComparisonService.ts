@@ -754,7 +754,7 @@ export const compareScenarioBehaviorCaptures = (
   const [steadyListPosition, ...otherListPositions] = steadyListPositions;
   if (steadyListPosition !== undefined)
     limitations.push(
-      `Reply lists are compared position by position, also under a declared "*" pointer: ${steadyListPosition}${otherListPositions.length === 0 ? "" : ` (and ${String(otherListPositions.length)} more)`} differs between the sides at a position where the left's captures agree. A list whose order varies between captures has to be requested in a fixed order.`,
+      `Reply lists are compared position by position, also under a declared "*" pointer: ${steadyListPosition}${otherListPositions.length === 0 ? "" : ` (and ${String(otherListPositions.length)} more)`} has a position where the left's captures agree and a right capture differs. A list whose order varies between captures has to be requested in a fixed order.`,
     );
   const rightOnly = rightIds.value.filter(
     (stepId) => !leftIds.value.includes(stepId),

@@ -25,8 +25,9 @@ export const EVERY_STEP = "*";
 /** Steps with this prefix are the opening fingerprint of the start state. */
 export const FINGERPRINT_STEP_PREFIX = "fp-";
 /**
- * Steps with this prefix prepare state. They need no citation and may be
- * `unknown` or `unstable`; a `changed` one still blocks, so renaming a failing
+ * Steps with this prefix prepare state and need no citation. They are
+ * compared like any other step; which of their findings block a clone run is
+ * the referee's rule, and a `changed` one always does, so renaming a failing
  * step cannot hide a difference.
  */
 export const SETUP_STEP_PREFIX = "setup-";
@@ -353,7 +354,7 @@ export interface ContainerKindDifference {
  *   declaration is honoured index by index: an index the left holds steady is
  *   not covered because another index varies.
  * - `shape`: honoured, and a right value is outside what the left's own
- *   values share (`misshapenIndex`).
+ *   values share: the leaf's presence, its JSON type, a string's layout.
  * - `unstable`: the left varies and no declaration names the leaf.
  * - `right-unsteady`: the left holds one value in every repeat, the right's
  *   repeats disagree and one of them equals the left's. The right disagrees
@@ -743,7 +744,9 @@ export const scenarioBehaviorFindingSchema = z.strictObject({
    * JSON pointer into the reply body; null outside the `body` dimension. A
    * `*` segment stands for every array index: `undeclared-volatile`,
    * `repeats-differ`, `single-observation` and `declared-not-shown` findings
-   * name the pattern a declaration would use, once per pattern.
+   * name the pattern a declaration would use, once per pattern. A `value` or
+   * `repeats-differ` finding about a container that is a list in one reply
+   * and an object in another names that container and shows both.
    */
   pointer: z.string().nullable(),
   /** Left value. */
@@ -903,8 +906,9 @@ export interface ScenarioBehaviorCaptureFacts {
   /**
    * Digest of everything the `fp-` steps observed, in every compared
    * dimension, with page addresses and request lines relative to the start
-   * origin and every text as the application printed it. A `request` step observes its reply, not
-   * the page behind it, so its on-screen text is left out. Null when the
+   * origin and every text and body as the application gave it: equal for
+   * equal start states of one address. A `request` step observes its reply,
+   * not the page behind it, so its on-screen text is left out. Null when the
    * capture has no `fp-` step, one did not complete, or one lacks an
    * observation (no response, a body that was expected and not recorded, a
    * request body or requests the capture did not record, text or page address

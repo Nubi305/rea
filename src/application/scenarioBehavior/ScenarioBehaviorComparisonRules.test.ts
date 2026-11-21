@@ -707,7 +707,7 @@ it("honours a `*` declaration only at the list positions where the left's own re
       },
     ]);
     expect(comparison.limitations).toEqual([
-      'Reply lists are compared position by position, also under a declared "*" pointer: /items/*/id at step read differs between the sides at a position where the left\'s captures agree. A list whose order varies between captures has to be requested in a fixed order.',
+      'Reply lists are compared position by position, also under a declared "*" pointer: /items/*/id at step read has a position where the left\'s captures agree and a right capture differs. A list whose order varies between captures has to be requested in a fixed order.',
     ]);
   }
   // Declared for the varying position only, the steady one is the clone's difference.
@@ -798,7 +798,7 @@ it("judges a list in varying order position by position, declared or not", async
   const left = [items("a", "b", "c"), items("c", "b", "a")];
   const volatile_fields = [{ step_id: "read", pointer: "/*/id" }];
   const hint = expect.stringContaining(
-    "/*/id at step read differs between the sides at a position where the left's captures agree",
+    "/*/id at step read has a position where the left's captures agree and a right capture differs",
   );
   // Declared: honoured where the left varies, not shown volatile where its captures coincide. Never a match.
   const shuffled = await compare(left, [items("b", "c", "a")], {
@@ -809,6 +809,15 @@ it("judges a list in varying order position by position, declared or not", async
     "body/declared-not-shown left /*/id",
   ]);
   expect(shuffled.limitations).toContainEqual(hint);
+  // Two right captures, one of which agrees at the coinciding position: the right disagrees with itself there, with the same advice.
+  const twice = await compare(left, [items("b", "c", "a"), items("a", "b", "c")], {
+    volatile_fields,
+  });
+  expect(brief(twice, "read")).toEqual([
+    "unstable",
+    "body/repeats-differ right /*/id",
+  ]);
+  expect(twice.limitations).toContainEqual(hint);
   // Undeclared: the coinciding position is a difference beside the unstable ones, with the same advice.
   const undeclared = await compare(left, [items("b", "c", "a")]);
   expect(brief(undeclared, "read")).toEqual([

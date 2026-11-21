@@ -48,9 +48,9 @@ export interface StepContext {
   /** Whether declarations take effect at this step: never at a fingerprint step. */
   readonly declarationsApply: boolean;
   /**
-   * Record a list pattern at which the sides differ at a position where the
-   * left's repeats agree, while the pattern is declared volatile or varies on
-   * the left at another position: a list in varying order reads so.
+   * Record a list pattern with a position where the left's repeats agree and
+   * a right repeat differs, while the pattern is declared volatile there or
+   * varies on the left at another position: a list in varying order reads so.
    */
   readonly steadyListPosition: (pattern: string) => void;
 }
@@ -349,6 +349,20 @@ export const compareReplies = (
       finding("body", category, { request, pointer: pattern, ...values }),
     );
   };
+  const leftVaried = new Set(
+    judgements
+      .filter(({ varies }) => varies.includes("left"))
+      .map(({ path }) => volatilePointerPattern(path)),
+  );
+  /** Whether a leaf lies in a list whose items are declared volatile there or differ between the left's repeats at another position. */
+  const inVaryingList = (judgement: ReplyLeafJudgement): boolean => {
+    const pattern = volatilePointerPattern(judgement.path);
+    return (
+      pattern !== judgement.pointer &&
+      (leftVaried.has(pattern) ||
+        (context.declarationsApply && context.declared(judgement.path)))
+    );
+  };
   for (const judgement of judgements) {
     const pattern = volatilePointerPattern(judgement.path);
     const { outcome, kinds } = judgement;
@@ -409,18 +423,16 @@ export const compareReplies = (
         pattern,
         sideValues("right", `${expected} | ${actual}`),
       );
-    if (outcome === "declared-not-shown" && pattern !== judgement.pointer)
+    if (
+      (outcome === "declared-not-shown" || outcome === "right-unsteady") &&
+      inVaryingList(judgement)
+    )
       context.steadyListPosition(pattern);
   }
   const changed = judgements.filter(
     ({ outcome, kinds }) => outcome === "changed" && kinds === undefined,
   );
   const differences = nameChangedLeaves(context, request, replies, changed);
-  const leftVaried = new Set(
-    judgements
-      .filter(({ varies }) => varies.includes("left"))
-      .map(({ path }) => volatilePointerPattern(path)),
-  );
   for (const judgement of changed) {
     const pattern = volatilePointerPattern(judgement.path);
     // A right side that is a difference and also disagrees with itself is told so; one the left cannot yet judge is not.
@@ -433,10 +445,9 @@ export const compareReplies = (
         pattern,
         sideValues("right", shown(judgement.actual)),
       );
-    // Both sides hold the leaf, and the left's repeats differ at another position of its list.
+    // Both sides hold the leaf: an item the left never holds is not a matter of order.
     if (
-      pattern !== judgement.pointer &&
-      leftVaried.has(pattern) &&
+      inVaryingList(judgement) &&
       judgement.expected !== undefined &&
       judgement.actual !== undefined
     )
