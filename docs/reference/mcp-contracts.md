@@ -762,6 +762,17 @@ address, status, time), failed records first and then the slowest;
 unpacked size and SHA-256, largest first, marking repeated content; and
 `capture_browser_scenario` each step's outcome with the method, address and
 status of every request it issued. A kind with no rows is left out.
+
+A view states each limitation sentence once: in `normalized_result.limitations`,
+while the view Evidence's own `limitations` gives their count and that place;
+a page of previewed capture records states a record limitation that every
+record on the page carries once, at page level; and a summary block whose
+counts are all zero (such as the Electron block of a web bundle) is left out.
+On an MCP connection that already received a parent's summary, a later view
+of that parent states only the sentences the summary did not, with one
+sentence giving the count and the summary that stated them; a
+`{"kind":"summary"}` view states them again. The stored parent Evidence is
+never changed.
 A view is never more certain than its parent: a summary or other view of
 `inferred` Evidence is `inferred`. Other views are `derived`, unless the
 view kind itself infers, as described below.

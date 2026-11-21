@@ -39,7 +39,10 @@ import {
   type AnalysisViewRequest,
   type InspectAnalysisViewInput,
 } from "../../domain/analysisView/analysisViewRequest.js";
-import { prepareAnalysisViewProjection } from "../../domain/analysisView/analysisView.js";
+import {
+  prepareAnalysisViewProjection,
+  sealAnalysisView,
+} from "../../domain/analysisView/analysisView.js";
 import type { AnalysisViewResult } from "../../domain/analysisView/analysisViewResult.js";
 import {
   immutableJsonSnapshotMember,
@@ -215,7 +218,15 @@ export const inspectAnalysisViewValidated = (
   }
   const resolved = resolveAnalysisViewSource(input.source, lookup);
   if (!resolved.ok) return resolved;
-  return projectResolvedAnalysisView(input, projection, resolved.value);
+  const connection =
+    input.source.kind === "retained-evidence" ? lookup : undefined;
+  return projectResolvedAnalysisView(
+    input,
+    projection,
+    resolved.value,
+    undefined,
+    connection,
+  );
 };
 
 /** Keep payload ownership separate from this delivery's display-only subject. */
@@ -224,6 +235,8 @@ const projectResolvedAnalysisView = (
   projection: ReturnType<typeof prepareAnalysisViewProjection>,
   parent: Evidence,
   selectedTarget?: EvidenceSubjectTarget,
+  /** The retaining connection, which remembers what it already stated. */
+  connection?: EvidenceLookup,
 ): Result<Evidence, AnalysisError> => {
   const presentation =
     selectedTarget === undefined
@@ -254,7 +267,72 @@ const projectResolvedAnalysisView = (
     projected.value.artifact?.sha256,
   );
   if (!identity.ok) return identity;
-  return ok(createAnalysisViewEvidence(input, presentation, projected.value));
+  const result = statedOnce(projected.value, connection);
+  const delivered = createAnalysisViewEvidence(input, presentation, result);
+  if (connection !== undefined && result.kind === "summary")
+    rememberStated(connection, result, delivered.evidence_id);
+  return ok(delivered);
+};
+
+/** Limitation sentences a connection already received with a parent's summary. */
+interface StatedLimitations {
+  readonly summaryEvidenceId: string;
+  readonly sentences: ReadonlySet<string>;
+}
+
+/**
+ * Per retaining connection (its Evidence lookup), the parents whose summary
+ * it delivered. Stored parent Evidence is never changed; only later views
+ * delivered on the same connection state those sentences by count.
+ */
+const statedOnConnection = new WeakMap<
+  EvidenceLookup,
+  Map<string, StatedLimitations>
+>();
+
+const rememberStated = (
+  connection: EvidenceLookup,
+  summary: AnalysisViewResult,
+  summaryEvidenceId: string,
+): void => {
+  let parents = statedOnConnection.get(connection);
+  if (parents === undefined) {
+    parents = new Map();
+    statedOnConnection.set(connection, parents);
+  }
+  parents.set(summary.parent_evidence_id, {
+    summaryEvidenceId,
+    sentences: new Set(summary.limitations),
+  });
+};
+
+/**
+ * A view of a parent whose summary this connection already delivered gives
+ * the count of those limitation sentences and where they are, and states
+ * only the sentences the summary did not.
+ */
+const statedOnce = (
+  result: AnalysisViewResult,
+  connection: EvidenceLookup | undefined,
+): AnalysisViewResult => {
+  if (connection === undefined || result.kind === "summary") return result;
+  const stated = statedOnConnection
+    .get(connection)
+    ?.get(result.parent_evidence_id);
+  if (stated === undefined) return result;
+  const kept = result.limitations.filter(
+    (sentence) => !stated.sentences.has(sentence),
+  );
+  const omitted = result.limitations.length - kept.length;
+  if (omitted === 0) return result;
+  const { view_digest: _digest, ...unsigned } = result;
+  return sealAnalysisView({
+    ...unsigned,
+    limitations: [
+      ...kept,
+      `${String(omitted)} limitation${omitted === 1 ? "" : "s"} of parent ${result.parent_evidence_id} were stated with its summary ${stated.summaryEvidenceId} on this connection; inspect_analysis_view with view {"kind":"summary"} states them again.`,
+    ],
+  });
 };
 
 /** Session Evidence ownership required to deliver a view instead of a complete record. */
@@ -329,6 +407,7 @@ export const projectRetainedAnalysis = (
     prepareAnalysisViewProjection(view),
     retained.value,
     evidenceSubjectTarget(evidence.subject),
+    ready.value.evidenceById,
   );
   if (!projected.ok) projected.error.retainPartialObservation(source);
   return projected;
@@ -418,7 +497,7 @@ const createAnalysisViewEvidence = (
           : "derived",
       authority: parent.authority,
       environment: parent.environment,
-      limitations: result.limitations,
+      limitations: viewEvidenceLimitations(result.limitations),
       ...((nativeFunctionView !== undefined || nativeObservationView) &&
       parent.relationship_coverage !== null
         ? { relationshipCoverage: parent.relationship_coverage }
@@ -452,6 +531,17 @@ const createAnalysisViewEvidence = (
     { immutable: true },
   );
 };
+
+/**
+ * A view states its limitation sentences once, in normalized_result; the
+ * Evidence envelope gives their count and where they are.
+ */
+const viewEvidenceLimitations = (stated: readonly string[]): string[] =>
+  stated.length === 0
+    ? []
+    : [
+        `${String(stated.length)} limitation${stated.length === 1 ? "" : "s"} of this view: normalized_result.limitations.`,
+      ];
 
 /** The artifact a view names: the presented file target and its display path. */
 const viewArtifact = (

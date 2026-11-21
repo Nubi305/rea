@@ -464,6 +464,21 @@ const preview = (record: WebNetworkCaptureRecord, format: string) => {
 
 const captureParser = { safeParse: safeParseOwnedWebNetworkCapture };
 
+/** Says that the record limitations after it apply to every record on the page. */
+export const EVERY_RECORD_LIMITATIONS =
+  "Every record on this page carries the record limitations listed after this one; its own limitations list only the others.";
+
+/** Record limitations that every item of a page of two or more carries. */
+const limitationsOfEvery = (
+  items: readonly { readonly limitations: readonly string[] }[],
+): string[] => {
+  const [first, ...rest] = items;
+  if (first === undefined || rest.length === 0) return [];
+  return [...new Set(first.limitations)].filter((sentence) =>
+    rest.every((item) => item.limitations.includes(sentence)),
+  );
+};
+
 /** Authenticate the retained report and its subject at one owning boundary. */
 const parseCaptureParent = (
   parent: AnalysisViewParent,
@@ -601,6 +616,10 @@ export const projectWebNetworkCaptureView = (
       : projected;
   }
   const records = report.records.slice(view.offset, view.offset + view.limit);
+  // A preview states a record limitation that every record on the page
+  // carries once, at page level; complete records stay as recorded.
+  const previews = records.map((record) => preview(record, report.format));
+  const common = view.detail === "complete" ? [] : limitationsOfEvery(previews);
   return ok({
     kind: "capture" as const,
     view,
@@ -608,7 +627,16 @@ export const projectWebNetworkCaptureView = (
     items: captureViewItemsSchema.parse(
       view.detail === "complete"
         ? records
-        : records.map((record) => preview(record, report.format)),
+        : previews.map((item) =>
+            common.length === 0
+              ? item
+              : {
+                  ...item,
+                  limitations: item.limitations.filter(
+                    (sentence) => !common.includes(sentence),
+                  ),
+                },
+          ),
     ),
     coverage: pageViewCoverage(
       view.offset,
@@ -622,6 +650,7 @@ export const projectWebNetworkCaptureView = (
             "Preview selects recorded headline fields and byte descriptors; headers, XML, bodies, message data and other fields remain in complete record pages. Missing preview fields do not establish their absence from the producer record.",
           ]
         : []),
+      ...(common.length === 0 ? [] : [EVERY_RECORD_LIMITATIONS, ...common]),
     ],
   });
 };

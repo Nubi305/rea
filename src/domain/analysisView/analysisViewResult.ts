@@ -370,8 +370,9 @@ const javascriptSummarySchema = z.strictObject({
   format: z.enum(["asar", "directory"]),
   root_artifact_sha256: digestSchema,
   source_selection: javaScriptSourceSelectionSchema.exactOptional(),
-  statistics: jsonObjectSchema,
-  electron: jsonObjectSchema,
+  statistics: jsonObjectSchema.exactOptional(),
+  /** Omitted when every Electron count is zero. */
+  electron: jsonObjectSchema.exactOptional(),
   coverage: jsonObjectSchema,
   limitation_count: z.int().nonnegative(),
 });

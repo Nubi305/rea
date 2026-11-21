@@ -39,7 +39,19 @@ import {
 } from "./analysisViewShape.js";
 
 import { presentFindings } from "./summaryFindings.js";
+import { withoutZeroCountBlocks } from "./zeroCountBlocks.js";
 import { javascriptSummaryFindings } from "./javascriptSummaryFindings.js";
+
+/** A block whose counts are all zero is left out of a summary. */
+const nonZeroBlock = <Name extends string>(
+  name: Name,
+  block: z.output<typeof jsonObjectSchema>,
+): { readonly [Key in Name]?: z.output<typeof jsonObjectSchema> } => {
+  const kept = withoutZeroCountBlocks(block);
+  return (kept === undefined ? {} : { [name]: kept }) as {
+    readonly [Key in Name]?: z.output<typeof jsonObjectSchema>;
+  };
+};
 
 const OPERATION = "inspect_analysis_view";
 
@@ -261,8 +273,9 @@ const parentFields = (
         parent.evidenceId,
         "limitations",
       ),
+      // The analysis limitations are stated once, under limitations.
       unknowns: boundedViewMessages(
-        limitations,
+        [],
         parent.evidenceId,
         "unknowns",
         javascriptCoverageUnknowns(sourceCoverage),
@@ -404,23 +417,30 @@ export const projectJavaScriptApplicationView = (
           : {
               source_selection: analysis.source_selection,
             }),
-        statistics: jsonObjectSchema.parse(analysis.statistics),
-        electron: jsonObjectSchema.parse(analysis.summary),
-        coverage: jsonObjectSchema.parse({
-          static_sources: javascriptStaticSourceCoverageSummary(analysis),
-          application: analysis.graph.coverage,
-          semantic: {
-            ...analysis.semantic_graph.coverage,
-            families: analysis.semantic_graph.coverage.families.map(
-              ({ unknown_ids, ...family }) => ({
-                ...family,
-                unknown_count: unknown_ids.length,
-              }),
-            ),
-          },
-          application_unknowns: sourceCoverage.application_unknown_count,
-          semantic_unknowns: sourceCoverage.semantic_unknown_count,
-        }),
+        ...nonZeroBlock(
+          "statistics",
+          jsonObjectSchema.parse(analysis.statistics),
+        ),
+        ...nonZeroBlock("electron", jsonObjectSchema.parse(analysis.summary)),
+        coverage: jsonObjectSchema.parse(
+          withoutZeroCountBlocks(
+            jsonObjectSchema.parse({
+              static_sources: javascriptStaticSourceCoverageSummary(analysis),
+              application: analysis.graph.coverage,
+              semantic: {
+                ...analysis.semantic_graph.coverage,
+                families: analysis.semantic_graph.coverage.families.map(
+                  ({ unknown_ids, ...family }) => ({
+                    ...family,
+                    unknown_count: unknown_ids.length,
+                  }),
+                ),
+              },
+              application_unknowns: sourceCoverage.application_unknown_count,
+              semantic_unknowns: sourceCoverage.semantic_unknown_count,
+            }),
+          ) ?? {},
+        ),
         limitation_count: limitationCount,
       },
       coverage: completeCoverage(moduleCount),

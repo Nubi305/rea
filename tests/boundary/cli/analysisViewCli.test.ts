@@ -917,9 +917,12 @@ cliTest(
     });
     expect(response.exitCode, response.stdout).toBe(0);
     const result = parseEvidence(response.json);
-    expect(result.limitations.filter((value) => value === caveat)).toEqual([
-      caveat,
-    ]);
+    // The reply states the caveat once, in normalized_result.limitations.
+    const stated = [
+      ...result.limitations,
+      ...(result.normalized_result as { limitations: string[] }).limitations,
+    ];
+    expect(stated.filter((value) => value === caveat)).toEqual([caveat]);
     expect(result.normalized_result).toMatchObject({
       groups: [{ content_types: [], flags: ["single-sample"] }],
       limitations: expect.arrayContaining([caveat]),
