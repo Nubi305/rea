@@ -197,11 +197,28 @@ export const checkModelMentions = () => {
   );
   let refused = false;
   try {
-    scoreText({ agent: "made-up-model-7" }, { modelIds: ids, paths: {} });
+    scoreText({ agent: "made-up-model-7" }, { modelIds: ids, paths: [] });
   } catch {
     refused = true;
   }
   same("labels: a score naming the model is not written", refused, true);
+  same(
+    "labels: the client's directories are written by placeholder, and a missing one changes nothing",
+    JSON.parse(
+      scoreText(
+        { what: "/w/home/skill/SKILL.md", home: "/w/home", none: null },
+        {
+          modelIds: ids,
+          paths: [
+            [null, "<skill>"],
+            ["/w/home", "<home>"],
+            ["/w/home/skill", "<skill>"],
+          ],
+        },
+      ),
+    ),
+    { what: "<skill>/SKILL.md", home: "<home>", none: null },
+  );
   const files = scoreFiles(join(BENCH_ROOT, "results"));
   same(
     "labels: no committed score file has a model key, and each names its agent",

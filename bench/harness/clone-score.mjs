@@ -320,11 +320,11 @@ const main = async () => {
   score.left_running = left;
   const text = scoreText(score, {
     modelIds: modelIdsOf([context.transcript]),
-    paths: {
-      [cell.skill_dir]: "<skill>",
-      [join(cell.workspace, "home")]: "<home>",
-      [dirname(context.transcript.file)]: "<transcripts>",
-    },
+    paths: [
+      [cell.skill_dir, "<skill>"],
+      [join(cell.workspace, "home"), "<home>"],
+      [dirname(context.transcript.file), "<transcripts>"],
+    ],
   });
   writeOut(values.out, text);
   process.stdout.write(text);

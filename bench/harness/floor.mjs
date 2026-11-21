@@ -28,7 +28,7 @@ const transcript = readTranscript(file);
 const floor = { transcript: file, ...costOf(transcript) };
 const text = scoreText(floor, {
   modelIds: modelIdsOf([transcript]),
-  paths: { [dirname(file)]: "<transcripts>" },
+  paths: [[dirname(file), "<transcripts>"]],
 });
 writeOut(values.out, text);
 process.stdout.write(text);

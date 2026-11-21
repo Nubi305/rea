@@ -196,13 +196,13 @@ const main = async () => {
     : dirname(resolve(where));
   const text = scoreText(result, {
     modelIds: modelIdsOf(transcriptsRead),
-    paths: Object.fromEntries([
+    paths: [
       ...cells.flatMap((cell) => [
         [cell.skill_dir, "<skill>"],
         [join(cell.workspace, "home"), "<home>"],
       ]),
       [transcriptDir, "<transcripts>"],
-    ]),
+    ],
   });
   writeOut(values.out, text);
   process.stdout.write(text);

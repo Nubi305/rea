@@ -45,23 +45,39 @@ export const modelMentions = (value, modelIds, pointer = "") => {
   ]);
 };
 
+// Every string in `value` with each path written by its name.
+const withPlaceholders = (value, paths) => {
+  if (typeof value === "string")
+    return paths.reduce(
+      (text, [path, name]) => text.replaceAll(path, name),
+      value,
+    );
+  if (Array.isArray(value))
+    return value.map((item) => withPlaceholders(item, paths));
+  if (value === null || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [
+      key,
+      withPlaceholders(item, paths),
+    ]),
+  );
+};
+
 /**
- * The text of a score file. Each path in `paths` (a map from a directory to
- * the name that stands for it, such as `<skill>`) is written by that name:
- * the client's own directories are no business of a result. Refuses a score
- * that would name a model.
+ * The text of a score file. `paths` is a list of [absolute directory, name]:
+ * every string that holds the directory has it written as the name (such as
+ * `<skill>`), because the client's own directories are no business of a
+ * result. Refuses a score that would name a model.
  */
 export const scoreText = (score, { modelIds, paths }) => {
-  let text = `${JSON.stringify(score, null, 1)}\n`;
-  const prefixes = Object.entries(paths)
-    .filter(([path]) => path)
+  const known = paths
+    .filter(([path]) => typeof path === "string" && path.startsWith("/"))
     .sort(([left], [right]) => right.length - left.length);
-  for (const [path, name] of prefixes)
-    text = text.replaceAll(JSON.stringify(path).slice(1, -1), name);
-  const mentions = modelMentions(JSON.parse(text), modelIds);
+  const written = withPlaceholders(score, known);
+  const mentions = modelMentions(written, modelIds);
   if (mentions.length > 0)
     throw new Error(
       `the score would name a model at ${mentions.join(", ")}: name the agent with --agent when preparing the cell`,
     );
-  return text;
+  return `${JSON.stringify(written, null, 1)}\n`;
 };
