@@ -1,0 +1,19 @@
+{"id":"setup.hello-summary","setup":true,"args":["inspect-artifact","inputs/hello","--detail","summary","--evidence_output","work/ev/hello.inspect.json"]}
+{"id":"setup.jsbundle-summary","setup":true,"args":["analyze-javascript-application","inputs/jsbundle","--detail","summary","--evidence_output","work/ev/jsbundle.analysis.json"]}
+{"id":"err.unknown-command","note":"typo in command name","args":["inspect-artefact","inputs/hello"]}
+{"id":"err.unknown-command.far","note":"plausible but nonexistent command","args":["disassemble","inputs/hello"]}
+{"id":"err.missing-argument","note":"required positional omitted","args":["inspect-artifact"]}
+{"id":"err.unknown-option.kebab","note":"--evidence-output (kebab) instead of --evidence_output","args":["inspect-artifact","inputs/hello","--detail","summary","--evidence-output","work/ev2/x.json"]}
+{"id":"err.unknown-option","note":"nonexistent flag","args":["inspect-artifact","inputs/hello","--summary"]}
+{"id":"err.bad-enum","note":"invalid enum value","args":["inspect-artifact","inputs/hello","--detail","brief"]}
+{"id":"err.summary-without-output","note":"--detail summary without --evidence_output","args":["inspect-artifact","inputs/hello","--detail","summary"]}
+{"id":"err.missing-file","note":"path does not exist","args":["inspect-artifact","inputs/does-not-exist"]}
+{"id":"err.invalid-json-input","note":"malformed inline JSON","args":["capture-browser-scenario","{\"browser\":"]}
+{"id":"err.invalid-scenario","note":"scenario with wrong field shapes","args":["validate-browser-scenario","work/bad-scenario.json"]}
+{"id":"err.json-token-limit","note":"--token-limit with --json","args":["inspect-artifact","inputs/hello","--token-limit","500"]}
+{"id":"err.evidence-output-exists","note":"--evidence_output path already exists (never overwrites)","args":["inspect-artifact","inputs/hello","--detail","summary","--evidence_output","work/ev/hello.inspect.json"]}
+{"id":"err.wrong-type-number","note":"non-numeric value for numeric option","args":["inspect-elf-unwind-ranges","inputs/rusthello","--limit","ten"]}
+{"id":"err.view-without-summary","note":"--view without --detail summary","args":["analyze-javascript-application","inputs/jsbundle","--view","{\"kind\":\"summary\"}"]}
+{"id":"err.bad-view-kind","note":"wrong view kind","args":["inspect-analysis-view","{\"source\":{\"kind\":\"evidence-file\",\"path\":\"work/ev/jsbundle.analysis.json\"},\"view\":{\"kind\":\"routes\"}}"]}
+{"id":"err.evidence-output-exists.js","note":"summary rerun onto an existing --evidence_output path (2.3 KB bundle)","args":["analyze-javascript-application","inputs/jsbundle","--detail","summary","--evidence_output","work/ev/jsbundle.analysis.json"]}
+{"id":"err.evidence-output-parent-missing","note":"--evidence_output parent directory missing","args":["inspect-artifact","inputs/hello","--detail","summary","--evidence_output","work/no-such-dir/x.json"]}
