@@ -2,7 +2,7 @@
 name: reverse-engineer-anything
 description: Reverse engineer native, managed, Electron/JavaScript, packaged, firmware, and browser targets with REA; rebuild (clone) a web application under a referee that decides from recorded behavior whether the rebuild matches; and build agent environments (AgentEnv bundles) of web applications from a live instance or a capture, and of Linux desktop apps with a task from a request. Use shipped-artifact or requested runtime evidence to explain features, compare versions, decompile code, or guide a reconstruction. Skip REA for ordinary source-repository architecture analysis.
 metadata:
-  version: "63+clone.4"
+  version: "63+clone.5"
 ---
 
 # REA
@@ -70,7 +70,9 @@ returns the Evidence record directly. This fallback does not establish that
 MCP is configured. Native CLI tasks still require their selected engine.
 Prefer an existing `rea` CLI. When none is installed and REA package acquisition
 is within the authorized scope, use `npx -y rea-agents@latest` in its place from a
-trusted directory outside the target project, with absolute target paths. Managed
+trusted directory outside the target project, with absolute target paths. That
+npm package lacks the three clone-run commands, so a clone run needs an
+installed `rea` from this build. Managed
 setup binds the current installation directly; retain its runtime and package
 cache entry, or restore that installation before repairing its registration.
 For setup-owned registration, configuration repair starts with a read-only setup plan; show paths, backups and
