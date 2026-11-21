@@ -40,10 +40,10 @@ None pending. No numeric `REA_` limit is absent from this tree.
 | --------------------------------------------------------------------- | ---------------------------------------------------------------------------: |
 | Runtime analysis settings                                             |   32 (29 have an `REA_` seed; 3 have a per-call override and no launch seed) |
 | Per-call numeric `REA_` limits still read from the launch environment |                                                                            0 |
-| Restart-only numeric `REA_` limits                                    |                                                                           15 |
-| Numeric `REA_` candidates recognized in TypeScript source             |                                                                           41 |
+| Restart-only numeric `REA_` limits                                    |                                                                           16 |
+| Numeric `REA_` candidates recognized in TypeScript source             |                                                                           42 |
 | Numeric `REA_` controls with external or generated-reader provenance  |                                                                            2 |
-| Non-numeric `REA_` settings kept restart-only                         | 52 caller settings, plus process-protocol names that are not caller settings |
+| Non-numeric `REA_` settings kept restart-only                         | 54 caller settings, plus process-protocol names that are not caller settings |
 | Hardcoded ceilings left for follow-up                                 |                        grouped below; none converted in the inventory change |
 
 ## Runtime analysis settings
@@ -124,6 +124,7 @@ These stay out of `update_analysis_settings`.
 | `REA_MCP_MAX_INPUT_ELEMENTS`        | `src/config/mcpInputBudget.ts`         |                1024 |        1 | `Number.MAX_SAFE_INTEGER` | MCP server creation                         | Argument admission for the server process. Prose restart.                                                   |
 | `REA_MCP_MAX_RESPONSE_BYTES`        | `src/config/mcpResponseBudget.ts`      | 10485760 when unset | 10485760 | `Number.MAX_SAFE_INTEGER` | MCP server creation                         | Stdio receive buffer and the paired client buffer. Prose restart.                                           |
 | `REA_MCP_TOOLS_LIST_BUDGET_MS`      | `src/config/mcpStartupBudgets.ts`      |                5000 |        1 |                2147483647 | MCP server startup                          | Startup phase of the MCP server itself. Prose.                                                              |
+| `REA_OUTPUT_BUDGET`                 | `src/domain/outputBudget.ts`           |                6000 |     2048 | `Number.MAX_SAFE_INTEGER` | CLI process and MCP server start            | Decides how this process delivers results; `off` gives complete output. Prose restart.                      |
 | `REA_RECONNECT_TIMEOUT_SECONDS`     | `src/hopper/BridgeLauncher.ts`         |                  30 |       30 |                        30 | written into the Hopper bridge helper       | Not a caller setting. It is `HOPPER_SHUTDOWN_TIMEOUT_MS / 1000`.                                            |
 | `REA_SWIFTC_COMPILE_TIMEOUT_MS`     | `src/config/providerStartupTimeout.ts` |              120000 |        1 |                2147483647 | Darwin ownership-helper reader construction | Captured at process start for that helper compile. Prose restart.                                           |
 
@@ -139,6 +140,7 @@ or logger.
 | Name                                 | Owner                                              | Why                                         |
 | ------------------------------------ | -------------------------------------------------- | ------------------------------------------- |
 | `REA_ADB_PATH`                       | `src/adb/AdbConfiguration.ts`                      | Caller-selected executable path.            |
+| `REA_AGENT`                          | `src/cli/outputBudget/policy.ts`                   | Agent marker for the answer budget (below). |
 | `REA_AGENT_ENV_COMMAND`              | `src/application/DesktopBuildDoctor.ts`            | Caller-selected command.                    |
 | `REA_ANALYSIS_PROVIDER`              | `src/config/environment.ts`                        | Provider choice for the process.            |
 | `REA_APKTOOL_COMMAND`                | `src/apktool/ApktoolConfiguration.ts`              | Caller-selected command.                    |
@@ -182,6 +184,7 @@ or logger.
 | `REA_PWNTOOLS_PYTHON`                | `src/native/pwntools/PwntoolsDecoder.ts`           | Caller-selected interpreter path.           |
 | `REA_REFERENCE_SECRET_PATTERNS_JSON` | `src/config/environment.ts`                        | Secret-pattern policy.                      |
 | `REA_RIZIN_COMMAND`                  | `src/rizin/RizinDebugSessionManager.ts`            | Caller-selected debugger binary.            |
+| `REA_SAVED_OUTPUT_DIR`               | `src/cli/outputBudget/store.ts`                    | Filesystem root of saved answers.           |
 | `REA_SIGROK_COMMAND`                 | `src/signals/SigrokRecordingProvider.ts`           | Caller-selected command.                    |
 | `REA_SIGROK_PRLIMIT_COMMAND`         | `src/signals/SigrokRecordingProvider.ts`           | Caller-selected command.                    |
 | `REA_TSHARK_COMMAND`                 | `src/pcap/PcapConfiguration.ts`                    | Caller-selected command.                    |
@@ -203,6 +206,21 @@ such as `REA_COMMAND_COMPLETE_`, and the `ERR_REA_WINDOWS_NATIVE` code.
 `HOPPER_TARGET_KIND`, and `HOPPER_LOADER_ARGS_JSON` are launch configuration
 without the `REA_` prefix. Paths and the provider choice among them stay
 restart-only for the same reason as the table above.
+
+### Agent markers for the answer budget
+
+When standard output is a regular file of its own (`> f` with standard error
+elsewhere) and neither `--output-budget` nor `REA_OUTPUT_BUDGET` is set, the
+CLI keeps the answer budget on only when one of these variables is non-empty in
+its environment. A client's variable is listed only when its documentation or
+source states that its shell tool sets it.
+
+| Variable                         | Set by      | Source                                                                                                                           |
+| -------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `REA_AGENT`                      | the caller  | REA's own marker, any non-empty value                                                                                            |
+| `CLAUDECODE`                     | Claude Code | documentation: environment variables reference, "Set to `1` in subprocesses Claude Code spawns (Bash and PowerShell tools, ...)" |
+| `GEMINI_CLI`                     | Gemini CLI  | source: `packages/core/src/services/shellExecutionService.ts`, `GEMINI_CLI_IDENTIFICATION_ENV_VAR`, value `1`                    |
+| `CODEX_SANDBOX_NETWORK_DISABLED` | Codex CLI   | source: `codex-rs/core/src/spawn.rs`, set to `1` when the sandbox disables the network (its default)                             |
 
 ## Hardcoded ceilings left for follow-up
 

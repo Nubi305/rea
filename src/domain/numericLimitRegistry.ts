@@ -138,6 +138,14 @@ export const NUMERIC_LIMIT_REGISTRY = [
       "Bounds the MCP tools/list phase while the server is starting. It shapes server startup, not a later analysis call.",
   },
   {
+    name: "REA_OUTPUT_BUDGET",
+    update_mode: "restart",
+    policy: "restart-only",
+    read: "startup",
+    reason:
+      "Read once when a CLI process or an MCP server starts, before any result is written. It decides how results of that process are delivered, not what an analysis examines.",
+  },
+  {
     name: "REA_RECONNECT_TIMEOUT_SECONDS",
     update_mode: "restart",
     policy: "restart-only",

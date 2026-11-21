@@ -1229,6 +1229,12 @@ const restartOnlyBounds = (owners) => {
       exportedNumber(owners.mcpResponse, "MINIMUM_RESPONSE_BYTES"),
       exportedNumber(owners.mcpResponse, "MAXIMUM_RESPONSE_BYTES"),
     ),
+    bound(
+      "REA_OUTPUT_BUDGET",
+      exportedNumber(owners.outputBudget, "DEFAULT_OUTPUT_BUDGET_BYTES"),
+      exportedNumber(owners.outputBudget, "MINIMUM_OUTPUT_BUDGET_BYTES"),
+      exportedNumber(owners.outputBudget, "MAXIMUM_OUTPUT_BUDGET_BYTES"),
+    ),
     phaseBound(phases.toolsList),
     bound("REA_RECONNECT_TIMEOUT_SECONDS", seconds, seconds, seconds),
     bound(
@@ -1289,6 +1295,7 @@ export const loadExportedNumericLimitBounds = async () => {
     mcpInput,
     mcpResponse,
     startupTimeout,
+    outputBudget,
     sdk,
   ] = await Promise.all([
     source("../../src/domain/analysisSettingDefinitions.ts"),
@@ -1302,6 +1309,7 @@ export const loadExportedNumericLimitBounds = async () => {
     source("../../src/config/mcpInputBudget.ts"),
     source("../../src/config/mcpResponseBudget.ts"),
     source("../../src/config/providerStartupTimeout.ts"),
+    source("../../src/domain/outputBudget.ts"),
     import("@modelcontextprotocol/server"),
   ]);
   const owners = {
@@ -1314,6 +1322,7 @@ export const loadExportedNumericLimitBounds = async () => {
     mcpInput,
     mcpResponse,
     startupTimeout,
+    outputBudget,
     sdk,
   };
   const restart = restartOnlyBounds(owners);

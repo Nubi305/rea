@@ -1075,6 +1075,7 @@ jobs:
           tests/acceptance/webModuleCli.test.ts
           tests/acceptance/webSourceLocationCli.test.ts
           tests/boundary/cli/referenceSourceImportStatus.test.ts
+          tests/boundary/cli/outputBudgetStore.test.ts
           tests/boundary/filesystem/asarInventoryFreshness.test.ts
           tests/boundary/filesystem/javascript-applications/javascriptArtifactReconstruction.test.ts
           tests/conformance/providers/ghidra/windowsCapabilities.test.ts
