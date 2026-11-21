@@ -1,11 +1,9 @@
-import type { CliCommandRegistrationId } from "./cliCommandRegistrations.js";
-
 /**
  * The families `rea --help` lists and `rea help <family>` opens. A family is
  * a group of commands an agent chooses between for one kind of target or
  * task. Commands join the family of the registrar that defines them, so a new
- * command needs no entry here; a new registrar must name its family (the
- * table below is exhaustive over registrar ids).
+ * command needs no entry here; a new registrar must name its family in the
+ * table below (the help index test fails until it does).
  *
  * The index prints one line per family, in this order. Adding a family is
  * one entry here and one line in the index.
@@ -80,10 +78,15 @@ export const HELP_FAMILIES = [
 
 export type HelpFamilyId = (typeof HELP_FAMILIES)[number]["id"];
 
-/** The family of each registrar's commands. */
-const REGISTRAR_FAMILIES: {
-  readonly [Id in CliCommandRegistrationId]: HelpFamilyId;
-} = {
+/**
+ * The family of each registrar's commands, keyed by registrar id. The keys are
+ * plain strings on purpose: importing the registrar id type from the command
+ * registrations would pull every command module into the type program of the
+ * checked scripts (tsconfig.scripts.json), which reach this file through the
+ * CLI shell. The help index test keeps the table complete: a command whose
+ * registrar is missing here lands in no family and fails it.
+ */
+const REGISTRAR_FAMILIES: Readonly<Record<string, HelpFamilyId>> = {
   setup: "start",
   guidance: "start",
   guidedWorkflow: "start",
@@ -161,7 +164,7 @@ export const helpFamilyOf = (
 ): HelpFamilyId | undefined =>
   COMMAND_FAMILIES[name] ??
   (registrar !== undefined && Object.hasOwn(REGISTRAR_FAMILIES, registrar)
-    ? REGISTRAR_FAMILIES[registrar as CliCommandRegistrationId]
+    ? REGISTRAR_FAMILIES[registrar]
     : undefined);
 
 /**
