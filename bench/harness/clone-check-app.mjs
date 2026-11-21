@@ -5,18 +5,27 @@
 // and every step must come out unchanged, so every rule must agree.
 //
 //   node bench/harness/clone-check-app.mjs --app <id> --judge <checkout>
-//        --ports <a>,<b> [--node <node>] [--keep]
+//        --ports <a>,<b> [--apps <directory>] [--node <node>] [--keep]
+//
+// --apps names another directory of applications than bench/clone/apps: one
+// that is still being brought in can be checked where it is. A missing
+// app.json is then reported and does not stop the replay.
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { controlOriginal, copyOriginal, loadApp } from "./lib/clone-app.mjs";
+import {
+  APPS_ROOT,
+  controlOriginal,
+  copyOriginal,
+  loadApp,
+} from "./lib/clone-app.mjs";
 import { replayHeldout } from "./lib/heldout.mjs";
 import { checkoutFacts } from "./lib/proc.mjs";
 import { portOpen } from "./lib/service.mjs";
 
 const USAGE =
-  "usage: clone-check-app.mjs --app <id> --judge <checkout> --ports <a>,<b> [--node <node>] [--keep]";
+  "usage: clone-check-app.mjs --app <id> --judge <checkout> --ports <a>,<b> [--apps <directory>] [--node <node>] [--keep]";
 
 const options = () => {
   const { values } = parseArgs({
@@ -24,6 +33,7 @@ const options = () => {
       app: { type: "string" },
       judge: { type: "string" },
       ports: { type: "string" },
+      apps: { type: "string" },
       node: { type: "string", default: process.execPath },
       browser: {
         type: "string",
@@ -57,9 +67,26 @@ const side = (app, workDir, name, port) => {
   };
 };
 
+// Steps no rule cites are replayed and counted but decide no rule. The
+// fingerprint and setup steps are meant to be among them; a behaviour step
+// in this list is one the rules file forgot.
+const uncitedSteps = (app) =>
+  app.scenarios.flatMap((scenario) => {
+    const cited = new Set(
+      app.rules.flatMap((rule) =>
+        rule.cases
+          .filter((item) => item.scenario === scenario.id)
+          .flatMap((item) => item.step_ids),
+      ),
+    );
+    return scenario.step_ids
+      .filter((step) => !cited.has(step))
+      .map((step) => `${scenario.id}/${step}`);
+  });
+
 const main = async () => {
   const values = options();
-  const app = loadApp(values.app);
+  const app = loadApp(values.app, values.apps ?? APPS_ROOT, true);
   const judge = checkoutFacts(values.judge, values.node);
   for (const port of values.ports)
     if (await portOpen(port))
@@ -86,6 +113,7 @@ const main = async () => {
     if (!values.keep) rmSync(workDir, { recursive: true, force: true });
   }
   const ok =
+    app.layout_problems.length === 0 &&
     report.captures_failed === 0 &&
     report.steps.steps > 0 &&
     report.steps.unchanged === report.steps.steps &&
@@ -96,6 +124,8 @@ const main = async () => {
         app: app.id,
         judge: { commit: judge.commit_short, version: judge.version },
         ok,
+        layout_problems: app.layout_problems,
+        scenario_steps_no_rule_cites: uncitedSteps(app),
         ...report,
       },
       null,

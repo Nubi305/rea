@@ -3,7 +3,13 @@
   "title": "Inventory of an archive",
   "audit_request": null,
   "question": "What is inside {input}/release.zip? How many files, which is the largest once unpacked, which two files have identical content, and what is the SHA-256 of config/defaults.env?",
-  "inputs": [{ "kind": "zip", "from": "src/release", "to": "release.zip" }],
+  "inputs": [
+    {
+      "kind": "zip",
+      "from": "src/release",
+      "to": "release.zip"
+    }
+  ],
   "answer": {
     "fields": {
       "file_count": "integer: the number of files in the archive",
@@ -39,6 +45,12 @@
       "ignore_case": true
     }
   ],
+  "reference_answer": {
+    "file_count": 9,
+    "largest_file": "lib/postcodes.csv",
+    "identical_files": ["locale/en-GB.txt", "locale/en.txt"],
+    "defaults_env_sha256": "63b6a24664651788a8ad7f805761194f198ab315bd0bd0066327c7eac4f4d060"
+  },
   "first_command": {
     "expected": "inspect-artifact",
     "also_accepted": []
@@ -51,6 +63,7 @@
           "\"logical_path\":\"lib/postcodes.csv\"",
           "\"declared_size\":13358",
           "\"logical_path\":\"locale/en-GB.txt\"",
+          "\"logical_path\":\"locale/en.txt\"",
           "63b6a24664651788a8ad7f805761194f198ab315bd0bd0066327c7eac4f4d060",
           "\"occurrence_count\":10"
         ]

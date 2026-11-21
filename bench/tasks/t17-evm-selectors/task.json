@@ -4,7 +4,11 @@
   "audit_request": null,
   "question": "{input}/contract.hex is the runtime bytecode of a contract we call. Which function selectors does it answer to?",
   "inputs": [
-    { "kind": "copy", "from": "src/contract.hex", "to": "contract.hex" }
+    {
+      "kind": "copy",
+      "from": "src/contract.hex",
+      "to": "contract.hex"
+    }
   ],
   "answer": {
     "fields": {
@@ -20,6 +24,9 @@
       "ignore_case": true
     }
   ],
+  "reference_answer": {
+    "selectors": ["0x18160ddd", "0x3ccfd60b", "0x70a08231", "0xa9059cbb"]
+  },
   "first_command": {
     "expected": "inspect-evm-interface",
     "also_accepted": ["inspect-artifact"]

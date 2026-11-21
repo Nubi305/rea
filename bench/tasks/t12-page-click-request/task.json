@@ -4,7 +4,10 @@
   "audit_request": "R9",
   "question": "The page at {address}/ has a button named \"Reserve table\". When it is clicked with the form as it loads, which request does the page send (method and path), which JSON fields does the request carry, which status comes back, and which reference does the reply give?",
   "inputs": [],
-  "service": { "script": "site/server.mjs", "health_path": "/health" },
+  "service": {
+    "script": "site/server.mjs",
+    "health_path": "/health"
+  },
   "needs_browser": true,
   "answer": {
     "fields": {
@@ -35,7 +38,12 @@
       "check": "set_equals",
       "value": ["slot", "party", "channel", "token"]
     },
-    { "id": "status", "field": "status", "check": "equals", "value": 201 },
+    {
+      "id": "status",
+      "field": "status",
+      "check": "equals",
+      "value": 201
+    },
     {
       "id": "reference",
       "field": "reference",
@@ -43,6 +51,13 @@
       "value": "HT-04-2015"
     }
   ],
+  "reference_answer": {
+    "method": "POST",
+    "path": "/api/reservations",
+    "request_fields": ["slot", "party", "channel", "token"],
+    "status": 201,
+    "reference": "HT-04-2015"
+  },
   "first_command": {
     "expected": "capture-browser-scenario",
     "also_accepted": ["validate-browser-scenario"],
@@ -67,7 +82,9 @@
               "executable_path": "{browser}",
               "headless": true
             },
-            "start_url": { "url": "{address}/" },
+            "start_url": {
+              "url": "{address}/"
+            },
             "actions": [
               {
                 "step_id": "click-reserve",
@@ -82,7 +99,10 @@
                   "method": "POST",
                   "path": "/api/reservations",
                   "save": [
-                    { "name": "reference", "json_pointer": "/reference" }
+                    {
+                      "name": "reference",
+                      "json_pointer": "/reference"
+                    }
                   ]
                 }
               }

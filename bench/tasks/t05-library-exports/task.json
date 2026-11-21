@@ -38,6 +38,10 @@
       "value": ["tariff_limit_kg"]
     }
   ],
+  "reference_answer": {
+    "functions": ["tariff_quote", "tariff_version"],
+    "variables": ["tariff_limit_kg"]
+  },
   "first_command": {
     "expected": "inspect-native-exports",
     "also_accepted": ["inspect-artifact"]
@@ -51,7 +55,8 @@
           "\"name\":\"tariff_version\"",
           "\"name\":\"tariff_limit_kg\"",
           "\"exports\":3"
-        ]
+        ],
+        "must_not_contain": ["round_half_up", "started_kilograms"]
       }
     ]
   }

@@ -3,7 +3,13 @@
   "title": "IPC surface of an unpacked Electron application",
   "audit_request": "R3",
   "question": "{input}/desk-app is our unpacked Electron app. Which IPC channels does the page use to reach the main process, what does the preload script expose to the page (the name of the global and its members), and are context isolation and the sandbox switched on for the window?",
-  "inputs": [{ "kind": "copy", "from": "src/desk-app", "to": "desk-app" }],
+  "inputs": [
+    {
+      "kind": "copy",
+      "from": "src/desk-app",
+      "to": "desk-app"
+    }
+  ],
   "answer": {
     "fields": {
       "ipc_channels": "array of strings: the distinct IPC channel names",
@@ -38,8 +44,20 @@
       "check": "equals",
       "value": true
     },
-    { "id": "sandbox", "field": "sandbox", "check": "equals", "value": false }
+    {
+      "id": "sandbox",
+      "field": "sandbox",
+      "check": "equals",
+      "value": false
+    }
   ],
+  "reference_answer": {
+    "ipc_channels": ["labels:print", "settings:read", "updates:check"],
+    "exposed_global": "desk",
+    "exposed_members": ["printLabel", "readSettings", "checkForUpdates"],
+    "context_isolation": true,
+    "sandbox": false
+  },
   "first_command": {
     "expected": "analyze-javascript-application",
     "also_accepted": ["analyze", "inspect-artifact"],
@@ -66,7 +84,9 @@
           "--json"
         ],
         "must_contain": ["\"literal_channels\":3", "\"exposed_api_members\":3"],
-        "capture": { "parent": "\"parent_evidence_id\":\"(ev_[a-f0-9]{64})\"" }
+        "capture": {
+          "parent": "\"parent_evidence_id\":\"(ev_[a-f0-9]{64})\""
+        }
       },
       {
         "args": [

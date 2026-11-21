@@ -2,11 +2,11 @@
 // the agent: it runs one REA command through the cell's shim, writes an
 // answer and a transcript that says so, and has the cell scored. This checks
 // that prepare, the shim and the scorers fit together.
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { portOpen } from "../lib/service.mjs";
+import { portOpen, waitForHttp } from "../lib/service.mjs";
 import {
   check,
   runScorer,
@@ -115,6 +115,49 @@ const checkTaskCell = (work, settings) => {
   );
 };
 
+// A clone the agent left running without recording how to stop it: the
+// scorer must say so, and end it only when told to.
+const checkForcedStop = async (workspace, transcripts, settings) => {
+  const port = settings.ports[1];
+  const stray = spawn(
+    process.execPath,
+    [
+      "-e",
+      `require("node:http").createServer((request, reply) => reply.end("stray")).listen(${port}, "127.0.0.1")`,
+    ],
+    { detached: true, stdio: "ignore" },
+  );
+  stray.unref();
+  try {
+    await waitForHttp(`http://127.0.0.1:${port}/`);
+    const args = [
+      "--workspace",
+      workspace,
+      "--transcript",
+      transcripts,
+      "--judge",
+      settings.judge.checkout,
+      "--skip-hidden",
+    ];
+    same(
+      "prepared clone: a clone left running with no stop command is reported",
+      runScorer("clone-score.mjs", args).left_running,
+      { original: false, clone: true },
+    );
+    same(
+      "prepared clone: --force-stop ends it",
+      runScorer("clone-score.mjs", [...args, "--force-stop"]).left_running,
+      { original: false, clone: false },
+    );
+  } finally {
+    try {
+      process.kill(stray.pid, "SIGKILL");
+    } catch {
+      // Already ended, as it should be.
+    }
+  }
+};
+
 const checkCloneCell = async (work, settings) => {
   const workspace = join(work, "prepared-clone");
   const [originalPort, clonePort] = settings.ports;
@@ -193,6 +236,7 @@ const checkCloneCell = async (work, settings) => {
     score.left_running,
     { original: false, clone: false },
   );
+  await checkForcedStop(workspace, transcripts, settings);
 };
 
 /** `settings` is `{ app, judge, ports: [a, b], browser, client }`. */

@@ -46,6 +46,12 @@
       "ignore_case": true
     }
   ],
+  "reference_answer": {
+    "functions": ["sign", "post_batch"],
+    "classes": ["Batch"],
+    "url": "https://ledger.example.test/v2/post",
+    "header": "X-Ledger-Signature"
+  },
   "first_command": {
     "expected": "inspect-python-pyc",
     "also_accepted": ["inspect-artifact"]

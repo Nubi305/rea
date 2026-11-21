@@ -21,7 +21,8 @@ apps/<id>/
 `node bench/harness/clone-check-app.mjs --app <id> --judge <checkout>
 --ports <a>,<b>` checks an application against this layout and replays its
 held-out scenarios on two instances of the original: every step must come out
-`unchanged`.
+`unchanged`. It lists what breaks the layout as `layout_problems`. With
+`--apps <directory>` it checks an application that is not under `apps/` yet.
 
 ## app.json
 
@@ -90,7 +91,8 @@ steps first. Three things keep them usable on a clone nobody has seen:
 - A click whose effect arrives after a request waits for it (`save_response`,
   or a `wait_for` on what appears).
 - Two instances of the original must compare `unchanged` on every step with
-  the differences file. `clone-check-app.mjs` proves it.
+  the differences file. `clone-check-app.mjs` proves it, and reports every
+  step that finds an element by anything but a role or ARIA attribute.
 
 ## How a rule is scored
 

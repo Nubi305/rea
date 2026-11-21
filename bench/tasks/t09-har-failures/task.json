@@ -4,7 +4,11 @@
   "audit_request": "R11",
   "question": "I recorded {input}/checkout.har on staging. Which requests got an error status (400 or above), and which single request took longest?",
   "inputs": [
-    { "kind": "node", "script": "src/make-har.mjs", "to": "checkout.har" }
+    {
+      "kind": "node",
+      "script": "src/make-har.mjs",
+      "to": "checkout.har"
+    }
   ],
   "answer": {
     "fields": {
@@ -38,6 +42,16 @@
       "value": 4812
     }
   ],
+  "reference_answer": {
+    "failed_requests": [
+      "GET /api/profile 401",
+      "POST /api/vouchers/redeem 422",
+      "POST /api/payments/intent 402",
+      "POST /api/orders 502"
+    ],
+    "slowest_request_path": "/api/shipping/quotes",
+    "slowest_request_ms": 4812
+  },
   "first_command": {
     "expected": "inspect-web-network-capture",
     "also_accepted": [],
@@ -73,7 +87,7 @@
           "\"url\":\"https://staging.shop.example.test/api/vouchers/redeem\"},\"response\":{\"status\":422}",
           "\"url\":\"https://staging.shop.example.test/api/payments/intent\"},\"response\":{\"status\":402}",
           "\"url\":\"https://staging.shop.example.test/api/orders\"},\"response\":{\"status\":502}",
-          "\"time\":4812"
+          "\"url\":\"https://staging.shop.example.test/api/shipping/quotes?postcode=1017AB\"},\"response\":{\"status\":200},\"time\":4812"
         ]
       }
     ]

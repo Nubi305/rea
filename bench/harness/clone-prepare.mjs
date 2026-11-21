@@ -16,11 +16,7 @@ import { controlOriginal, copyOriginal, loadApp } from "./lib/clone-app.mjs";
 import { clonePrompt } from "./lib/prompts.mjs";
 import { portOpen } from "./lib/service.mjs";
 import { BENCH_ROOT } from "./lib/tasks.mjs";
-import {
-  createWorkspace,
-  forbiddenRoots,
-  writeCell,
-} from "./lib/workspace.mjs";
+import { createWorkspace, writeCell } from "./lib/workspace.mjs";
 
 const USAGE = `usage: clone-prepare.mjs --app <id> --workspace <dir> --rea <checkout> --client <id>
        --clone-name <name> --original-port <n> --clone-port <n>
@@ -95,22 +91,20 @@ const main = async () => {
   const app = loadApp(values.app);
   const originalPort = Number(values["original-port"]);
   const clonePort = Number(values["clone-port"]);
-  const { paths, rea, skill } = createWorkspace({
+  const { paths, rea, skill, forbidden } = createWorkspace({
     workspace: values.workspace,
     cellDir: values["cell-dir"],
     checkout: values.rea,
     node: values.node,
     client: values.client,
+    benchRepository: resolve(BENCH_ROOT, ".."),
+    forbid: values.forbid,
   });
   const cloneRoot = join(paths.workspace, "clone");
   const runDir = join(paths.workspace, "run");
   mkdirSync(cloneRoot);
   mkdirSync(runDir);
   const original = await startOriginal(app, paths, originalPort);
-  const forbidden = forbiddenRoots(paths, rea, [
-    resolve(BENCH_ROOT, ".."),
-    ...values.forbid,
-  ]);
   forbidden.at(-1).allow_running = [original.control, original.ctl];
   const id = values.id ?? `${app.id}-${rea.commit_short ?? rea.version}`;
   const address = `http://127.0.0.1:${originalPort}`;
@@ -138,7 +132,7 @@ const main = async () => {
     spare_ports: values["spare-ports"] ?? null,
     forbidden,
     off_limits: forbidden
-      .filter((root) => root.kind === "rea-checkout")
+      .filter((root) => root.kind !== "cell-private")
       .map((root) => root.path),
   };
   const prompt = clonePrompt({
@@ -158,6 +152,7 @@ const main = async () => {
         original: `${address} (${original.health})`,
         rea: `${rea.checkout} @ ${rea.commit_short} on ${rea.node_version}`,
         skill_dir: skill.skill_dir,
+        layout_problems: app.layout_problems,
       },
       null,
       1,

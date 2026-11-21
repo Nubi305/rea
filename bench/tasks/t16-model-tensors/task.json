@@ -52,6 +52,13 @@
       "value": "parcel-intent"
     }
   ],
+  "reference_answer": {
+    "tensor_count": 6,
+    "embed_shape": [512, 64],
+    "embed_dtype": "F16",
+    "parameter_count": 37896,
+    "task": "parcel-intent"
+  },
   "first_command": {
     "expected": "inspect-model-artifact",
     "also_accepted": ["inspect-artifact"]
@@ -67,7 +74,12 @@
         "must_contain": [
           "\"name\":\"embed.weight\",\"type\":\"F16\",\"type_id\":null,\"shape\":[\"512\",\"64\"]",
           "\"parameter_count\":\"37896\"",
-          "\"value\":\"parcel-intent\""
+          "\"value\":\"parcel-intent\"",
+          "\"name\":\"classifier.bias\"",
+          "\"name\":\"classifier.weight\"",
+          "\"name\":\"encoder.layer0.attention.bias\"",
+          "\"name\":\"encoder.layer0.attention.weight\"",
+          "\"name\":\"vocab.offsets\""
         ]
       }
     ]

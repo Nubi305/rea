@@ -32,6 +32,10 @@
       "value": ["-O2", "O2"]
     }
   ],
+  "reference_answer": {
+    "source_files": ["main.c", "tariff.c", "ledger.c"],
+    "optimisation": "-O2"
+  },
   "first_command": {
     "expected": "inspect-dwarf-units",
     "also_accepted": ["inspect-artifact"]

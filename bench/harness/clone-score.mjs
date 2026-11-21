@@ -5,10 +5,12 @@
 //
 //   node bench/harness/clone-score.mjs --workspace <dir> --transcript <file or run directory>
 //        --judge <checkout> [--cell <cell.json>] [--rea <checkout>] [--floor <floor.json>]
-//        [--out <file>] [--note <text>]... [--skip-hidden] [--keep] [--node <node>] [--original-port <n>]
+//        [--out <file>] [--note <text>]... [--skip-hidden] [--force-stop] [--keep] [--node <node>] [--original-port <n>]
 //        [--clone-reset <command> --clone-stop <command> [--clone-address <url>]]
 //
-// It leaves both applications stopped, and says so in its result.
+// It leaves both applications stopped, and says so in its result. A clone
+// whose run recorded no stop command cannot be stopped that way: with
+// --force-stop whatever still listens on the cell's two ports is ended.
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -43,7 +45,7 @@ import { readCell } from "./lib/workspace.mjs";
 
 const USAGE = `usage: clone-score.mjs --workspace <dir> --transcript <file or run directory> --judge <checkout>
        [--cell <cell.json>] [--rea <checkout>] [--floor <floor.json>] [--out <file>]
-       [--note <text>]... [--skip-hidden] [--keep] [--node <node>] [--original-port <n>]
+       [--note <text>]... [--skip-hidden] [--force-stop] [--keep] [--node <node>] [--original-port <n>]
        [--clone-reset <command> --clone-stop <command> [--clone-address <url>]]`;
 
 const options = () => {
@@ -63,6 +65,7 @@ const options = () => {
       "clone-address": { type: "string" },
       note: { type: "string", multiple: true, default: [] },
       "skip-hidden": { type: "boolean", default: false },
+      "force-stop": { type: "boolean", default: false },
       keep: { type: "boolean", default: false },
     },
   });
@@ -231,72 +234,99 @@ const stopBoth = (cell, values) => {
   if (control !== null) runControl(control.stop, "/dev/null");
 };
 
-const stillRunning = async (cell, values) => ({
-  original: await portOpen(
-    Number(values["original-port"] ?? cell.original.port),
-  ),
-  clone: await portOpen(
-    Number(new URL(values["clone-address"] ?? cell.clone.address).port),
-  ),
+const portsOf = (cell, values) => ({
+  original: Number(values["original-port"] ?? cell.original.port),
+  clone: Number(new URL(values["clone-address"] ?? cell.clone.address).port),
 });
+
+const stillRunning = async (cell, values) => {
+  const ports = portsOf(cell, values);
+  if (values["force-stop"])
+    for (const port of Object.values(ports))
+      if (await portOpen(port)) await endListeners(port);
+  return {
+    original: await portOpen(ports.original),
+    clone: await portOpen(ports.clone),
+  };
+};
+
+const buildScore = async (context) => {
+  const { cell, judge, underTest, transcript, workDir, values } = context;
+  const treeBefore = treeDigest(cell.clone.root);
+  const referee = scoreReferee(cell, underTest, judge, workDir);
+  const hidden = values["skip-hidden"]
+    ? { measured: false, reason: "skipped on request" }
+    : await scoreHidden(context);
+  const treeAfter = treeDigest(cell.clone.root);
+  return {
+    schema: "rea.bench.clone-score/1",
+    cell: {
+      id: cell.id,
+      label: cell.label,
+      app: cell.app,
+      clone_name: cell.clone.name,
+    },
+    scored_at: new Date().toISOString(),
+    rea_under_test: {
+      commit: underTest.commit_short,
+      version: underTest.version,
+      node_version: underTest.node_version,
+    },
+    judge: { commit: judge.commit_short, version: judge.version },
+    transcript: transcript.file,
+    run: { started_at: transcript.started_at, ended_at: transcript.ended_at },
+    notes: values.note,
+    referee,
+    hidden,
+    ...scoreTranscript(cell, transcript, values.floor),
+    clone_tree: {
+      files: treeBefore.files,
+      sha256: treeBefore.sha256,
+      changed_by_scoring: treeBefore.sha256 !== treeAfter.sha256,
+    },
+  };
+};
+
+const headline = (score) => {
+  const { referee, hidden, cost, left_running: left } = score;
+  const rules = hidden.measured
+    ? `${hidden.rules_agree} of ${hidden.rules_total} hidden rules agree`
+    : `hidden rules not measured (${hidden.reason})`;
+  const running = Object.keys(left).filter((side) => left[side]);
+  return `${score.cell.id}: referee ${referee.verdict ?? "none"} (exit ${referee.exit_status}); ${rules}; peak context ${cost.peak_context_tokens}; ${running.length === 0 ? "both applications stopped" : `STILL RUNNING: ${running.join(", ")}`}`;
+};
 
 const main = async () => {
   const values = options();
   const cell = readCell(values.workspace, values.cell);
   if (cell.kind !== "clone") throw new Error(`${cell.id} is not a clone cell`);
-  const app = loadApp(cell.app);
   const node = values.node ?? cell.rea.node;
-  const judge = checkoutFacts(values.judge, node);
-  const underTest =
-    values.rea === undefined ? cell.rea : checkoutFacts(values.rea, node);
-  const transcriptFile = findTranscript(values.transcript, cell.label);
-  const transcript = readTranscript(transcriptFile);
-  const workDir = mkdtempSync(join(tmpdir(), `rea-bench-score-${cell.id}-`));
-  const treeBefore = treeDigest(cell.clone.root);
+  const context = {
+    cell,
+    values,
+    app: loadApp(cell.app),
+    judge: checkoutFacts(values.judge, node),
+    underTest:
+      values.rea === undefined ? cell.rea : checkoutFacts(values.rea, node),
+    transcript: readTranscript(findTranscript(values.transcript, cell.label)),
+    workDir: mkdtempSync(join(tmpdir(), `rea-bench-score-${cell.id}-`)),
+  };
   let score;
+  let left;
   try {
-    const referee = scoreReferee(cell, underTest, judge, workDir);
-    const hidden = values["skip-hidden"]
-      ? { measured: false, reason: "skipped on request" }
-      : await scoreHidden({ cell, app, judge, workDir, values });
-    const treeAfter = treeDigest(cell.clone.root);
-    score = {
-      schema: "rea.bench.clone-score/1",
-      cell: {
-        id: cell.id,
-        label: cell.label,
-        app: cell.app,
-        clone_name: cell.clone.name,
-      },
-      scored_at: new Date().toISOString(),
-      rea_under_test: {
-        commit: underTest.commit_short,
-        version: underTest.version,
-        node_version: underTest.node_version,
-      },
-      judge: { commit: judge.commit_short, version: judge.version },
-      transcript: transcriptFile,
-      run: { started_at: transcript.started_at, ended_at: transcript.ended_at },
-      notes: values.note,
-      referee,
-      hidden,
-      ...scoreTranscript(cell, transcript, values.floor),
-      clone_tree: {
-        files: treeBefore.files,
-        sha256: treeBefore.sha256,
-        changed_by_scoring: treeBefore.sha256 !== treeAfter.sha256,
-      },
-    };
+    score = await buildScore(context);
   } finally {
-    if (!values.keep) rmSync(workDir, { recursive: true, force: true });
+    // Also after a failure: nothing this cell started may be left running.
+    stopBoth(cell, values);
+    left = await stillRunning(cell, values);
+    if (!values.keep) rmSync(context.workDir, { recursive: true, force: true });
   }
-  stopBoth(cell, values);
-  score.left_running = await stillRunning(cell, values);
+  score.left_running = left;
   const text = `${JSON.stringify(score, null, 1)}\n`;
   if (values.out !== undefined) writeFileSync(values.out, text);
   process.stdout.write(text);
-  if (score.left_running.original || score.left_running.clone)
-    process.exitCode = 1;
+  console.error(headline(score));
+  if (left.original || left.clone) process.exitCode = 1;
 };
 
 await main();

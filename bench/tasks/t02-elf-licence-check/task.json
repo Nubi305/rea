@@ -39,6 +39,11 @@
       "value": "PARCEL-7Q4-ZED"
     }
   ],
+  "reference_answer": {
+    "function": "verify_key",
+    "key_length": 14,
+    "accepted_key": "PARCEL-7Q4-ZED"
+  },
   "first_command": {
     "expected": "inspect-with-objdump",
     "also_accepted": ["inspect-artifact", "debug-with-gdb"]

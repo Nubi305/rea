@@ -13,6 +13,12 @@ const readJson = (file) => {
   return JSON.parse(readFileSync(file, "utf8"));
 };
 
+// The one kind of CSS selector a held-out scenario may use: role and ARIA
+// attributes, which are behaviour a clone can be asked to match. An id, a
+// class, a tag or a data attribute is the original's markup.
+const PORTABLE_SELECTOR =
+  /^(?:\s*\[(?:role|aria-[a-z]+)(?:[~|^$*]?=[^\]]*)?\])+\s*$/u;
+
 // rules.json names its scenarios as a list of ids (the file is <id>.json) or
 // as a map from id to file name.
 const scenarioFiles = (rules) =>
@@ -28,6 +34,16 @@ const loadScenario = (hiddenDir, id, file) => {
     id,
     file: join(hiddenDir, file),
     step_ids: document.actions.map((action) => action.step_id),
+    markup_bound: document.actions
+      .filter(
+        (action) =>
+          action.locator?.kind === "css" &&
+          !PORTABLE_SELECTOR.test(action.locator.selector),
+      )
+      .map(
+        (action) =>
+          `${id}/${action.step_id} finds an element by ${JSON.stringify(action.locator.selector)}: a clean-room clone will not have that markup, the step fails there and no later step runs`,
+      ),
   };
 };
 
@@ -46,19 +62,37 @@ const checkRule = (rule, scenarios) => {
     throw new Error(`rule ${rule.id} cites no step`);
 };
 
-/** Read and check one application; throws on anything the layout forbids. */
-export const loadApp = (id, root = APPS_ROOT) => {
-  const dir = join(root, id);
-  const facts = readJson(join(dir, "app.json"));
-  if (facts.id !== id) throw new Error(`${dir}/app.json has id ${facts.id}`);
+// app.json, or what stands in for it while an application is being brought
+// in: the product name its rules file gives, and a note of what is missing.
+const publicFacts = (dir, id, hiddenRules, factsOptional) => {
+  const file = join(dir, "app.json");
+  if (!existsSync(file) && factsOptional)
+    return {
+      product_names: [hiddenRules.application],
+      public_description: null,
+      layout_problems: ["app.json is missing"],
+    };
+  const facts = readJson(file);
+  if (facts.id !== id) throw new Error(`${file} has id ${facts.id}`);
   if (!Array.isArray(facts.product_names) || facts.product_names.length === 0)
     throw new Error(`${id}: app.json needs product_names`);
   if (typeof facts.public_description !== "string")
     throw new Error(`${id}: app.json needs public_description`);
+  return { ...facts, layout_problems: [] };
+};
+
+/**
+ * Read and check one application; throws on anything the layout forbids.
+ * With `factsOptional` a missing app.json is noted instead (the self-check
+ * of an application that is still being brought in).
+ */
+export const loadApp = (id, root = APPS_ROOT, factsOptional = false) => {
+  const dir = join(root, id);
   if (!existsSync(join(dir, "original", "ctl.sh")))
     throw new Error(`${id}: original/ctl.sh is missing`);
   const hiddenDir = join(dir, "hidden");
   const rules = readJson(join(hiddenDir, "rules.json"));
+  const facts = publicFacts(dir, id, rules, factsOptional);
   const scenarios = scenarioFiles(rules).map(([scenario, file]) =>
     loadScenario(hiddenDir, scenario, file),
   );
@@ -81,6 +115,10 @@ export const loadApp = (id, root = APPS_ROOT) => {
     hidden_dir: hiddenDir,
     product_names: facts.product_names,
     public_description: facts.public_description,
+    layout_problems: [
+      ...facts.layout_problems,
+      ...scenarios.flatMap((scenario) => scenario.markup_bound),
+    ],
     scenarios,
     rules: rules.rules,
     differences,

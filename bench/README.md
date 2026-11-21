@@ -78,6 +78,10 @@ node bench/harness/clone-score.mjs --workspace $RUNS/varnholt-a \
   first trial); `--spare-ports` tells the agent about more ports.
 - A cell that is never scored leaves its original running:
   `$RUNS/varnholt-a.cell/original-ctl.sh stop` stops it.
+- The scorer stops the clone with the stop command the run recorded. A clone
+  left running by a run that recorded none is reported (`left_running`, exit
+  status 1); `--force-stop` then ends whatever listens on the cell's two
+  ports.
 
 ### Task benchmark
 
@@ -406,8 +410,8 @@ and the tool names they know are `Bash` (`input.command`), `Read`, `Write`,
 ## The tasks
 
 Each task is `bench/tasks/<id>/`: `task.json` (the question, the inputs and how
-they are built, the answer fields, the expected facts, the expected first
-command and the reference route), `proof.json` (that route measured on
+they are built, the answer fields, the expected facts, an answer that
+satisfies them, the expected first command and the reference route), `proof.json` (that route measured on
 0e089b3) and the sources of the inputs. The repository tracks no binaries:
 `task-prepare.mjs` builds them with `gcc`, `go`, `python3` and Node, and hides
 the source paths from what it builds.
@@ -425,7 +429,7 @@ the source paths from what it builds.
 | `t09-har-failures`        | Failed and slow requests in a recorded HAR                 | `inspect-web-network-capture`    | 1 call, 4,485 B   | 69,823 B         | R11   |
 | `t10-openapi-operations`  | Operations of an OpenAPI description                       | `inspect-api-contract`           | 1 call, 6,901 B   |                  |       |
 | `t11-version-diff`        | What changed between two versions of a package             | `inspect-artifact`               | 3 calls, 14,157 B |                  | R7    |
-| `t12-page-click-request`  | The request a page sends when a button is clicked          | `capture-browser-scenario`       | 2 calls, 10,825 B | 16,370 B         | R9    |
+| `t12-page-click-request`  | The request a page sends when a button is clicked          | `capture-browser-scenario`       | 2 calls, 10,803 B | 16,370 B         | R9    |
 | `t13-python-bytecode`     | What a compiled Python module defines                      | `inspect-python-pyc`             | 1 call, 6,985 B   |                  |       |
 | `t14-js-bundle-endpoints` | Endpoints a minified web bundle calls                      | `analyze-javascript-application` | 2 calls, 11,241 B | 986,332 B        | R8    |
 | `t15-electron-ipc`        | IPC surface of an unpacked Electron application            | `analyze-javascript-application` | 2 calls, 13,200 B | 644,152 B        | R3    |
@@ -437,7 +441,8 @@ the source paths from what it builds.
 that give every expected fact, with the economical flags an agent has to know.
 "Naive first call" is the same question asked the obvious way. "Audit" is the
 routing request of the context audit that the task started from. Bytes move a
-little with the length of the paths REA echoes.
+little with the length of the paths REA echoes, and from run to run for the
+task that drives a browser.
 
 The questions never name a REA command. A task that REA could not answer in
 this container was left out rather than checked more loosely: nothing needs a

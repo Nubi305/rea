@@ -46,6 +46,12 @@
       "value": true
     }
   ],
+  "reference_answer": {
+    "needed_libraries": ["libm.so.6", "libc.so.6"],
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "imports_system": false,
+    "imports_popen": true
+  },
   "first_command": {
     "expected": "inspect-elf-dependencies",
     "also_accepted": ["inspect-artifact"]
@@ -59,7 +65,8 @@
           "\"name\":\"libc.so.6\"",
           "/lib64/ld-linux-x86-64.so.2",
           "\"name\":\"popen\""
-        ]
+        ],
+        "must_not_contain": ["\"name\":\"system\""]
       }
     ]
   }

@@ -11,7 +11,11 @@
       "to": "migrate",
       "flags": ["-O1"]
     },
-    { "kind": "copy", "from": "src/state", "to": "state" }
+    {
+      "kind": "copy",
+      "from": "src/state",
+      "to": "state"
+    }
   ],
   "answer": {
     "fields": {
@@ -31,7 +35,12 @@
         "dry run: nothing applied"
       ]
     },
-    { "id": "exit-code", "field": "exit_code", "check": "equals", "value": 3 },
+    {
+      "id": "exit-code",
+      "field": "exit_code",
+      "check": "equals",
+      "value": 3
+    },
     {
       "id": "files-created",
       "field": "files_created",
@@ -45,6 +54,15 @@
       "value": []
     }
   ],
+  "reference_answer": {
+    "stdout_lines": [
+      "schema at version 6, 3 migrations pending",
+      "dry run: nothing applied"
+    ],
+    "exit_code": 3,
+    "files_created": ["plan.txt"],
+    "files_changed": []
+  },
   "first_command": {
     "expected": "capture-process",
     "also_accepted": []

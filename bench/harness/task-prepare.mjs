@@ -25,11 +25,7 @@ import {
   loadTask,
   versionAtLeast,
 } from "./lib/tasks.mjs";
-import {
-  createWorkspace,
-  forbiddenRoots,
-  writeCell,
-} from "./lib/workspace.mjs";
+import { createWorkspace, writeCell } from "./lib/workspace.mjs";
 
 const USAGE = `usage: task-prepare.mjs --root <dir> --rea <checkout> --client <id>
        [--task <id>]... [--tag <text>] [--node <node>] [--minutes <n>]
@@ -80,11 +76,13 @@ const startService = async (task, paths, port) => {
 };
 
 const prepareTask = async (task, values, port) => {
-  const { paths, rea, skill } = createWorkspace({
+  const { paths, rea, skill, forbidden } = createWorkspace({
     workspace: join(values.root, task.id),
     checkout: values.rea,
     node: values.node,
     client: values.client,
+    benchRepository: resolve(BENCH_ROOT, ".."),
+    forbid: values.forbid,
   });
   const inputDir = join(paths.workspace, "input");
   mkdirSync(inputDir);
@@ -94,10 +92,6 @@ const prepareTask = async (task, values, port) => {
   });
   const service =
     task.service === undefined ? null : await startService(task, paths, port);
-  const forbidden = forbiddenRoots(paths, rea, [
-    resolve(BENCH_ROOT, ".."),
-    ...values.forbid,
-  ]);
   const id = values.tag === undefined ? task.id : `${task.id}.${values.tag}`;
   const description = {
     kind: "task",
@@ -122,7 +116,7 @@ const prepareTask = async (task, values, port) => {
     minutes: Number(values.minutes),
     forbidden,
     off_limits: forbidden
-      .filter((root) => root.kind === "rea-checkout")
+      .filter((root) => root.kind !== "cell-private")
       .map((root) => root.path),
   };
   const prompt = taskPrompt({

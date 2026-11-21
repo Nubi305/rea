@@ -4,7 +4,11 @@
   "audit_request": null,
   "question": "According to {input}/fleet-api.json, how many operations does the API define, which paths accept POST, and what is the operationId of the call that deletes a vehicle?",
   "inputs": [
-    { "kind": "copy", "from": "src/fleet-api.json", "to": "fleet-api.json" }
+    {
+      "kind": "copy",
+      "from": "src/fleet-api.json",
+      "to": "fleet-api.json"
+    }
   ],
   "answer": {
     "fields": {
@@ -37,6 +41,15 @@
       "value": "retireVehicle"
     }
   ],
+  "reference_answer": {
+    "operation_count": 8,
+    "post_paths": [
+      "/vehicles",
+      "/vehicles/{plate}/positions",
+      "/webhooks/tachograph"
+    ],
+    "delete_vehicle_operation_id": "retireVehicle"
+  },
   "first_command": {
     "expected": "inspect-api-contract",
     "also_accepted": []
@@ -48,6 +61,8 @@
         "must_contain": [
           "\"operation_slots\":8",
           "\"method\":\"DELETE\",\"path\":\"/vehicles/{plate}\",\"declared_id\":\"retireVehicle\"",
+          "\"method\":\"POST\",\"path\":\"/vehicles\",\"declared_id\":\"registerVehicle\"",
+          "\"method\":\"POST\",\"path\":\"/vehicles/{plate}/positions\"",
           "\"method\":\"POST\",\"path\":\"/webhooks/tachograph\""
         ]
       }

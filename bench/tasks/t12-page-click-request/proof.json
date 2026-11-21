@@ -5,7 +5,7 @@
     "version": "6.9.0",
     "node_version": "v24.22.3"
   },
-  "route_stdout_bytes": 10825,
+  "route_stdout_bytes": 10803,
   "route_ok": true,
   "steps": [
     {
@@ -19,7 +19,7 @@
     {
       "command": "rea inspect-evidence-bundle {\"path\":\"{work}/capture.evidence.json\",\"detail\":\"complete\"} --json --filter-output records[0,1].normalized_result.events.items[10,16]",
       "exit": 0,
-      "stdout_bytes": 3935,
+      "stdout_bytes": 3913,
       "stderr_bytes": 0,
       "ok": true,
       "problem": "none"

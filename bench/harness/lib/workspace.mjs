@@ -104,22 +104,49 @@ const installSkill = (paths, rea, client) => {
 };
 
 /**
- * Create a workspace and its cell directory for one REA checkout. Refuses a
- * workspace or cell directory that already holds something.
+ * Paths no agent under test may read, as the trial rules list them: the
+ * checkout under test and the repository of this harness (which holds the
+ * hidden material), every other path the caller names, and the cell
+ * directory. Refuses a workspace that lies under one of them.
  */
-export const createWorkspace = ({
-  workspace,
-  cellDir,
-  checkout,
-  node,
-  client,
-}) => {
+const forbiddenRoots = (paths, rea, benchRepository, others = []) => {
+  const roots = new Map();
+  for (const path of [rea.checkout, benchRepository])
+    roots.set(resolve(path), "rea-checkout");
+  for (const path of others)
+    if (!roots.has(resolve(path))) roots.set(resolve(path), "off-limits");
+  for (const path of roots.keys())
+    if (paths.workspace === path || paths.workspace.startsWith(`${path}/`))
+      throw new Error(
+        `the workspace is under ${path}, which is off limits to the agent: put cells elsewhere`,
+      );
+  return [
+    ...[...roots].map(([path, kind]) => ({ path, kind })),
+    { path: paths.cell, kind: "cell-private", allow_running: [] },
+  ];
+};
+
+/**
+ * Create a workspace and its cell directory for one REA checkout. Refuses a
+ * workspace or cell directory that already holds something, and a workspace
+ * under a path the agent may not read. `settings` is `{ workspace, cellDir,
+ * checkout, node, client, benchRepository, forbid }`.
+ */
+export const createWorkspace = (settings) => {
+  const { workspace, cellDir, checkout, node, client } = settings;
   const paths = cellPaths(workspace, cellDir);
   if (!emptyOrAbsent(paths.workspace) || !emptyOrAbsent(paths.cell))
     throw new Error(
       `${paths.workspace} or ${paths.cell} is not empty: a cell starts from nothing`,
     );
   const rea = checkoutFacts(safePath(resolve(checkout)), safePath(node));
+  // Before anything is written: this refuses a workspace that is off limits.
+  const forbidden = forbiddenRoots(
+    paths,
+    rea,
+    settings.benchRepository,
+    settings.forbid,
+  );
   for (const directory of [
     paths.cell,
     paths.home,
@@ -129,7 +156,7 @@ export const createWorkspace = ({
   writeFileSync(paths.shim, shimText(paths, rea));
   chmodSync(paths.shim, 0o755);
   writeFileSync(paths.shim_log, "");
-  return { paths, rea, skill: installSkill(paths, rea, client) };
+  return { paths, rea, forbidden, skill: installSkill(paths, rea, client) };
 };
 
 /** Write the prompt and the cell description; returns the description. */
@@ -159,11 +186,3 @@ export const readCell = (workspace, cellFile) => {
     throw new Error(`${file} is not a ${CELL_SCHEMA} description`);
   return cell;
 };
-
-/** Paths no agent under test may read, as the trial rules list them. */
-export const forbiddenRoots = (paths, rea, extra = []) => [
-  ...[...new Set([rea.checkout, ...extra.map((path) => resolve(path))])].map(
-    (path) => ({ path, kind: "rea-checkout" }),
-  ),
-  { path: paths.cell, kind: "cell-private", allow_running: [] },
-];

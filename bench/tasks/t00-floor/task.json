@@ -11,8 +11,16 @@
     }
   },
   "facts": [
-    { "id": "ready", "field": "ready", "check": "equals", "value": true }
+    {
+      "id": "ready",
+      "field": "ready",
+      "check": "equals",
+      "value": true
+    }
   ],
+  "reference_answer": {
+    "ready": true
+  },
   "first_command": {
     "expected": "(none)",
     "also_accepted": []

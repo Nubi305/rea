@@ -8,7 +8,9 @@
       "kind": "go",
       "from": "src/agentd",
       "to": "agentd",
-      "env": { "CGO_ENABLED": "0" }
+      "env": {
+        "CGO_ENABLED": "0"
+      }
     }
   ],
   "answer": {
@@ -31,8 +33,18 @@
       "check": "set_equals",
       "value": ["example.test/fleet/wire@v0.4.2"]
     },
-    { "id": "cgo", "field": "cgo_enabled", "check": "equals", "value": false }
+    {
+      "id": "cgo",
+      "field": "cgo_enabled",
+      "check": "equals",
+      "value": false
+    }
   ],
+  "reference_answer": {
+    "module": "example.test/fleet/agentd",
+    "dependencies": ["example.test/fleet/wire@v0.4.2"],
+    "cgo_enabled": false
+  },
   "first_command": {
     "expected": "inspect-go-binary",
     "also_accepted": ["inspect-artifact"]

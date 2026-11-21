@@ -3,7 +3,13 @@
   "title": "Endpoints a minified web bundle calls",
   "audit_request": "R8",
   "question": "{input}/webapp is the production build of our courier board. Which URL paths does it request with fetch, and which WebSocket address does it open?",
-  "inputs": [{ "kind": "copy", "from": "src/webapp", "to": "webapp" }],
+  "inputs": [
+    {
+      "kind": "copy",
+      "from": "src/webapp",
+      "to": "webapp"
+    }
+  ],
   "answer": {
     "fields": {
       "fetch_paths": "array of strings: the distinct URL paths the code requests with fetch, each without its query string",
@@ -30,6 +36,16 @@
       "value": "wss://live.courier.example.test/board"
     }
   ],
+  "reference_answer": {
+    "fetch_paths": [
+      "/api/v3/depots",
+      "/api/v3/parcels",
+      "/api/v3/parcels/status",
+      "/api/v3/session",
+      "/api/v3/health"
+    ],
+    "websocket_url": "wss://live.courier.example.test/board"
+  },
   "first_command": {
     "expected": "analyze-javascript-application",
     "also_accepted": ["analyze", "inspect-artifact"],
@@ -55,7 +71,9 @@
           "{work}/webapp.evidence.json",
           "--json"
         ],
-        "capture": { "parent": "\"parent_evidence_id\":\"(ev_[a-f0-9]{64})\"" }
+        "capture": {
+          "parent": "\"parent_evidence_id\":\"(ev_[a-f0-9]{64})\""
+        }
       },
       {
         "args": [

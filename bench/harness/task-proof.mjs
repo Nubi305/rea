@@ -17,6 +17,7 @@ import { checkoutFacts, runRea } from "./lib/proc.mjs";
 import { startNodeService, stopRecordedService } from "./lib/service.mjs";
 import {
   fillPlaceholders,
+  judgeAnswer,
   listTaskIds,
   loadTask,
   versionAtLeast,
@@ -52,11 +53,24 @@ const missingText = (stdout, step, values) =>
     (text) => !stdout.includes(text),
   );
 
+const unwantedText = (stdout, step) =>
+  (step.must_not_contain ?? []).filter((text) => stdout.includes(text));
+
 const capture = (stdout, step, values) => {
   for (const [name, pattern] of Object.entries(step.capture ?? {})) {
     const match = new RegExp(pattern, "u").exec(stdout);
     if (match !== null) values[name] = match[1];
   }
+};
+
+const stepProblem = (result, step, values, expected) => {
+  if (result.status !== expected)
+    return `exit ${result.status}, expected ${expected}`;
+  const missing = missingText(result.stdout, step, values);
+  if (missing.length > 0) return `output lacks ${JSON.stringify(missing)}`;
+  const unwanted = unwantedText(result.stdout, step);
+  if (unwanted.length > 0) return `output holds ${JSON.stringify(unwanted)}`;
+  return "none";
 };
 
 const runStep = (step, context) => {
@@ -73,20 +87,15 @@ const runStep = (step, context) => {
     cwd: values.work,
   });
   capture(result.stdout, step, values);
-  const missing = missingText(result.stdout, step, values);
   const expected = step.expect_exit ?? 0;
+  const problem = stepProblem(result, step, values, expected);
   return {
     command: `rea ${step.args.join(" ")}`,
     exit: result.status,
     stdout_bytes: Buffer.byteLength(result.stdout),
     stderr_bytes: Buffer.byteLength(result.stderr),
-    ok: result.status === expected && missing.length === 0,
-    problem:
-      result.status === expected
-        ? missing.length === 0
-          ? "none"
-          : `output lacks ${JSON.stringify(missing)}`
-        : `exit ${result.status}, expected ${expected}`,
+    ok: problem === "none",
+    problem,
   };
 };
 
@@ -175,6 +184,12 @@ const main = async () => {
       continue;
     }
     const entry = record(task, await proveTask(task, settings), facts);
+    if (!judgeAnswer(task, task.reference_answer ?? null).right) {
+      entry.route_ok = false;
+      console.error(
+        `  ${id}: reference_answer does not satisfy the task's facts`,
+      );
+    }
     records.push(entry);
     const naive = entry.naive_first_call?.stdout_bytes;
     console.error(

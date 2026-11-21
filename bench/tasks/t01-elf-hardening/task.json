@@ -29,7 +29,12 @@
     }
   },
   "facts": [
-    { "id": "pie", "field": "pie", "check": "equals", "value": false },
+    {
+      "id": "pie",
+      "field": "pie",
+      "check": "equals",
+      "value": false
+    },
     {
       "id": "relro",
       "field": "relro",
@@ -50,6 +55,12 @@
       "value": "/opt/keyd/lib"
     }
   ],
+  "reference_answer": {
+    "pie": false,
+    "relro": "partial",
+    "stack_canary": true,
+    "runpath": "/opt/keyd/lib"
+  },
   "first_command": {
     "expected": "inspect-binary-hardening",
     "also_accepted": ["inspect-artifact"]

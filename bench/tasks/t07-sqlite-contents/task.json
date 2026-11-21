@@ -3,8 +3,16 @@
   "title": "What an application keeps in its SQLite database",
   "audit_request": "R13",
   "question": "What does the app keep in {input}/app.db? Which tables are there, how many rows does transfers hold, which schema version do its settings record, and where does it sync to?",
-  "requires": { "rea_node": "24.15.0" },
-  "inputs": [{ "kind": "sqlite", "from": "src/app.sql", "to": "app.db" }],
+  "requires": {
+    "rea_node": "24.15.0"
+  },
+  "inputs": [
+    {
+      "kind": "sqlite",
+      "from": "src/app.sql",
+      "to": "app.db"
+    }
+  ],
   "answer": {
     "fields": {
       "tables": "array of strings: the names of the tables (not views, not indexes)",
@@ -39,6 +47,12 @@
       "value": "https://sync.ledger.example.test/v3/push"
     }
   ],
+  "reference_answer": {
+    "tables": ["accounts", "transfers", "settings"],
+    "transfer_count": 37,
+    "schema_version": "12",
+    "sync_endpoint": "https://sync.ledger.example.test/v3/push"
+  },
   "first_command": {
     "expected": "inspect-sqlite-database",
     "also_accepted": []
