@@ -3,7 +3,7 @@
   "note": "Ceilings are a ratchet set from the ledger on the commit in measured_on with the default --work: lower them with --write-ceilings, raise one only with --raise-reason. Targets are the plan's (program/PROGRAM.md, Judges, J1). Rows without a target have no plan row.",
   "measured_on": {
     "path": "/home/user/rea",
-    "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
+    "commit": "9dcc1d88aa106da60c35c46bac6621565a57b075",
     "package": "rea-agents@6.10.1",
     "node": "v22.23.5",
     "full_census": false
@@ -11,7 +11,7 @@
   "rows": {
     "mcp.ten-calls.default": {
       "metric": "o200k",
-      "ceiling": 117430,
+      "ceiling": 117394,
       "target": "at most 20,000",
       "target_value": 20000,
       "tolerance": 0.01,
@@ -27,7 +27,7 @@
     },
     "mcp.ten-calls.summary": {
       "metric": "o200k",
-      "ceiling": 9611,
+      "ceiling": 9575,
       "target": "at most 9,700, stretch 7,100",
       "target_value": 9700,
       "tolerance": 0.01,
@@ -57,15 +57,31 @@
     },
     "mcp.catalogue": {
       "metric": "tokenx",
-      "ceiling": 97143,
+      "ceiling": 97193,
       "tolerance": 0.01,
-      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)"
+      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)",
+      "raised": [
+        {
+          "from": 97143,
+          "to": 97193,
+          "commit": "9dcc1d88aa106da60c35c46bac6621565a57b075",
+          "reason": "The routing and views packages changed tool contracts: search_guidance replies gained an optional commands list, the inferior terminal of debug_with_gdb became optional for a static read, and two descriptions were reworded. About 50 tokens over 263 tools."
+        }
+      ]
     },
     "mcp.catalogue.model-visible": {
       "metric": "o200k",
-      "ceiling": 70009,
+      "ceiling": 70052,
       "tolerance": 0.01,
-      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)"
+      "tolerance_reason": "replies carry 64-hex digests that change with content and code; equal-length digests cost different numbers of tokens (up to about 1% on these rows)",
+      "raised": [
+        {
+          "from": 70009,
+          "to": 70052,
+          "commit": "9dcc1d88aa106da60c35c46bac6621565a57b075",
+          "reason": "The routing and views packages changed tool contracts: search_guidance replies gained an optional commands list, the inferior terminal of debug_with_gdb became optional for a static read, and two descriptions were reworded. About 50 tokens over 263 tools."
+        }
+      ]
     },
     "mcp.instructions": {
       "metric": "o200k",
@@ -75,7 +91,7 @@
     },
     "guidance.search.mean": {
       "metric": "o200k",
-      "ceiling": 302,
+      "ceiling": 274,
       "target": "at most 600",
       "target_value": 600,
       "tolerance": 0.01,
@@ -109,7 +125,15 @@
     },
     "cli.census.total": {
       "metric": "bytes",
-      "ceiling": 1484739
+      "ceiling": 1487492,
+      "raised": [
+        {
+          "from": 1484739,
+          "to": 1487492,
+          "commit": "9dcc1d88aa106da60c35c46bac6621565a57b075",
+          "reason": "Tool-side routing: inspect_artifact results carry next probes with arguments, about 2.7 KB more over the quick census of fifteen calls. The answer budget, once wired, replaces this row's large answers with digests."
+        }
+      ]
     },
     "cli.census.over-2000": {
       "metric": "count",
@@ -165,7 +189,7 @@
     },
     "cli.setup.one-client": {
       "metric": "o200k",
-      "ceiling": 983,
+      "ceiling": 643,
       "target": "at most 1,500",
       "target_value": 1500,
       "tolerance": 0.01,
@@ -232,7 +256,7 @@
     },
     "clone.loop.stdout": {
       "metric": "o200k",
-      "ceiling": 31186,
+      "ceiling": 33906,
       "tolerance": 0.02,
       "target": "at most 5,000",
       "target_value": 5000,
@@ -243,6 +267,12 @@
           "to": 31186,
           "commit": "0b7eb4ff51ec4175bcd204fc1d6e97487489640f",
           "reason": "Merge of upstream release 6.10.1 and the consolidated clone-run documents: a longer version string in printed paths and help, one upstream routing bullet and one sentence about the npm fallback in the skill body."
+        },
+        {
+          "from": 31186,
+          "to": 33906,
+          "commit": "9dcc1d88aa106da60c35c46bac6621565a57b075",
+          "reason": "Summaries that answer: a capture summary now leads with per-step findings and names its views, and the clone loop prints four of them. The referee's capture receipts in fix round 3 take these summaries out of the loop (3,028 tokens measured on that branch)."
         }
       ]
     },
@@ -263,7 +293,7 @@
     },
     "clone.step-read": {
       "metric": "o200k",
-      "ceiling": 1506,
+      "ceiling": 1250,
       "tolerance": 0.02,
       "target": "at most 700",
       "target_value": 700,
