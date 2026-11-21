@@ -229,3 +229,79 @@ container:
 
 Not verified: the corrected playbook has not been followed by a fresh agent, the proof round's reproductions were
 not all run again after the join, and the full test suite was not run.
+
+## Second fix round (2026-11-21)
+
+Two independent agents ran every reproduction of the proof round again on the fixed build. Most fixes held. They
+found three ways to `done` for a wrong clone, two of them opened by relaxations of the first fix round, and a dozen
+smaller defects (ids `vp-1` to `vp-8` and `vf-1` to `vf-7`). The rule of this round: a relaxation may turn a false
+failure into `unstable` or `unknown`, never into a match, and never into something a step prefix or a declaration
+can then silence. An unticked box is a finding that is still open.
+
+### A: comparer
+
+- [x] A `*` pointer is honoured only at the positions where the original's own repeats differ. A steady position with
+      another value on the clone is `declared-not-shown`, also with step `*` (vp-1; reverses the first round's rule
+      for a list in varying order).
+- [x] The kind of every container, empty ones included, is judged before any declaration: a list against an object is
+      `changed` at the outermost such container (vp-2).
+- [x] No placeholder stands for an address. The original's start origin, then its bare `host:port`, are read as the
+      clone's in on-screen text and body strings, and `addresses_applied` counts them (vp-4, vf-3).
+- [x] An honoured leaf is held to the presence, JSON type and layout the original's own values share, also when they
+      do not share one shape.
+- [ ] A list in varying order with a field that is not declared, or declared, still reads `changed`, `unknown` or
+      `unstable` at the positions where the original's captures coincide (vf-5). By decision there is no relaxation:
+      the list has to be requested in a fixed order, and `limitations` and the referee's items say so.
+- [ ] A reply body that one capture of a side recorded stands for the captures of that side that lost it, so a clone
+      that is wrong only in a capture whose body was lost reads `unchanged`. Closing it needs the reason a body is
+      unavailable, which the capture readers do not pass on. Stated as residual trust item 15.
+
+### B: referee and commands
+
+- [x] On a `setup-` or `fp-` step every finding blocks in which the original is steady and the clone differs, and so
+      does data only one side lacks; the rule is one table with its own tests. The gate lists every declared pointer
+      that had an effect, also one that only held a difference back (vp-3). A clone reply padded past the body limit
+      at a `setup-` step, found while fixing, blocks as well.
+- [x] The `unknown_open` and `obligation_inferred` items say who may settle them and print no waiver to paste (vf-1).
+- [x] The item of a step that did not complete quotes the failure the capture recorded, and gives redirect advice
+      only when that text names a redirect (vf-4).
+- [x] With an unreadable `target.json` the printed command is spelled from how the evaluation was started and runs
+      as printed, and the stall outlook names the check that kept the evaluation from being judged (vf-6).
+- [x] `parity_unstable` items of one field collapse into one item with the `step_id` `*` declaration, and the
+      prober's item for an unstable original carries the removal command (vf-7).
+- [x] `--exit-code=<value>` with a value other than `true` or `false` is refused as an argument error; before, `=1`
+      was read as the flag turned off and exited 0 on a failing run (vp-5).
+- [x] A `journal.jsonl` that is not a regular file is never opened (vp-6). The residual line names the content of a
+      file saved through a download, and a body no capture of either side recorded gets the advice to fetch the file
+      with a `request` step instead of a capture command (vp-7). A link is flagged as soon as its text rises above
+      the clone root, whatever it does afterwards, and when its text is an absolute path (vp-8).
+- [x] A `request` step whose two replies are HTML pages goes to the prober with the remedy, a `goto`.
+- [x] Tests for a file that vanishes during the tree walk, one that cannot be read, a link swapped in for a file and
+      a named pipe (the remainder of referee-12).
+- [x] The items for a declared field the original holds steady and for a field the clone's captures disagree on say,
+      at a list position, that lists are compared by position. A difference whose original value holds the
+      original's own address says that the value is shown with that address read as the clone's.
+
+### Text, tests and the verifier
+
+- [x] Every command the playbook prints keeps complete Evidence out of the agent's context: the scout's script
+      analysis is printed in its summary form with `--evidence_output`, followed by the view that reads the routes
+      from the saved file, and the conformance test holds every fenced command to that rule (vf-2).
+- [x] The playbook and the reference page say that on-screen text cannot be declared volatile, so a date or a clock
+      on screen makes its step differ between days (the on-screen half of reality-7). The decision's second remedy,
+      keeping such text out of cited steps, is written as keeping it off the pages a scenario shows: a text
+      difference is reported at the first step that shows the text and blocks on every kind of step.
+- [x] The specification says exactly what the name check reads: file bytes, the paths of files and links, and link
+      text; not the names of empty directories or special files (the remainder of referee-14).
+- [x] The specification's rows for a failing step renamed `setup-`, a declared field that does not vary and the
+      origin rule, the reference page and the playbook say what the code does after this round.
+- [x] Five verifier cases on the new fixture scenario `board`, each asserting the exit status and the verdict: a
+      correct clone of an application that prints its own address with and without the scheme (`done`); a clone
+      steadily wrong at a list position the original holds steady under a declared `*` pointer; a list answered as
+      an object keyed by position with every value beneath declared volatile; the text `{origin}` where the original
+      prints its address; and a failing step renamed `setup-` with its field declared volatile (each `not_done`, the
+      last also `stalled` once the item's capture command is followed).
+- [ ] The decision asked that the `declared-not-shown` message offer naming the step `setup-` for a list in varying
+      order. It is not printed, because the same round makes that finding block on a `setup-` step.
+- [ ] The corrected playbook has still not been followed by a fresh agent, and no verifier case pads a clone reply
+      past the body limit at a `setup-` step: that rule rests on the referee's unit tests and its author's run.

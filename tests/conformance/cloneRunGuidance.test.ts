@@ -233,14 +233,15 @@ const roleCards = (text: string): Map<string, string> =>
 /**
  * Roles the referee addresses a finding to beyond its reason's own role,
  * when the remedy is that role's: a difference a rename settles goes to the
- * lead, and instability of the original that no declaration can cover goes
- * to the prober. The referee sets these per finding and exports no list, so
- * this one is kept by hand beside the referee's own tests of each case.
+ * lead, a difference between two pages a `request` step fetched goes to the
+ * prober, and so does instability of the original that no declaration can
+ * cover. The referee sets these per finding and exports no list, so this one
+ * is kept by hand beside the referee's own tests of each case.
  */
 const ALSO_ADDRESSED: Partial<
   Record<CloneRunReasonCode, readonly CloneRunRole[]>
 > = {
-  parity_changed: ["lead"],
+  parity_changed: ["lead", "prober"],
   parity_unstable: ["prober"],
 };
 
@@ -338,6 +339,41 @@ describe("clone run playbook", () => {
         }).success,
         entry,
       ).toBe(true);
+  });
+
+  it("prints no command that delivers complete Evidence to the agent", async () => {
+    const { blocks } = await readProse(PLAYBOOK_PATH);
+    const flagsOf = commandFlags();
+    // A command that takes both flags prints complete Evidence unless it is
+    // asked for the summary, which needs a file for the complete record.
+    const deliversEvidence = (command: string): boolean =>
+      flagsOf(command).has("--detail") &&
+      flagsOf(command).has("--evidence_output");
+    const delivering = blocks
+      .filter(({ info }) => info === "sh")
+      .flatMap(({ text }) => text.replaceAll(/\\\n\s*/gu, " ").split("\n"))
+      .flatMap((line) => {
+        const command = /(?<![\w./-])rea ([a-z][a-z0-9-]*)/u.exec(line)?.[1];
+        return command !== undefined && deliversEvidence(command)
+          ? [{ command, line }]
+          : [];
+      });
+    // The scout's crawl and its script analysis are such commands, so the rule has lines to hold.
+    expect(delivering.map(({ command }) => command)).toEqual(
+      expect.arrayContaining([
+        "capture-browser-scenario",
+        "analyze-javascript-application",
+      ]),
+    );
+    const summaryToFile = (line: string): boolean =>
+      / --detail summary(?!\S)/u.test(line) &&
+      / --evidence_output \S/u.test(line);
+    const redirected = (line: string): boolean => /\s>\s*\S/u.test(line);
+    expect(
+      delivering
+        .filter(({ line }) => !summaryToFile(line) && !redirected(line))
+        .map(({ line }) => line),
+    ).toEqual([]);
   });
 
   it("has one card for each role of the contract", async () => {

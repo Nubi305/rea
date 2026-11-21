@@ -125,6 +125,7 @@ export const CLONE_RUN_RESIDUAL_TRUST: readonly string[] = [
   "The journal is the referee's own output; removing it can hide a stall and cannot produce a pass.",
   "A step is compared on its outcome, its requests, their statuses, fetched reply bodies, the page address and the accessibility text only. Appearance, styles, images, fonts, response headers, the document title and timing are not compared.",
   "Text inside an iframe, the text of alert, confirm and prompt dialogs and the content of a file saved through a download are not compared.",
+  "A reply body that one capture of a side recorded stands for the captures of that side that lost it, because captures lose bodies at random. A clone that answers differently only in a capture whose body was lost or was over the capture's 64 KiB limit is not detected.",
 ];
 
 /** What the referee is given instead of reaching for it, so tests supply fakes. */

@@ -87,7 +87,7 @@ One folder per run. Each file has one writer.
 | `examples/`                             | `init-clone-run`                | valid examples: see below                                     |
 | `rendered/<side>/<scenario>.json`       | referee                         | the capture input for that side                               |
 | `records/<side>/<scenario>.json`        | referee                         | what was decided about each Evidence file                     |
-| `behavior/<scenario>.json`              | referee                         | the original's behavior per step, without addresses           |
+| `behavior/<scenario>.json`              | referee                         | the original's behavior per step, as the original gave it     |
 | `parity/<scenario>.json`                | referee                         | the comparison of the two sides                               |
 | `journal.jsonl`                         | referee                         | one line per changed state, for stall detection               |
 | `gate.json`                             | referee                         | the last verdict and worklist                                 |
@@ -112,8 +112,10 @@ writes `{origin}` at the start of its URL, such as `{origin}/notes`, and the
 referee replaces it with each side's address. Step ids decide what a step is
 for: `fp-` steps are the fingerprint that reads the state a clean start shows
 and come first; `setup-` steps prepare and are not cited; every other step is
-a behavior step that an obligation must cite and that must match. An id starts
-with a letter and holds letters, digits, `.`, `_` and `-`.
+a behavior step that an obligation must cite and that must match. An `fp-` or
+`setup-` step is compared too, and [parity](#what-done-means) says what
+blocks there: the prefix never hides a difference. An id starts with a letter
+and holds letters, digits, `.`, `_` and `-`.
 
 ```json
 {
@@ -173,11 +175,16 @@ The command reads the folder, rewrites its outputs and prints the gate. With
 `--exit-code` it exits `0` for `done` or `done_with_waivers`, `1` for
 `not_done` and `2` for `stalled`. Without the flag it exits `0` whatever the
 verdict, so gate on the exit status of a run with the flag and never on a
-search of the output for the word done. A missing directory or `target.json`
+search of the output for the word done. Write the flag bare. After `=` only
+`true` and `false` are read, and `false` turns the flag off as a `no-` prefix
+does. Any other value, such as `--exit-code=1`, is refused as an argument
+error and never read as the flag turned off. A missing directory or
+`target.json`
 is a refusal with exit `1` and no `verdict` member; every other problem is a
 finding. A `target.json` that cannot be read is the finding `target_invalid`:
 the gate and the journal line are written and the other outputs are left as
-they were.
+they were. Its items spell the command the way that evaluation was started,
+and say so, because the file that records the spelling could not be read.
 
 The gate carries the verdict, a one-line `summary`, the status of each check,
 `blocking` (every reason with its total) and `next`: at most ten items, each
@@ -210,10 +217,16 @@ The gate also carries:
 
 - `stall`: `round`, `max_rounds`, whether this evaluation was `judged`, the
   `attempts` with these findings on these clone files, and `outlook`, a
-  sentence that says what would make the next evaluation read `stalled`. See
-  [Stall](#stall).
+  sentence that says what would make the next evaluation read `stalled`, or,
+  for an evaluation that was not judged, which check kept it from being
+  judged. See [Stall](#stall).
 - `declared`: the renames that took effect, each with the number of compared
-  values it changed, and the count of honored volatile fields.
+  values it changed; the count of honored volatile fields; and
+  `volatile_declarations`, one entry per scenario and declared pointer that
+  had any effect. `honoured_steps` counts the steps where the value was not
+  compared, `not_shown_steps` the steps where the declaration held a
+  difference back because the original's captures agree there, and `steps`
+  names up to three of them, those not honored first.
 - `target`: the two addresses and the clone root the verdict was computed
   for.
 - `clone_tree`: the digest of the clone's files, their count, and the
@@ -222,7 +235,7 @@ The gate also carries:
   `; 1 clone path is excluded and is covered neither by staleness nor by the clean-room check (node_modules)`.
 - `counts`: scenarios, obligations, cited steps, steps by status, Evidence
   files by status, and `ungated_steps`, the setup and fingerprint steps that
-  are unknown or unstable and do not block.
+  are not unchanged and do not block.
 - `residual_trust`: what the verdict does not establish. It is listed with
   `done` and `done_with_waivers` and is empty otherwise.
 
@@ -230,9 +243,12 @@ The command of a capture item is complete: it runs `capture-browser-scenario`
 on the rendered input under an outer `timeout` and writes the next free
 `run-N.json` into a directory the referee has already created. Reset the
 application before running it. The command of a rejected Evidence file, of
-captures that began from different states and of clone captures that
-disagree with each other is the `rm` that removes them. Every other item
-carries the evaluation command, to run after the edit its message asks for.
+captures that began from different states, of clone captures that disagree
+with each other and of the prober's item for captures of the original that
+disagree is the `rm` that removes them. Every other item carries the
+evaluation command, to run after the edit its message asks for. A reply body
+that no capture of either side recorded gets no capture command, because one
+more capture records as little.
 
 The clone's capture input carries a digest of the clone's files. The order on
 the clone side is therefore: evaluate, restart the clone, capture from
@@ -250,7 +266,9 @@ state and writes `behavior/`.
 1. **scope**: `target.json` is valid and carries the authorization statement,
    the two addresses are not one, the run folder is outside the clone root,
    the clone root exists, every entry under it can be read, and no symlink
-   leaves it, enters an excluded path or fails to resolve.
+   leaves it, enters an excluded path or fails to resolve. A link leaves the
+   root when its text is an absolute path or rises above the root at any
+   point, also when it comes back in by the root's own name.
 2. **inputs**: every authored file passes its schema, and there is at least
    one scenario and one obligation file.
 3. **evidence**: every scenario has at least two admitted captures per side.
@@ -263,13 +281,24 @@ state and writes `behavior/`.
 5. **coverage**: every behavior step is cited, every obligation cites steps
    that completed on the original, and no obligation is inferred unless
    waived.
-6. **parity**: every behavior step is `unchanged`, and no setup or
-   fingerprint step is `changed`.
+6. **parity**: every behavior step is `unchanged`. On a setup or fingerprint
+   step, every finding blocks in which the original is steady and the clone
+   differs, and so does data that only one side lacks: a difference, a
+   declared field the original holds steady, a value the original recorded
+   once that no clone capture agrees with, a step that did not complete, and
+   a reply or an origin only one side shows. Such a step may be unsteady, and
+   it may lack data that no capture of either side recorded; those are
+   counted in `ungated_steps`. A step that lists as many findings as a
+   comparison keeps per step blocks too, because one it left out may block.
+   Naming a step `setup-` therefore hides no difference, with or without a
+   volatile declaration.
 7. **clean_room**: no clone file of 64 bytes or more equals a file under the
    original's material or a reply body an original capture recorded, and none
-   of the original's names occurs in a clone file, a path or a link's text.
-   The check covers names and identical files only: it does not detect code
-   that was retyped, reformatted or paraphrased.
+   of the original's names occurs in the bytes of a clone file, in the path
+   of a file or a link, or in a link's text. The name of an empty directory
+   or of a special file is not read. The check covers names and identical
+   files only: it does not detect code that was retyped, reformatted or
+   paraphrased.
 8. **unknowns**: every unknown is waived or closed.
 
 A check that could not be computed yet reads `not_evaluated`.
@@ -304,7 +333,7 @@ prober on the original side and to the verifier on the clone side.
 | `step_uncited`                 | coverage    | spec writer                                 | a behavior step is cited by no obligation                                  |
 | `obligation_step_unknown`      | coverage    | spec writer                                 | a case cites a step that cannot be cited                                   |
 | `obligation_inferred`          | coverage    | prober                                      | an inferred obligation is not waived                                       |
-| `parity_changed`               | parity      | builder, or lead when a rename settles it   | the clone differs from the original at a step                              |
+| `parity_changed`               | parity      | builder; lead or prober, as below           | the clone differs from the original at a step                              |
 | `parity_unknown`               | parity      | prober or verifier                          | data needed to compare a step is missing                                   |
 | `parity_unstable`              | parity      | lead or prober (original), verifier (clone) | a side disagrees with itself between repeats                               |
 | `clean_room_identical_file`    | clean_room  | builder                                     | a clone file equals a file of the original                                 |
@@ -319,19 +348,37 @@ No message tells a builder to change a clone that has not been shown wrong.
 | ----------------------------------------------------------------------- | ------------------ | ------------------------------------- |
 | The clone differs where the original is steady                          | builder            | evaluate, after the clone is fixed    |
 | The two values are equal once the original's name or address is renamed | lead               | evaluate, after the rename it prints  |
+| Two pages that a `request` step fetched differ in their markup          | prober             | evaluate, after the scenario change   |
 | A reply field differs between the original's own captures               | lead               | evaluate, after the declaration       |
-| Text, a status, a request line or a text reply differs between them     | prober             | evaluate, after the scenario change   |
+| Text, a status, a request line or a text reply differs between them     | prober             | `rm` of the original's captures of it |
 | The clone's captures disagree with each other                           | verifier           | `rm` of the clone's captures of it    |
-| A reply body was not recorded, or one capture recorded a value          | prober or verifier | one more capture of that side         |
+| A reply body was not recorded on one side, or was recorded once         | prober or verifier | one more capture of that side         |
+| A reply body was recorded by no capture of either side                  | prober             | evaluate, after the scenario change   |
 | A field is declared volatile and the original's captures do not vary    | prober             | one more capture of the original      |
 | The capture left out requests (its transaction limit)                   | prober             | evaluate, after the scenario is split |
 | A step did not complete, or left the side's address                     | prober             | evaluate, after the scenario change   |
 | The fingerprint steps differ only in on-screen text                     | prober             | evaluate, after the scenario change   |
 
 Where two roles are named, the prober acts for the original side and the
-verifier for the clone side. The item of a step that did not complete names
-the failed step, its Evidence file and why that kind of step fails; a
-`request` step fails on a redirect.
+verifier for the clone side. Unsteady findings of one scenario that name the
+same field at several steps are one item, which prints the declaration with
+`step_id` `*` when a declaration is the remedy. The messages state the cause:
+
+- The item of a step that did not complete names the failed step and its
+  Evidence file and quotes the first line of the failure the capture
+  recorded. It adds advice about redirects only when that text names one.
+- A difference whose original value holds the original's own address shows
+  that value as it was compared, with the address read as the clone's, and
+  says so.
+- A body recorded by no capture of either side is a download or a reply over
+  64 KiB on both sides. For a download the prober adds a `request` step for
+  the file and names the click `setup-`.
+- A body that only one side lacks after another capture is a difference: the
+  sides differ in what decides whether a capture can record it.
+- At a position of a list, a declared field the original holds steady and a
+  field the clone's captures disagree on both say that lists are compared by
+  position: a list whose order varies between captures has to be requested
+  in a fixed order.
 
 ### Waivers and declarations
 
@@ -341,6 +388,12 @@ A waiver names a person and a reason, which REA records and cannot verify. It
 covers an unknown or an inferred obligation and nothing else: a difference,
 missing data and an unstable step cannot be waived. With a waiver applied the
 verdict is `done_with_waivers` and the summary reads `done with N waivers`.
+The items for `unknown_open` and `obligation_inferred` say who may settle
+them, in this order: show the answer with a step and close the unknown
+against an observed obligation; otherwise only the user, or a person the user
+names, accepts the gap, and an agent never writes that name; when nobody can
+be asked, the lead reports the finding and the run ends not done. They print
+no waiver to paste.
 
 ```json
 {
@@ -358,14 +411,27 @@ verdict is `done_with_waivers` and the summary reads `done with N waivers`.
 
 A rename replaces the original's text with the clone's before accessibility
 text and string values are compared. It matches one spelling exactly, in file
-order. Each side's own address is compared as the same thing, so it needs no
-rename. A volatile field names one reply field that the original itself
-changes between clean repeats. Its `step_id` is a step or `*` for every step
-of the scenario, and a `*` segment of its pointer stands for any one index of
-a list. It is honored only where the original's captures really differ, and
-its shape is still compared. A declared field whose value the original's
-captures all agree on is not ignored and not held against the clone: the step
-is `unknown` until the original is captured again or the declaration goes.
+order. The original's own address needs no rename: its origin, and its bare
+host and port when the origin names a port, are read as the clone's in
+accessibility text and in string values. No placeholder stands for an
+address, so a clone that prints `{origin}` or the original's address where
+the original prints its own differs.
+
+A volatile field names one reply field that the original itself changes
+between clean repeats. Its `step_id` is a step or `*` for every step of the
+scenario, and a `*` segment of its pointer stands for any one index of a
+list. It is honored only where the original's captures really differ, at
+each step and each list position by itself, and what the original's values
+share is still compared: whether the field is present, its JSON type and its
+layout. A declared field whose value the original's captures all agree on,
+also at one position of a list that varies at another, is not ignored: when
+the clone differs there the step is `unknown` and blocks, on a `setup-` step
+too, until the original is captured again or the declaration goes. Only a
+field of a JSON reply can be declared. On-screen text cannot, so a date or a
+clock shown on screen makes its step differ between days: capture both sides
+on the same day, or keep such text off the pages a scenario shows. The order
+of a list cannot either: a list is compared position by position, so a list
+whose order varies between captures has to be requested in a fixed order.
 
 ```json
 {
@@ -393,8 +459,9 @@ from `journal.jsonl`, to which it appends a line whenever its state differs
 from the last line.
 
 - An evaluation is judged when every scenario has its captures admitted on
-  both sides. One that is not judged uses up nothing, and evaluating an
-  unchanged folder again adds nothing, whether at once or later.
+  both sides. One that is not judged uses up nothing, and its `outlook` names
+  the check that kept it from being judged. Evaluating an unchanged folder
+  again adds nothing, whether at once or later.
 - A round is a judged set of clone files: a judged evaluation starts a round
   when the clone's files differ from the last judged ones. New captures and
   edits to the authored files never use up a round. A result that is not a
@@ -409,6 +476,8 @@ from the last line.
 A stalled result still carries `next`, and its summary says why:
 `stalled after 1 judged round (the same findings were judged 3 times on the same clone tree): 1 blocking finding`.
 It reads `not_done` again as soon as a finding or the clone's files change.
+The journal is read only when it is a regular file: a link or a special file
+in its place counts as no journal and is replaced.
 
 ## Compare captures directly
 
@@ -425,10 +494,11 @@ rea compare-scenario-behavior \
 
 `--left` and `--right` are required and repeat once per capture Evidence file
 of the same scenario; a file holds one capture, as `--evidence_output` saves
-it. The address is ignored: steps are aligned by step id and compared on the
-step's outcome, its requests, each status, each reply body (JSON by pointer),
-the page address and the accessibility text after renames. Each step is
-`unchanged`, `changed`, `unknown` or `unstable`, the worst of its findings.
+it. Steps are aligned by step id and compared on the step's outcome, its
+requests, each status, each reply body (JSON by pointer), the page address
+relative to the side's origin and the accessibility text after renames. Each
+step is `unchanged`, `changed`, `unknown` or `unstable`, the worst of its
+findings.
 
 Each finding names the `dimension`, a `category`, the request, the JSON
 pointer, the `expected` (left) and `actual` (right) value and the side. The
@@ -459,10 +529,19 @@ category alone decides what the finding makes of its step:
   reply and is compared whole, so a clone with markup of its own differs
   there: probe a page with `goto` and its accessibility text. A text reply
   that is a JSON object or array on both sides is compared field by field.
-  Two lists of the same length are compared item by item at their positions.
-- Each side's own start address reads `{origin}` in text, reply strings and
-  request bodies, so an application that prints its own address compares
-  equal.
+- Two lists of the same length are compared item by item at their positions,
+  also under a declared `*` pointer, and `limitations` says so when a
+  position the left holds steady differs on the right. A list against an
+  object is a difference at that container whatever is declared beneath it,
+  an empty one included.
+- The left's own address is read as the right's in accessibility text and in
+  string values of request and reply bodies: its start origin, then its bare
+  host and port when the origin names a port. `addresses_applied` lists each
+  form that changed a compared value, with the count, beside
+  `renames_applied`. The right side is never rewritten and no placeholder
+  stands for an address. A finding's `expected` is the left value as it was
+  compared, after this reading and the renames. `behavior/<scenario>.json`
+  shows text and bodies as the original gave them.
 - One difference in accessibility text is listed at the first step that
   shows it, often `scenario_start`; `limitations` counts the later steps that
   show the same text.
@@ -486,7 +565,7 @@ application differ once a rename takes effect.
 A refusal exits `1` with or without `--exit-code` and has no `verdict`
 member. A refusal by a command is REA's error envelope with `error`, `code`
 and `message`, and names the fix under `remediation`. The command line parser
-refuses two things before the command runs, without an `error` member:
+refuses three things before the command runs, without an `error` member:
 
 - A missing or invalid option, as
   `{"code": "VALIDATION_ERROR", "message": …, "fieldErrors": [{"path": "right", "missing": true, …}]}`.
@@ -497,6 +576,9 @@ refuses two things before the command runs, without an `error` member:
   or the argument. A misspelt `--exit-code`, such as one with an underscore,
   is this refusal and never a pass. The parser also reads an option's key
   in camel case as the flag.
+- A value after `--exit-code=` that is neither `true` nor `false`, as
+  `{"code": "PARSE_ERROR", "message": "Invalid --exit-code value; use true or false."}`.
+  Such a value is never read as the flag turned off.
 
 `--help` lists every option and starts the description of a required one with
 `Required.`: `--left` and `--right` for the comparison, and `--original`,
@@ -519,7 +601,12 @@ The gate lists these limits as `residual_trust` with every pass.
   reply bodies, the page address and the accessibility text. Appearance,
   styles, images, fonts, response headers, the document title and timing are
   not compared. Neither is text inside an iframe, nor the text of an alert,
-  confirm or prompt dialog, nor the content of a downloaded file.
+  confirm or prompt dialog, nor the content of a file saved through a
+  download.
+- A reply body that one capture of a side recorded stands for the captures
+  of that side that lost it, because captures lose bodies at random. A clone
+  that answers differently only in a capture whose body was lost, or was
+  over the capture's 64 KiB limit, is not detected.
 - A capture is bound to an address and to the clone's files, not to the
   process that answered. Restart the clone after an edit, before capturing.
   A proxy or a port forward between the two addresses is not detected.
@@ -532,7 +619,8 @@ The gate lists these limits as `residual_trust` with every pass.
 - Evidence integrity is an unkeyed content digest. It catches an edited or
   misplaced file, not Evidence forged with REA's own code.
 - A rename can declare away any difference in text or a string value, and an
-  honored volatile field is compared by shape only.
+  honored volatile field is compared by presence, JSON type and layout only.
+  The gate lists both under `declared`.
 - The clean-room check covers names and identical files only, for the names
   and the material the run declares and for reply bodies a capture recorded.
 - REA does not reset targets. A clean start is inferred from the fingerprint

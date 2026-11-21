@@ -48,7 +48,8 @@ the files. Do not carry the worklist in memory between runs.
 
 The verdict is the exit status of an evaluation you ran. A `gate.json` found
 on disk, a helper's message and your memory of the last run are copies.
-Without `--exit-code` the command exits 0 whatever it found.
+Without `--exit-code` the command exits 0 whatever it found. Write the flag
+bare: a value after `=` other than `true` or `false` is refused.
 
 Rounds and stalling. An evaluation is judged when every scenario has its
 captures admitted on both sides. Before that it uses up nothing, and neither
@@ -136,25 +137,32 @@ loop. It is the main conversation and the only role that talks to the user.
   disposable. Put the run folder outside the clone's source.
 - Finished when an evaluation you ran exits 0 and you have told the user what
   the verdict rests on: the `summary` (it names excluded clone paths), every
-  waiver, the `declared` renames and volatile fields, the `target` addresses
-  and root, and the limits the gate lists under `residual_trust`. On exit 2,
+  waiver, the `declared` renames and `volatile_declarations`, the `target`
+  addresses and root, and the limits the gate lists under `residual_trust`.
+  On exit 2,
   report as [When to stop](#waivers-declarations-and-when-to-stop) says.
 - Worklist reasons: `target_invalid`, `addresses_not_distinct` and
   `run_folder_inside_clone` are your `target.json`. `unknown_invalid`,
   `intended_differences_invalid` and `waivers_invalid` are files you own or
   accept. `unknown_open` asks you to settle a proposal: have it probed, close
-  it against an observed obligation that passes, or take a waiver to the user.
+  it against an observed obligation that passes, or take a waiver to the
+  user. The item prints no waiver to paste: the person's name comes from the
+  user, never from you.
   `parity_unstable` on the original means the original disagrees with itself
   between clean repeats: declare the field volatile only if it is a clock or
   a generated value, otherwise send the step back to the prober.
   `parity_changed` comes to you only when a rename would settle it: the item
   gives the exact spelling to declare. Add it if the clone differs there on
   purpose; if not, the difference is the builder's.
-- One volatile field can cover a whole scenario and every item of a list:
+- One volatile field can cover a whole scenario and every position of a
+  list:
   `{"scenario": "notes-api", "step_id": "*", "pointer": "/items/*/createdAt", "reason": "creation time"}`.
   Each step of `behavior/<scenario>.json` lists the candidates under
   `volatile_pointers`. A declaration counts only where the original's own
-  captures differ, so it cannot hide a steady difference.
+  captures differ, at each step and each list position by itself. Where they
+  agree and the clone differs, the step blocks, a `setup-` step included,
+  and the gate names the declaration. Only a field of a JSON reply can be
+  declared: not on-screen text, not the order of a list.
 - Typical mistakes: reporting done from a helper's summary; declaring a
   rename or a volatile field to make a difference disappear; excluding a
   clone path that holds code (an excluded path never makes a capture stale
@@ -171,9 +179,12 @@ which pages, routes, scripts and files exist.
 - Writes: `scout/` only. Everything taken from the original goes there: the
   crawl capture, exported scripts, saved pages, your inventory.
 - Commands: copy `examples/crawl.example.json` to `scout/crawl-1.json`, give
-  it one `goto` step per page, then run the three commands below from the
-  run folder. The crawl goes to a file, not into your context; a page the
-  crawl finds gets another step and another crawl.
+  it one `goto` step per page, then run the commands below from the run
+  folder. The crawl and the script analysis go to files, not into your
+  context: each command prints a summary. The last one lists the routes the
+  scripts name, twenty at a time; an empty list means the scripts build
+  their paths while they run, and the requests the crawl recorded are then
+  what you have. A page the crawl finds gets another step and another crawl.
 - Finished when `scout/` lists every page reachable from the start page, every
   request those pages make and every script they load, and what you could not
   reach is written as unknowns.
@@ -188,7 +199,8 @@ which pages, routes, scripts and files exist.
 ```sh
 timeout 120 rea capture-browser-scenario scout/crawl-1.json --detail summary --evidence_output scout/crawl-1.evidence.json --json
 rea export-web-scripts scout/crawl-1.evidence.json scout/scripts-1 --json
-rea analyze-javascript-application scout/scripts-1 --json
+rea analyze-javascript-application scout/scripts-1 --detail summary --evidence_output scout/scripts-1.analysis.json --json
+rea inspect-analysis-view '{"source":{"kind":"evidence-file","path":"scout/scripts-1.analysis.json"},"view":{"kind":"javascript-routes","collection":"routes","fields":["path","confidence"],"limit":20}}' --json
 ```
 
 ### Mapper
@@ -262,16 +274,21 @@ scenarios that are then run against both sides.
   page shows text that changes by itself; the item says which.
   `start_state_unknown` and `parity_unknown` mean data is missing: the item
   says whether another capture can supply it, as
-  [capture judgment](#capture-judgment) explains. `parity_unstable` reaches
-  you when the original varies where nothing can be declared (on-screen
-  text, a status, a request line, a text reply): capture again one at a time,
-  then make the step deterministic. `obligation_inferred` asks for a step
+  [capture judgment](#capture-judgment) explains. For a step that failed it
+  quotes the failure the capture recorded: act on that text. `parity_unstable`
+  reaches you when the original varies where nothing can be declared
+  (on-screen text, a status, a request line, a text reply): run the item's
+  removal, evaluate, capture again one at a time, then make the step
+  deterministic. `parity_changed` reaches you when a `request` step fetched
+  a page: replace it with a `goto`. `obligation_inferred` asks for a step
   that shows the rule on the original.
 - Typical mistakes: the happy path only; one step that tests several rules;
   editing a scenario after the verifier has started, which sends both sides
   back to capturing; a UI action cited for a result that renders later;
-  renaming a step `setup-` to silence it, which also removes the rule it
-  showed from what the verdict covers.
+  renaming a step `setup-` to silence it. A difference from a steady
+  original blocks there too, with or without a volatile declaration, and a
+  step that is only unsteady stops being compared, which removes its rule
+  from what the verdict covers.
 
 ```sh
 rea compare-scenario-behavior --left evidence/original/notes-api/run-1.json --right evidence/original/notes-api/run-2.json --json
@@ -318,7 +335,9 @@ name that implements the obligations.
 - Worklist reasons: `parity_changed` gives the scenario, the step or
   `step_ids`, the dimension, the pointer, `expected` (the original) and
   `actual` (the clone): fix the rule the citing obligation states, not the
-  one value. `clone_root_missing` asks for the directory.
+  one value. An address in `expected` is the clone's own: where the original
+  prints its own address, the clone prints its own, and nothing else stands
+  for one. `clone_root_missing` asks for the directory.
   `clone_symlink_outside_root` asks you to bring the linked code inside the
   root, and `clone_path_unreadable` to make a file readable or remove it.
   `clean_room_identical_file` asks you to rewrite a file that equals one of
@@ -426,17 +445,28 @@ printed. The helper answers with the paths and ids it wrote.
 - A step is compared on its outcome, its requests, their statuses, the
   bodies of fetched replies, the page address and the page's accessibility
   text. Nothing else is: not appearance, styles, images, fonts, response
-  headers, the document title or timing, not the text inside an iframe, and
-  not the text of an alert, confirm or prompt dialog. A rule that shows only
-  there cannot be a step: write it as an unknown.
+  headers, the document title or timing, not the text inside an iframe, not
+  the text of an alert, confirm or prompt dialog, and not the content of a
+  file saved through a download. A rule that shows only there cannot be a
+  step: write it as an unknown.
 - Missing data is unknown, never a match. Do not argue with it and do not
   edit anything. Only a lost reply body is supplied by one more capture; the
   item says when a capture cannot help. Some data never arrives: a reply
   over 64 KiB, the content of a downloaded file, a request to another
   origin.
-- A step whose data can never be recorded can only become `setup-`. That is a
-  decision about coverage, not a repair: its rule is no longer compared, so
-  the obligation that cited it becomes inferred or goes.
+- A step whose data no capture of either side can record can only become
+  `setup-`; its item gives no capture command. That is a decision about
+  coverage, not a repair: its rule is no longer compared, so the obligation
+  that cited it becomes inferred or goes. Data only one side lacks is a
+  difference between the sides and blocks on a `setup-` step too.
+- A list is compared position by position, also under a `*` declaration. A
+  list whose order varies between captures has to be requested in a fixed
+  order, such as with a sort parameter.
+- On-screen text cannot be declared volatile. A date or a clock shown on
+  screen makes its step differ between days: capture both sides on the same
+  day, or keep such text off the pages a scenario shows.
+- An application that prints its own address, with or without the scheme,
+  needs no rename: the original's own address is read as the clone's.
 - Probe the rules, not the happy path: empty and whitespace-only input, both
   sides of every limit, the wrong type, a missing field, the same thing twice,
   an unknown id, a wrong method, order after several writes, read after
@@ -491,8 +521,8 @@ on the same clone files, as [the loop](#the-loop) says. Do not delete the
 journal to start the count again, and do not waive your way out. Report what
 is unproven: the `blocking` reasons, the items still in `next` and the open
 unknowns. A stall whose only reasons are missing data is still a stall: name
-the steps, and let the user decide whether to capture again, give the step up
-as `setup-`, or stop.
+the steps, and let the user decide whether to capture again, give up as
+`setup-` a step whose data neither side can record, or stop.
 
 Stop as well, at any point, when a protection or a sign-in is in the way,
 when the user's authorization does not cover what the next step needs, or

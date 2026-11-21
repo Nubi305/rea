@@ -154,6 +154,28 @@ Changed by the fix round of 2026-11-20 ([tasks.md](tasks.md#fix-round-2026-11-20
   finding can be addressed to beyond its reason's own are listed in the test, because the referee does not export
   them.
 
+Changed by the second fix round of 2026-11-21 ([tasks.md](tasks.md#second-fix-round-2026-11-21)):
+
+- The comparer reads the left's own address as the right's in `scenarioBehaviorAddress.ts` (`ownAddressReader`,
+  `mapBodyStrings`). No placeholder is written into compared values, into `behavior/` or into a fingerprint, and the
+  domain's `renameScenarioJson` is gone.
+- Which findings block a `setup-` or `fp-` step is one table, `CLONE_RUN_PREPARED_STEP_GATES` in
+  `src/domain/cloneRun/cloneRunStepGate.ts`, with its own tests; `CloneRunParityGate.test.ts` runs the referee's
+  rule against the real comparer. The comparer's per-step finding limit, `STEP_FINDING_LIMIT`, is exported from the
+  domain module and the referee reads it there.
+- `src/application/cloneRun/CloneRunStepFailure.ts` reads the failure a capture recorded for a step, for the item
+  of a step that did not complete. It authenticates the Evidence file a second time; carrying the text in the
+  comparer's capture facts would remove that.
+- `src/cli/argvParser.ts`: the literal check the parser had for `--dry-run` is one list, `STRICT_BOOLEAN_FLAGS`,
+  which now names `exitCode` too. Only the two clone-run commands take that option.
+- The verifier has a seventh module, `clone-run-e2e-declared-cases.mjs`, with five cases on a fourth fixture
+  scenario, `board`; the fixtures gain `clone/facts.mjs`, four mutants and `run/board-differences.json`. The run
+  folder is created with `--max-rounds 30`: it judges the matching clone, seven mutants and the clone again after
+  each.
+- The conformance test holds every command the playbook prints in a fenced block to the summary form: a command
+  that takes both `--detail` and `--evidence_output` must be written with `--detail summary` and
+  `--evidence_output`, or redirect its output to a file.
+
 ## Verification
 
 Focused tests per package with `npm run test:local -- <path>`, boundary tests with `npm run test:focused -- <path>`,

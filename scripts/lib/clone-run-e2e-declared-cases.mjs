@@ -157,11 +157,12 @@ export const DECLARED_CASES = [
       const result = await context.follow(settled(FACTS_STEP));
       assertNotDone(result, "parity_unknown");
       assert.deepEqual(reasonsOf(result.gate), ["parity_unknown"]);
+      // The finding names the declared pattern; the two values name the position.
       const item = itemAt(
         result,
         "parity_unknown",
         FACTS_STEP,
-        "/sessions/1/id",
+        "/sessions/*/id",
       );
       assert.equal(item.expected, '"seed-session"', describeGate(result));
       assert.equal(item.actual, '"lost-session"', describeGate(result));
@@ -178,7 +179,7 @@ export const DECLARED_CASES = [
       );
       await revert();
       await context.expectDone("after the mutant was reverted");
-      return `exit 1, ${result.gate.summary}; step ${FACTS_STEP} body ${item.pointer}: the original gave ${item.expected} in every capture, the clone ${item.actual} (declared-not-shown)`;
+      return `exit 1, ${result.gate.summary}; step ${FACTS_STEP} body ${item.pointer}: at the second position the original gave ${item.expected} in every capture, the clone ${item.actual} (declared-not-shown)`;
     },
   },
   {
