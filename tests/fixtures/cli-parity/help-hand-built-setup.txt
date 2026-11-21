@@ -18,6 +18,7 @@ Options:
   --skill                                 Override the bundled skill included with agent integrations
   --dry-run                               Print the resolved plan without applying it
   --accessible                            Use sequential accessible setup prompts
+  --full-report                           With --client or --skill-client, also report the state of every other supported client
 
 Global options (--json, --format, --filter-output, --token-limit, --timings, ...): rea help options
 <end>

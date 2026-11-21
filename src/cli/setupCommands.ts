@@ -35,6 +35,7 @@ import { logCliCommand } from "../cliLogging.js";
 import { CLI_COMMANDS } from "../contracts/cliCommandNames.js";
 import type { Logger } from "pino";
 import { registerCliCommand } from "./commandRegistry.js";
+import { scopeSetupReport } from "./setupReport.js";
 import type { CliInstance } from "./types.js";
 import { SUPPORTED_CLIENT_DEFINITIONS } from "../application/SupportedClients.js";
 
@@ -125,6 +126,12 @@ const registerSetupCommand = (
         .boolean()
         .default(false)
         .describe("Use sequential accessible setup prompts"),
+      fullReport: z
+        .boolean()
+        .default(false)
+        .describe(
+          "With --client or --skill-client, also report the state of every other supported client",
+        ),
     }),
     alias: { yes: "y" },
     run: ({ options, formatExplicit }) =>
@@ -267,6 +274,7 @@ interface SetupCommandOptions {
   readonly skill?: boolean | undefined;
   readonly dryRun: boolean;
   readonly accessible: boolean;
+  readonly fullReport: boolean;
 }
 
 const runSetupCommand = async (
@@ -302,7 +310,15 @@ const runSetupCommand = async (
       renderSetupDryRun(result.plannedActions, result.remediation);
     else renderInteractiveSetupResult(result, environment);
   }
-  return result;
+  return interactive || options.fullReport
+    ? result
+    : scopeSetupReport(result, {
+        clients: options.client,
+        skillClients: options.skillClient,
+        home: homeDirectoryFromEnvironment(environment, HOST_PLATFORM.platform),
+        environment,
+        platform: HOST_PLATFORM.platform,
+      });
 };
 
 const setupRunOptions = (
