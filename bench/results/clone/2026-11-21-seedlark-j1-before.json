@@ -1,0 +1,1771 @@
+{
+ "schema": "rea.bench.clone-score/1",
+ "agent": "a1",
+ "cell": {
+  "id": "seedlark-j1b",
+  "label": "bench:clone:seedlark-j1b",
+  "app": "seedlark",
+  "clone_name": "Fennelgate"
+ },
+ "scored_at": "2026-11-21T11:21:27.564Z",
+ "rea_under_test": {
+  "commit": "0e089b3e",
+  "version": "6.9.0",
+  "node_version": "v22.23.5"
+ },
+ "judge": {
+  "commit": "0e089b3e",
+  "version": "6.9.0"
+ },
+ "transcript": "<transcripts>/agent-a83b3563e9651282c.jsonl",
+ "run": {
+  "started_at": "2026-11-21T11:03:01.946Z",
+  "ended_at": "2026-11-21T11:18:43.635Z"
+ },
+ "notes": [],
+ "referee": {
+  "verdict": "done",
+  "exit_status": 0,
+  "under_test": {
+   "evaluated_with": "0e089b3e",
+   "verdict": "done",
+   "exit_status": 0,
+   "summary": "done",
+   "checks": {
+    "scope": "pass",
+    "inputs": "pass",
+    "evidence": "pass",
+    "clean_start": "pass",
+    "coverage": "pass",
+    "parity": "pass",
+    "clean_room": "pass",
+    "unknowns": "pass"
+   },
+   "blocking": [],
+   "waivers": 0,
+   "stdout_bytes": 4449,
+   "problem": null
+  },
+  "by_judge": null,
+  "recorded_in_run_folder": {
+   "verdict": "done",
+   "summary": "done",
+   "evaluated_at": "2026-11-21T11:17:50.023Z"
+  },
+  "recorded_differs": false
+ },
+ "hidden": {
+  "measured": true,
+  "clone_restarted_with": "target.json",
+  "differences": {
+   "volatile_fields": 26,
+   "renames": [
+    {
+     "from": "Seedlark",
+     "to": "Fennelgate"
+    }
+   ]
+  },
+  "captures_taken": 8,
+  "captures_failed": 0,
+  "steps": {
+   "steps": 143,
+   "unchanged": 98,
+   "changed": 45,
+   "unknown": 0,
+   "unstable": 0
+  },
+  "rules_total": 33,
+  "rules_agree": 10,
+  "rules_disagree": 23,
+  "rules_undecided": 0,
+  "scenarios": [
+   {
+    "id": "heldout-api",
+    "compared": true,
+    "problem": null,
+    "exit_status": 1,
+    "verdict": "changed",
+    "start_state": {
+     "original": "clean",
+     "clone": "clean"
+    },
+    "captures": [
+     {
+      "side": "original",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "original",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     }
+    ],
+    "steps": {
+     "steps": 98,
+     "unchanged": 55,
+     "changed": 43,
+     "unknown": 0,
+     "unstable": 0
+    },
+    "steps_not_unchanged": [
+     {
+      "step_id": "list-sku-desc",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/sort",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/dir",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/items/0/id",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "list-status-retired",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "length",
+        "pointer": "/items",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/items/0/id",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/items/0/uid",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "list-kind-all-statuses",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "length",
+        "pointer": "/items",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/total",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "list-status-invalid",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "missing-field",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "missing-field",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "variety-create-normalised",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/name",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "variety-name-max",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "shape",
+        "pointer": "/uid",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "shape",
+        "pointer": "/createdAt",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "variety-read-created",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/name",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "etag-not-modified",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "variety-edit-no-change",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/name",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/rev",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "etag-unchanged-after-no-op",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "variety-edit-price",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/name",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/rev",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "etag-changed-after-edit",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/name",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/rev",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "basket-add-retired",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "basket-live-price-free-shipping",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/lines/1/name",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "promo-spring-replaces",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/lines/1/name",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "basket-add-carrot",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/lines/1/name",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "basket-line-order-tie",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/lines/1/name",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "basket-full",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "missing-field",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "missing-field",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "basket-merge-when-full",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "length",
+        "pointer": "/lines",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/lines/1/name",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/itemCount",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "setup-remove-basil",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "length",
+        "pointer": "/lines",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/lines/0/name",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/itemCount",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "promo-below-minimum-kept",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "length",
+        "pointer": "/lines",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/itemCount",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/subtotalCents",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "promo-minimum-again",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "length",
+        "pointer": "/lines",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/itemCount",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/subtotalCents",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "setup-add-borage",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "length",
+        "pointer": "/lines",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/lines/2/name",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/itemCount",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "basket-after-cascade",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "length",
+        "pointer": "/lines",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/itemCount",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/subtotalCents",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "checkout-stock-rechecked",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "checkout-retired-first-line",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "checkout-places-order",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "shape",
+        "pointer": "/uid",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "shape",
+        "pointer": "/createdAt",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "checkout-empties-basket",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "length",
+        "pointer": "/lines",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/itemCount",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/subtotalCents",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "checkout-empty-refused",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "stock-taken-at-checkout",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/stock",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/rev",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "setup-reprice-sweet-pea",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/stock",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/rev",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "order-prices-snapshot",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "shape",
+        "pointer": "/uid",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "shape",
+        "pointer": "/createdAt",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "order-skip-refused",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "order-status-unknown",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "order-pack",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "shape",
+        "pointer": "/uid",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "shape",
+        "pointer": "/createdAt",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "order-back-refused",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "order-same-refused",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "order-cancel-packed",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "shape",
+        "pointer": "/uid",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "shape",
+        "pointer": "/createdAt",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "cancel-restores-stock",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/rev",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "order-cancelled-final",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "orders-newest-first",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "length",
+        "pointer": "/items",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/total",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "declared-not-shown",
+        "pointer": "/items/*/uid",
+        "side": "left"
+       }
+      ]
+     },
+     {
+      "step_id": "orders-filter-status",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "length",
+        "pointer": "/items",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/items/0/id",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/items/0/number",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "orders-filter-invalid",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "missing-field",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "missing-field",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     }
+    ],
+    "limitations": [
+     "Step list-sku-desc has 11 more findings than the 20 most severe listed.",
+     "Reply lists are compared position by position, also under a declared \"*\" pointer: /items/*/uid at step orders-newest-first (and 1 more) has a position where the left's captures agree and a right capture differs. A list whose order varies between captures has to be requested in a fixed order."
+    ]
+   },
+   {
+    "id": "heldout-pages",
+    "compared": true,
+    "problem": null,
+    "exit_status": 1,
+    "verdict": "changed",
+    "start_state": {
+     "original": "clean",
+     "clone": "clean"
+    },
+    "captures": [
+     {
+      "side": "original",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "original",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     }
+    ],
+    "steps": {
+     "steps": 45,
+     "unchanged": 43,
+     "changed": 2,
+     "unknown": 0,
+     "unstable": 0
+    },
+    "steps_not_unchanged": [
+     {
+      "step_id": "page-catalogue-search",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "text",
+        "category": "value",
+        "pointer": null,
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "api-orders-after-pages",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/items/0/lines/0/name",
+        "side": null
+       }
+      ]
+     }
+    ],
+    "limitations": []
+   }
+  ],
+  "rules": [
+   {
+    "id": "R01-sku-normalised",
+    "difficulty": "visible",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "variety-create-normalised",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 5
+   },
+   {
+    "id": "R02-sku-unique-ignoring-case",
+    "difficulty": "edge",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "variety-edit-no-change",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 4
+   },
+   {
+    "id": "R03-name-collapsed-3-to-32",
+    "difficulty": "edge",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "variety-create-normalised",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "variety-name-max",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 4
+   },
+   {
+    "id": "R04-kind-normalised",
+    "difficulty": "edge",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "variety-create-normalised",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "list-kind-all-statuses",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 4
+   },
+   {
+    "id": "R05-price-to-nearest-5-cents",
+    "difficulty": "edge",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "variety-create-normalised",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 3
+   },
+   {
+    "id": "R06-price-range-after-rounding",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R07-stock-field",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 2
+   },
+   {
+    "id": "R08-catalogue-default-order",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R09-sort-tie-break",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R10-page-clamped",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   },
+   {
+    "id": "R11-sort-fallback",
+    "difficulty": "edge",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "list-sku-desc",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 2
+   },
+   {
+    "id": "R12-search",
+    "difficulty": "visible",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-pages",
+      "step_id": "page-catalogue-search",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 3
+   },
+   {
+    "id": "R13-retired-hidden",
+    "difficulty": "edge",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "list-status-retired",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "list-kind-all-statuses",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "list-status-invalid",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 4
+   },
+   {
+    "id": "R14-basket-quantity-and-merge",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 6
+   },
+   {
+    "id": "R15-basket-retired-or-unknown",
+    "difficulty": "visible",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "basket-add-retired",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 2
+   },
+   {
+    "id": "R16-basket-stock",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   },
+   {
+    "id": "R17-basket-five-lines",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "basket-full",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "basket-merge-when-full",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 2
+   },
+   {
+    "id": "R18-bulk-discount",
+    "difficulty": "edge",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "promo-minimum-again",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 3
+   },
+   {
+    "id": "R19-basket-line-order",
+    "difficulty": "edge",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "basket-line-order-tie",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "basket-merge-when-full",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "promo-minimum-again",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 3
+   },
+   {
+    "id": "R20-promo-codes",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "promo-spring-replaces",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 5
+   },
+   {
+    "id": "R21-promo-kept-when-below-minimum",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "promo-below-minimum-kept",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "promo-minimum-again",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 2
+   },
+   {
+    "id": "R22-shipping",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "basket-live-price-free-shipping",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "checkout-empties-basket",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 5
+   },
+   {
+    "id": "R23-live-price-snapshot-order",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "basket-live-price-free-shipping",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "order-prices-snapshot",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 2
+   },
+   {
+    "id": "R24-checkout",
+    "difficulty": "visible",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "checkout-places-order",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "checkout-empties-basket",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "checkout-empty-refused",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "stock-taken-at-checkout",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 6
+   },
+   {
+    "id": "R25-checkout-rechecks",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "checkout-stock-rechecked",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "checkout-retired-first-line",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 2
+   },
+   {
+    "id": "R26-order-state-machine",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "order-skip-refused",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "order-status-unknown",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "order-pack",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "order-back-refused",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "order-same-refused",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "order-cancelled-final",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 8
+   },
+   {
+    "id": "R27-cancel-restores-stock",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "order-cancel-packed",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "cancel-restores-stock",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 2
+   },
+   {
+    "id": "R28-delete-variety",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "basket-after-cascade",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 4
+   },
+   {
+    "id": "R29-revision-and-etag",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "etag-not-modified",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "variety-edit-no-change",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "etag-unchanged-after-no-op",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "variety-edit-price",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "etag-changed-after-edit",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "stock-taken-at-checkout",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "cancel-restores-stock",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 7
+   },
+   {
+    "id": "R30-orders-list",
+    "difficulty": "visible",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "orders-newest-first",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "orders-filter-status",
+      "status": "changed"
+     },
+     {
+      "scenario": "heldout-api",
+      "step_id": "orders-filter-invalid",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 6
+   },
+   {
+    "id": "R31-protocol",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R32-forms-keep-values",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R33-post-redirect-get",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 5
+   }
+  ]
+ },
+ "cost": {
+  "turns": 68,
+  "peak_context_tokens": 289498,
+  "first_turn_prompt_tokens": 65955,
+  "prompt_tokens_all_turns": 13359970,
+  "uncached_prompt_tokens": 239724,
+  "output_tokens": 98917,
+  "tool_calls": 69,
+  "wall_minutes": 15.7,
+  "net_of_floor": null
+ },
+ "context": {
+  "prompt_bytes": 728,
+  "tool_input_bytes": 143481,
+  "tool_result_bytes": 277209,
+  "rea": {
+   "bytes": 20375,
+   "tool_calls": 10,
+   "by_command": {
+    "evaluate-clone-run": {
+     "calls": 6,
+     "bytes": 10284
+    },
+    "init-clone-run --help": {
+     "calls": 1,
+     "bytes": 5969
+    },
+    "capture-browser-scenario": {
+     "calls": 2,
+     "bytes": 2373
+    },
+    "init-clone-run": {
+     "calls": 1,
+     "bytes": 1749
+    }
+   }
+  },
+  "skill": {
+   "bytes": 84512,
+   "tool_calls": 2,
+   "by_file": {
+    "SKILL.md": {
+     "calls": 1,
+     "bytes": 51739
+    },
+    "references/clone-runs.md": {
+     "calls": 1,
+     "bytes": 32773
+    }
+   }
+  },
+  "other": {
+   "bytes": 172322,
+   "tool_calls": 57
+  },
+  "largest_results": [
+   {
+    "bucket": "skill",
+    "bytes": 51739,
+    "tool": "Read",
+    "what": "<skill>/SKILL.md"
+   },
+   {
+    "bucket": "skill",
+    "bytes": 32773,
+    "tool": "Read",
+    "what": "<skill>/references/clone-runs.md"
+   },
+   {
+    "bucket": "other",
+    "bytes": 10754,
+    "tool": "Bash",
+    "what": "cd /tmp; B=http://127.0.0.1:5314; J='content-type: application/json' c(){ echo \"--- $*\"; curl -s -b jar -c jar \"$@\" | sed -e '/<header/,/<\\/header>/d' -e '/<foo"
+   },
+   {
+    "bucket": "other",
+    "bytes": 9700,
+    "tool": "Bash",
+    "what": "cd /tmp; B=http://127.0.0.1:5314; rm -f jar c(){ echo \"--- $*\"; curl -si -b jar -c jar \"$@\" | sed -n '1p;/^Location/p;/^Content-Type/p;/^Set-Cookie/p;/^\\r$/,$p'"
+   },
+   {
+    "bucket": "other",
+    "bytes": 9572,
+    "tool": "Bash",
+    "what": "cd /tmp; B=http://127.0.0.1:5314; J='content-type: application/json' c(){ echo \"--- $*\"; curl -si -b jar -c jar \"$@\" | sed -n '1p;/^Location/p;/^\\r$/,$p' | sed "
+   },
+   {
+    "bucket": "other",
+    "bytes": 9454,
+    "tool": "Bash",
+    "what": "cd /tmp; B=http://127.0.0.1:5314; for p in /varieties /varieties/new /basket /orders /static/seedlark.css /api /api/varieties; do echo \"=== $p\"; curl -si $B$p |"
+   },
+   {
+    "bucket": "other",
+    "bytes": 9062,
+    "tool": "Bash",
+    "what": "cat > /tmp/seq1.py <<'EOF' for p in ['/','/varieties','/varieties/new','/basket','/orders','/orders/1','/orders/3','/orders/9','/varieties/1','/varieties/1/edit"
+   },
+   {
+    "bucket": "other",
+    "bytes": 7577,
+    "tool": "Bash",
+    "what": "cd /tmp; B=http://127.0.0.1:5314; c(){ echo \"--- $*\"; curl -si -b jar -c jar \"$@\" | sed -n '1p;/^Location/p;/^\\r$/,$p' | sed -e '/<header/,/<\\/header>/d' -e '/<"
+   }
+  ]
+ },
+ "rea_invocations": {
+  "from_transcript": {
+   "total": 10,
+   "by_command": {
+    "init-clone-run --help": 1,
+    "init-clone-run": 1,
+    "evaluate-clone-run": 6,
+    "capture-browser-scenario": 2
+   },
+   "captures": 2
+  },
+  "from_shim_log": {
+   "total": 24,
+   "by_command": {
+    "init-clone-run --help": 1,
+    "init-clone-run": 1,
+    "evaluate-clone-run": 6,
+    "capture-browser-scenario": 16
+   },
+   "captures": 16
+  }
+ },
+ "captures": {
+  "by_shim_log": 16,
+  "in_transcript_text": 2,
+  "evidence_files_in_run": {
+   "original": 8,
+   "clone": 8
+  }
+ },
+ "rule_breaks": {
+  "count": 0,
+  "by_kind": {},
+  "breaks": []
+ },
+ "agent_report": {
+  "outcome": "done",
+  "final_exit_code": "0 (rea evaluate-clone-run /home/user/rea-bench-runs/j1-before/seedlark/run --exit-code --json; verdict done, no waivers, round 1 of 8)"
+ },
+ "clone_tree": {
+  "files": 1,
+  "sha256": "45431b4c3c2b8d5c0ffde5f2f83c06747b519a8a35413fc6ee6a97e931c1e8af",
+  "changed_by_scoring": false
+ },
+ "left_running": {
+  "original": false,
+  "clone": false
+ }
+}

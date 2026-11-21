@@ -1,0 +1,535 @@
+{
+ "schema": "rea.bench.clone-score/1",
+ "agent": "a1",
+ "cell": {
+  "id": "varnholt-j1b",
+  "label": "bench:clone:varnholt-j1b",
+  "app": "varnholt",
+  "clone_name": "Larkspur Desk"
+ },
+ "scored_at": "2026-11-21T11:19:46.699Z",
+ "rea_under_test": {
+  "commit": "0e089b3e",
+  "version": "6.9.0",
+  "node_version": "v22.23.5"
+ },
+ "judge": {
+  "commit": "0e089b3e",
+  "version": "6.9.0"
+ },
+ "transcript": "<transcripts>/agent-ad511b236b0348ded.jsonl",
+ "run": {
+  "started_at": "2026-11-21T10:32:46.663Z",
+  "ended_at": "2026-11-21T11:03:01.837Z"
+ },
+ "notes": [],
+ "referee": {
+  "verdict": "not_done",
+  "exit_status": 1,
+  "under_test": {
+   "evaluated_with": "0e089b3e",
+   "verdict": "not_done",
+   "exit_status": 1,
+   "summary": "not done: 1 blocking finding",
+   "checks": {
+    "scope": "pass",
+    "inputs": "pass",
+    "evidence": "pass",
+    "clean_start": "pass",
+    "coverage": "pass",
+    "parity": "pass",
+    "clean_room": "pass",
+    "unknowns": "fail"
+   },
+   "blocking": [
+    {
+     "reason": "unknown_open",
+     "count": 1
+    }
+   ],
+   "waivers": 0,
+   "stdout_bytes": 7042,
+   "problem": null
+  },
+  "by_judge": null,
+  "recorded_in_run_folder": {
+   "verdict": "not_done",
+   "summary": "not done: 1 blocking finding",
+   "evaluated_at": "2026-11-21T11:02:07.351Z"
+  },
+  "recorded_differs": false
+ },
+ "hidden": {
+  "measured": true,
+  "clone_restarted_with": "target.json",
+  "differences": {
+   "volatile_fields": 40,
+   "renames": [
+    {
+     "from": "Varnholt",
+     "to": "Larkspur Desk"
+    }
+   ]
+  },
+  "captures_taken": 8,
+  "captures_failed": 0,
+  "steps": {
+   "steps": 79,
+   "unchanged": 79,
+   "changed": 0,
+   "unknown": 0,
+   "unstable": 0
+  },
+  "rules_total": 23,
+  "rules_agree": 23,
+  "rules_disagree": 0,
+  "rules_undecided": 0,
+  "scenarios": [
+   {
+    "id": "heldout-rules",
+    "compared": true,
+    "problem": null,
+    "exit_status": 0,
+    "verdict": "unchanged",
+    "start_state": {
+     "original": "clean",
+     "clone": "clean"
+    },
+    "captures": [
+     {
+      "side": "original",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "original",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     }
+    ],
+    "steps": {
+     "steps": 60,
+     "unchanged": 60,
+     "changed": 0,
+     "unknown": 0,
+     "unstable": 0
+    },
+    "steps_not_unchanged": [],
+    "limitations": []
+   },
+   {
+    "id": "heldout-pages",
+    "compared": true,
+    "problem": null,
+    "exit_status": 0,
+    "verdict": "unchanged",
+    "start_state": {
+     "original": "clean",
+     "clone": "clean"
+    },
+    "captures": [
+     {
+      "side": "original",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "original",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     }
+    ],
+    "steps": {
+     "steps": 19,
+     "unchanged": 19,
+     "changed": 0,
+     "unknown": 0,
+     "unstable": 0
+    },
+    "steps_not_unchanged": [],
+    "limitations": []
+   }
+  ],
+  "rules": [
+   {
+    "id": "R01-code-normalised",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 2
+   },
+   {
+    "id": "R02-derived-totals",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 2
+   },
+   {
+    "id": "R03-manifest-order",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 2
+   },
+   {
+    "id": "R04-statuses-on-screen",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 5
+   },
+   {
+    "id": "R05-code-unique",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 1
+   },
+   {
+    "id": "R06-recipient-unique-per-manifest",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   },
+   {
+    "id": "R07-text-limits",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 2
+   },
+   {
+    "id": "R08-weight-rounding",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 6
+   },
+   {
+    "id": "R09-weight-limit",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 2
+   },
+   {
+    "id": "R10-charge",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R11-parcel-order",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 1
+   },
+   {
+    "id": "R12-capacity-field",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 2
+   },
+   {
+    "id": "R13-list-filters",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   },
+   {
+    "id": "R14-capacity-quota",
+    "difficulty": "several-steps",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 5
+   },
+   {
+    "id": "R15-parcel-quota",
+    "difficulty": "several-steps",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 5
+   },
+   {
+    "id": "R16-state-machine",
+    "difficulty": "several-steps",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 9
+   },
+   {
+    "id": "R17-seal-needs-parcels",
+    "difficulty": "several-steps",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 1
+   },
+   {
+    "id": "R18-lock",
+    "difficulty": "several-steps",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 5
+   },
+   {
+    "id": "R19-delete-and-cascade",
+    "difficulty": "several-steps",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   },
+   {
+    "id": "R20-ids-and-freed-codes",
+    "difficulty": "several-steps",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 2
+   },
+   {
+    "id": "R21-summary",
+    "difficulty": "several-steps",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   },
+   {
+    "id": "R22-parcel-stays",
+    "difficulty": "several-steps",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 1
+   },
+   {
+    "id": "R23-order-of-checks",
+    "difficulty": "several-steps",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   }
+  ]
+ },
+ "cost": {
+  "turns": 92,
+  "peak_context_tokens": 321088,
+  "first_turn_prompt_tokens": 65958,
+  "prompt_tokens_all_turns": 20183389,
+  "uncached_prompt_tokens": 321270,
+  "output_tokens": 110793,
+  "tool_calls": 92,
+  "wall_minutes": 30.3,
+  "net_of_floor": null
+ },
+ "context": {
+  "prompt_bytes": 728,
+  "tool_input_bytes": 173479,
+  "tool_result_bytes": 324675,
+  "rea": {
+   "bytes": 80231,
+   "tool_calls": 27,
+   "by_command": {
+    "inspect-analysis-view": {
+     "calls": 13,
+     "bytes": 22911
+    },
+    "evaluate-clone-run": {
+     "calls": 9,
+     "bytes": 22881
+    },
+    "capture-browser-scenario": {
+     "calls": 10,
+     "bytes": 8039
+    },
+    "init-clone-run --help": {
+     "calls": 1,
+     "bytes": 7767
+    },
+    "export-web-scripts": {
+     "calls": 3,
+     "bytes": 5871
+    },
+    "capture-browser-scenario --schema": {
+     "calls": 3,
+     "bytes": 4955
+    },
+    "analyze-javascript-application": {
+     "calls": 1,
+     "bytes": 3953
+    },
+    "init-clone-run": {
+     "calls": 1,
+     "bytes": 1515
+    },
+    "guidance": {
+     "calls": 1,
+     "bytes": 1213
+    },
+    "capture-browser-scenario --help": {
+     "calls": 1,
+     "bytes": 1126
+    }
+   }
+  },
+  "skill": {
+   "bytes": 84512,
+   "tool_calls": 2,
+   "by_file": {
+    "SKILL.md": {
+     "calls": 1,
+     "bytes": 51739
+    },
+    "references/clone-runs.md": {
+     "calls": 1,
+     "bytes": 32773
+    }
+   }
+  },
+  "other": {
+   "bytes": 159932,
+   "tool_calls": 63
+  },
+  "largest_results": [
+   {
+    "bucket": "skill",
+    "bytes": 51739,
+    "tool": "Read",
+    "what": "<skill>/SKILL.md"
+   },
+   {
+    "bucket": "skill",
+    "bytes": 32773,
+    "tool": "Read",
+    "what": "<skill>/references/clone-runs.md"
+   },
+   {
+    "bucket": "rea",
+    "bytes": 15811,
+    "tool": "Bash",
+    "what": "export PATH=/home/user/rea-bench-runs/j1-before/varnholt/bin:$PATH REA_BROWSER_EXECUTABLE=/opt/pw-browsers/chromium REA_BROWSER_NO_SANDBOX=true; cd /home/user/r"
+   },
+   {
+    "bucket": "other",
+    "bytes": 15099,
+    "tool": "Bash",
+    "what": "cd /home/user/rea-bench-runs/j1-before/varnholt; cat > clone-ctl.sh <<'EOF' #!/bin/bash # start|stop|reset|health for the clone (Larkspur Desk) on 127.0.0.1:531"
+   },
+   {
+    "bucket": "rea",
+    "bytes": 8165,
+    "tool": "Bash",
+    "what": "export PATH=/home/user/rea-bench-runs/j1-before/varnholt/bin:$PATH; cd /home/user/rea-bench-runs/j1-before/varnholt; rea evaluate-clone-run run --exit-code --js"
+   },
+   {
+    "bucket": "rea",
+    "bytes": 7767,
+    "tool": "Bash",
+    "what": "export PATH=/home/user/rea-bench-runs/j1-before/varnholt/bin:$PATH; cd /home/user/rea-bench-runs/j1-before/varnholt; ls; rea init-clone-run --help 2>&1 | head -"
+   },
+   {
+    "bucket": "rea",
+    "bytes": 7264,
+    "tool": "Bash",
+    "what": "export PATH=/home/user/rea-bench-runs/j1-before/varnholt/bin:$PATH; cd /home/user/rea-bench-runs/j1-before/varnholt/run; for i in 1 2 3 4; do echo \"--- step $i\""
+   },
+   {
+    "bucket": "other",
+    "bytes": 6987,
+    "tool": "Bash",
+    "what": "cd /home/user/rea-bench-runs/j1-before/varnholt/run/scout/scripts-2/files; cat origins/*/assets/manifest.js | cut -c1-150; echo ======; ls isolated; sed -n 1,58"
+   }
+  ]
+ },
+ "rea_invocations": {
+  "from_transcript": {
+   "total": 43,
+   "by_command": {
+    "init-clone-run --help": 1,
+    "init-clone-run": 1,
+    "capture-browser-scenario": 10,
+    "export-web-scripts": 3,
+    "analyze-javascript-application": 1,
+    "inspect-analysis-view": 13,
+    "capture-browser-scenario --schema": 3,
+    "capture-browser-scenario --help": 1,
+    "guidance": 1,
+    "evaluate-clone-run": 9
+   },
+   "captures": 10
+  },
+  "from_shim_log": {
+   "total": 168,
+   "by_command": {
+    "init-clone-run --help": 1,
+    "init-clone-run": 1,
+    "capture-browser-scenario": 70,
+    "export-web-scripts": 3,
+    "analyze-javascript-application": 1,
+    "inspect-analysis-view": 78,
+    "capture-browser-scenario --schema": 3,
+    "capture-browser-scenario --help": 1,
+    "guidance": 1,
+    "evaluate-clone-run": 9
+   },
+   "captures": 70
+  }
+ },
+ "captures": {
+  "by_shim_log": 70,
+  "in_transcript_text": 10,
+  "evidence_files_in_run": {
+   "original": 30,
+   "clone": 30
+  }
+ },
+ "rule_breaks": {
+  "count": 0,
+  "by_kind": {},
+  "breaks": []
+ },
+ "agent_report": {
+  "outcome": "not_done",
+  "final_exit_code": "1 (only blocking reason: unknown_open for unknowns/prober-1.json; every check except unknowns passes)"
+ },
+ "clone_tree": {
+  "files": 8,
+  "sha256": "240e32fdc506681e7059a2a100c6e93eae801cddbc07effcd4f8aff4646c5609",
+  "changed_by_scoring": false
+ },
+ "left_running": {
+  "original": false,
+  "clone": false
+ }
+}

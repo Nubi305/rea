@@ -1,0 +1,647 @@
+{
+ "schema": "rea.bench.clone-score/1",
+ "agent": "a1",
+ "cell": {
+  "id": "brassnook-j1b",
+  "label": "bench:clone:brassnook-j1b",
+  "app": "brassnook",
+  "clone_name": "Tallowmere"
+ },
+ "scored_at": "2026-11-21T11:20:30.725Z",
+ "rea_under_test": {
+  "commit": "0e089b3e",
+  "version": "6.9.0",
+  "node_version": "v22.23.5"
+ },
+ "judge": {
+  "commit": "0e089b3e",
+  "version": "6.9.0"
+ },
+ "transcript": "<transcripts>/agent-a078e25d20e38f6cb.jsonl",
+ "run": {
+  "started_at": "2026-11-21T10:32:47.487Z",
+  "ended_at": "2026-11-21T11:03:21.550Z"
+ },
+ "notes": [],
+ "referee": {
+  "verdict": "not_done",
+  "exit_status": 1,
+  "under_test": {
+   "evaluated_with": "0e089b3e",
+   "verdict": "not_done",
+   "exit_status": 1,
+   "summary": "not done: 5 blocking findings",
+   "checks": {
+    "scope": "pass",
+    "inputs": "pass",
+    "evidence": "pass",
+    "clean_start": "pass",
+    "coverage": "pass",
+    "parity": "pass",
+    "clean_room": "pass",
+    "unknowns": "fail"
+   },
+   "blocking": [
+    {
+     "reason": "unknown_open",
+     "count": 5
+    }
+   ],
+   "waivers": 0,
+   "stdout_bytes": 11284,
+   "problem": null
+  },
+  "by_judge": null,
+  "recorded_in_run_folder": {
+   "verdict": "not_done",
+   "summary": "not done: 5 blocking findings",
+   "evaluated_at": "2026-11-21T11:02:27.181Z"
+  },
+  "recorded_differs": false
+ },
+ "hidden": {
+  "measured": true,
+  "clone_restarted_with": "target.json",
+  "differences": {
+   "volatile_fields": 46,
+   "renames": [
+    {
+     "from": "Brassnook",
+     "to": "Tallowmere"
+    }
+   ]
+  },
+  "captures_taken": 8,
+  "captures_failed": 0,
+  "steps": {
+   "steps": 108,
+   "unchanged": 105,
+   "changed": 3,
+   "unknown": 0,
+   "unstable": 0
+  },
+  "rules_total": 26,
+  "rules_agree": 23,
+  "rules_disagree": 3,
+  "rules_undecided": 0,
+  "scenarios": [
+   {
+    "id": "heldout-api",
+    "compared": true,
+    "problem": null,
+    "exit_status": 1,
+    "verdict": "changed",
+    "start_state": {
+     "original": "clean",
+     "clone": "clean"
+    },
+    "captures": [
+     {
+      "side": "original",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "original",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     }
+    ],
+    "steps": {
+     "steps": 78,
+     "unchanged": 75,
+     "changed": 3,
+     "unknown": 0,
+     "unstable": 0
+    },
+    "steps_not_unchanged": [
+     {
+      "step_id": "confirm-in-inactive-room",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "status",
+        "category": "status",
+        "pointer": null,
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "missing-field",
+        "pointer": "/error",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "missing-field",
+        "pointer": "/message",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "summary-final",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/bookings/tentative",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/bookings/confirmed",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/revenueCents",
+        "side": null
+       }
+      ]
+     },
+     {
+      "step_id": "bookings-final",
+      "status": "changed",
+      "findings": [
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/items/4/totalCents",
+        "side": null
+       },
+       {
+        "dimension": "body",
+        "category": "value",
+        "pointer": "/items/5/status",
+        "side": null
+       }
+      ]
+     }
+    ],
+    "limitations": []
+   },
+   {
+    "id": "heldout-pages",
+    "compared": true,
+    "problem": null,
+    "exit_status": 0,
+    "verdict": "unchanged",
+    "start_state": {
+     "original": "clean",
+     "clone": "clean"
+    },
+    "captures": [
+     {
+      "side": "original",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 1,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "original",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     },
+     {
+      "side": "clone",
+      "number": 2,
+      "ok": true,
+      "problem": null
+     }
+    ],
+    "steps": {
+     "steps": 30,
+     "unchanged": 30,
+     "changed": 0,
+     "unknown": 0,
+     "unstable": 0
+    },
+    "steps_not_unchanged": [],
+    "limitations": []
+   }
+  ],
+  "rules": [
+   {
+    "id": "R01-room-name-slug",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   },
+   {
+    "id": "R02-room-name-unique",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R03-room-fields",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 5
+   },
+   {
+    "id": "R04-room-order",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 5
+   },
+   {
+    "id": "R05-booking-record",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R06-band-normalised",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R07-time-grid",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R08-opening-hours",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   },
+   {
+    "id": "R09-calendar",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 6
+   },
+   {
+    "id": "R10-price",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 12
+   },
+   {
+    "id": "R11-no-overlap",
+    "difficulty": "multi-step",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 5
+   },
+   {
+    "id": "R12-players",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 2
+   },
+   {
+    "id": "R13-inactive-room",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "confirm-in-inactive-room",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 4
+   },
+   {
+    "id": "R14-band-daily-limit",
+    "difficulty": "multi-step",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   },
+   {
+    "id": "R15-check-order",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   },
+   {
+    "id": "R16-state-machine",
+    "difficulty": "multi-step",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 8
+   },
+   {
+    "id": "R17-price-locked",
+    "difficulty": "multi-step",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R18-cancellation-fee",
+    "difficulty": "multi-step",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 6
+   },
+   {
+    "id": "R19-booking-lock",
+    "difficulty": "multi-step",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 3
+   },
+   {
+    "id": "R20-capacity-floor",
+    "difficulty": "multi-step",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 1
+   },
+   {
+    "id": "R21-room-delete",
+    "difficulty": "multi-step",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 5
+   },
+   {
+    "id": "R22-booking-order-paging",
+    "difficulty": "edge",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "bookings-final",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 7
+   },
+   {
+    "id": "R23-list-filters",
+    "difficulty": "edge",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 6
+   },
+   {
+    "id": "R24-day-sheet",
+    "difficulty": "multi-step",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 4
+   },
+   {
+    "id": "R25-summary",
+    "difficulty": "multi-step",
+    "result": "disagrees",
+    "steps_not_unchanged": [
+     {
+      "scenario": "heldout-api",
+      "step_id": "summary-final",
+      "status": "changed"
+     }
+    ],
+    "steps_cited": 3
+   },
+   {
+    "id": "R26-pages",
+    "difficulty": "visible",
+    "result": "agrees",
+    "steps_not_unchanged": [],
+    "steps_cited": 8
+   }
+  ]
+ },
+ "cost": {
+  "turns": 87,
+  "peak_context_tokens": 334515,
+  "first_turn_prompt_tokens": 65958,
+  "prompt_tokens_all_turns": 19141608,
+  "uncached_prompt_tokens": 284779,
+  "output_tokens": 118096,
+  "tool_calls": 88,
+  "wall_minutes": 30.6,
+  "net_of_floor": null
+ },
+ "context": {
+  "prompt_bytes": 729,
+  "tool_input_bytes": 185805,
+  "tool_result_bytes": 335246,
+  "rea": {
+   "bytes": 76443,
+   "tool_calls": 31,
+   "by_command": {
+    "evaluate-clone-run": {
+     "calls": 22,
+     "bytes": 37675
+    },
+    "capture-browser-scenario": {
+     "calls": 16,
+     "bytes": 16111
+    },
+    "init-clone-run --help": {
+     "calls": 1,
+     "bytes": 5969
+    },
+    "compare-scenario-behavior": {
+     "calls": 4,
+     "bytes": 5503
+    },
+    "inspect-analysis-view": {
+     "calls": 3,
+     "bytes": 3426
+    },
+    "capture-browser-scenario --schema": {
+     "calls": 6,
+     "bytes": 2802
+    },
+    "init-clone-run": {
+     "calls": 1,
+     "bytes": 1505
+    },
+    "export-web-scripts": {
+     "calls": 1,
+     "bytes": 1160
+    },
+    "validate-browser-scenario --help": {
+     "calls": 1,
+     "bytes": 1116
+    },
+    "guidance --help": {
+     "calls": 1,
+     "bytes": 1116
+    },
+    "validate-browser-scenario": {
+     "calls": 1,
+     "bytes": 63
+    }
+   }
+  },
+  "skill": {
+   "bytes": 84512,
+   "tool_calls": 2,
+   "by_file": {
+    "SKILL.md": {
+     "calls": 1,
+     "bytes": 51739
+    },
+    "references/clone-runs.md": {
+     "calls": 1,
+     "bytes": 32773
+    }
+   }
+  },
+  "other": {
+   "bytes": 174291,
+   "tool_calls": 55
+  },
+  "largest_results": [
+   {
+    "bucket": "skill",
+    "bytes": 51739,
+    "tool": "Read",
+    "what": "<skill>/SKILL.md"
+   },
+   {
+    "bucket": "skill",
+    "bytes": 32773,
+    "tool": "Read",
+    "what": "<skill>/references/clone-runs.md"
+   },
+   {
+    "bucket": "other",
+    "bytes": 13679,
+    "tool": "Bash",
+    "what": "cd /home/user/rea-bench-runs/j1-before/brassnook/run/scout/scripts-1/files/isolated; wc -c *; cat source-1*.js"
+   },
+   {
+    "bucket": "other",
+    "bytes": 12605,
+    "tool": "Bash",
+    "what": "cd /home/user/rea-bench-runs/j1-before/brassnook/run; python3 - <<'EOF' import json d=json.load(open(\"behavior/pages-read.json\")) for s in d[\"steps\"]: if s[\"ste"
+   },
+   {
+    "bucket": "other",
+    "bytes": 10518,
+    "tool": "Bash",
+    "what": "cat > /home/user/rea-bench-runs/j1-before/brassnook/notes/replay.py <<'EOF' import json,sys,subprocess,urllib.request,glob,re RUN=\"/home/user/rea-bench-runs/j1-"
+   },
+   {
+    "bucket": "rea",
+    "bytes": 9916,
+    "tool": "Bash",
+    "what": "cd /home/user/rea-bench-runs/j1-before/brassnook/run && python3 - <<'EOF' import json iff=json.load(open(\"intended-differences.json\")) spec={\"bookings-create\":["
+   },
+   {
+    "bucket": "rea",
+    "bytes": 9686,
+    "tool": "Bash",
+    "what": "cd /home/user/rea-bench-runs/j1-before/brassnook/run; export PATH=/home/user/rea-bench-runs/j1-before/brassnook/bin:$PATH; rea evaluate-clone-run $PWD --exit-co"
+   },
+   {
+    "bucket": "other",
+    "bytes": 7953,
+    "tool": "Bash",
+    "what": "mkdir -p /home/user/rea-bench-runs/j1-before/brassnook/clone/static; cat > /home/user/rea-bench-runs/j1-before/brassnook/clone/server.js <<'EOF' \"use strict\"; /"
+   }
+  ]
+ },
+ "rea_invocations": {
+  "from_transcript": {
+   "total": 57,
+   "by_command": {
+    "init-clone-run --help": 1,
+    "init-clone-run": 1,
+    "capture-browser-scenario": 16,
+    "export-web-scripts": 1,
+    "inspect-analysis-view": 3,
+    "validate-browser-scenario --help": 1,
+    "guidance --help": 1,
+    "capture-browser-scenario --schema": 6,
+    "evaluate-clone-run": 22,
+    "validate-browser-scenario": 1,
+    "compare-scenario-behavior": 4
+   },
+   "captures": 16
+  },
+  "from_shim_log": {
+   "total": 134,
+   "by_command": {
+    "init-clone-run --help": 1,
+    "init-clone-run": 1,
+    "capture-browser-scenario": 81,
+    "export-web-scripts": 1,
+    "inspect-analysis-view": 9,
+    "validate-browser-scenario --help": 1,
+    "guidance --help": 1,
+    "capture-browser-scenario --schema": 6,
+    "evaluate-clone-run": 22,
+    "validate-browser-scenario": 1,
+    "compare-scenario-behavior": 10
+   },
+   "captures": 81
+  }
+ },
+ "captures": {
+  "by_shim_log": 81,
+  "in_transcript_text": 16,
+  "evidence_files_in_run": {
+   "original": 24,
+   "clone": 24
+  }
+ },
+ "rule_breaks": {
+  "count": 0,
+  "by_kind": {},
+  "breaks": []
+ },
+ "agent_report": {
+  "outcome": "not_done",
+  "final_exit_code": "1"
+ },
+ "clone_tree": {
+  "files": 3,
+  "sha256": "4374ce6fa2df58688814be3c178a08bf367c70d3bad1abf8a8c30de9f721dde3",
+  "changed_by_scoring": false
+ },
+ "left_running": {
+  "original": false,
+  "clone": false
+ }
+}
