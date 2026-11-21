@@ -32,10 +32,13 @@ export const LEFT = "http://127.0.0.1:4101";
 export const RIGHT = "http://127.0.0.1:4202";
 export const ELSEWHERE = "http://127.0.0.1:4303";
 
-/** What a recorded reply holds: JSON, text of a media type, a page's markup, a body the capture lost, or one over its limit. */
+/**
+ * What a recorded reply holds: JSON, text of a media type (null: the capture
+ * knows none), a page's markup, a body the capture lost, or one over its limit.
+ */
 export type Reply =
   | { readonly json: JsonValue }
-  | { readonly text: string; readonly media?: string }
+  | { readonly text: string; readonly media?: string | null }
   | { readonly html: string }
   | { readonly lost: "body-read-failed" | "body-size-limit" };
 
@@ -73,7 +76,11 @@ export interface Step {
   readonly calls?: readonly Call[];
 }
 
-const recorded = (content: string, mediaType: string, request: boolean) => {
+const recorded = (
+  content: string,
+  mediaType: string | null,
+  request: boolean,
+) => {
   const bytes = Buffer.from(content, "utf8");
   return {
     state: "captured",
@@ -104,7 +111,11 @@ const replyBody = (reply: Reply | undefined) => {
   if ("html" in reply)
     return recorded(reply.html, "text/html; charset=utf-8", false);
   if ("text" in reply)
-    return recorded(reply.text, reply.media ?? "text/plain", false);
+    return recorded(
+      reply.text,
+      reply.media === undefined ? "text/plain" : reply.media,
+      false,
+    );
   return reply.lost === "body-size-limit"
     ? overLimit
     : { state: "unavailable", reason: reply.lost, message: "lost" };

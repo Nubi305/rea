@@ -59,8 +59,15 @@ export type SentBody = Exclude<
   { readonly kind: "not-recorded" }
 >;
 
-/** One compared request of a step with what the application answered. */
+/**
+ * One compared request of a step with what the application answered. Text
+ * and bodies are as the capture recorded them: where the application prints
+ * its own address they hold `start_origin`, which the comparison reads as the
+ * other side's (`scenarioBehaviorAddress.ts`).
+ */
 export interface TransactionObservation {
+  /** The start origin of the capture that observed it. */
+  readonly start_origin: string;
   /** Request line and occurrence within the step, such as `POST /api/notes#1`. */
   readonly request: string;
   readonly method: string;
@@ -89,8 +96,10 @@ interface TransactionGap {
   readonly detail?: string;
 }
 
-/** What one capture observed at one step, without its address. */
+/** What one capture observed at one step; only the page address is stored without the capture's own origin. */
 export interface StepObservation {
+  /** The start origin of the capture that observed it. */
+  readonly start_origin: string;
   readonly step_id: string;
   readonly kind: ScenarioStepKind;
   readonly action: string;
@@ -120,8 +129,6 @@ export interface ScenarioBehaviorCapture extends ScenarioBehaviorCaptureFacts {
 }
 
 const COMPARED: ReadonlySet<string> = new Set(COMPARED_RESOURCE_TYPES);
-/** What stands for a capture's own start origin wherever the application prints it. */
-const OWN_ORIGIN_PLACEHOLDER = "{origin}";
 const HTML_MEDIA_TYPES: ReadonlySet<string> = new Set([
   "text/html",
   "application/xhtml+xml",
@@ -164,55 +171,6 @@ const pageAddress = (
     : url.origin === startOrigin && url.url.startsWith(startOrigin)
       ? url.url.slice(startOrigin.length)
       : url.url;
-
-/**
- * Replace the capture's own origin in a text by the placeholder, as a page
- * address loses it, so an application that prints its own address compares
- * equal at two addresses. The origin is replaced only where it ends: a longer
- * host or another port is another origin.
- */
-const withoutOwnOrigin = (startOrigin: string): ((text: string) => string) => {
-  const pattern = new RegExp(
-    `${startOrigin.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&")}(?![\\w-]|:\\d|\\.[\\w-])`,
-    "gu",
-  );
-  return (text) =>
-    text.includes(startOrigin)
-      ? text.replaceAll(pattern, OWN_ORIGIN_PLACEHOLDER)
-      : text;
-};
-
-/** Apply `map` to every string value of a JSON value, never to a field name. */
-const mapJsonStrings = (
-  value: JsonValue,
-  map: (text: string) => string,
-): JsonValue => {
-  if (typeof value === "string") return map(value);
-  if (value === null || typeof value !== "object") return value;
-  if (Array.isArray(value))
-    return value.map((item) => mapJsonStrings(item, map));
-  return Object.fromEntries(
-    Object.entries(value).map(([key, member]) => [
-      key,
-      mapJsonStrings(member, map),
-    ]),
-  );
-};
-
-const mapBodyStrings = <
-  Body extends
-    | { readonly kind: "json"; readonly value: JsonValue }
-    | { readonly kind: "text"; readonly text: string }
-    | { readonly kind: "none" | "base64" },
->(
-  body: Body,
-  map: (text: string) => string,
-): Body =>
-  body.kind === "json"
-    ? { ...body, value: mapJsonStrings(body.value, map) }
-    : body.kind === "text"
-      ? { ...body, text: map(body.text) }
-      : body;
 
 /** Methods a browser sends without a body, whatever headers the capture lists for the request (Fetch standard). */
 const BODILESS_METHODS: ReadonlySet<string> = new Set(["GET", "HEAD"]);
@@ -327,7 +285,6 @@ export const readScenarioBehaviorCapture = async (
       ),
     );
   const startOrigin = scenario.startOrigin;
-  const ownOrigin = withoutOwnOrigin(startOrigin);
   const pages = new Map(
     scenario.steps.map((step) => [
       step.step_id,
@@ -392,12 +349,13 @@ export const readScenarioBehaviorCapture = async (
     const page = pages.get(step.step_id);
     const list = transactions.get(step.step_id) ?? [];
     list.push({
+      start_origin: startOrigin,
       request: occurrence(step.step_id, line),
       method: probe.request.method,
       resource_type: step.resource_type,
-      request_body: sent === null ? null : mapBodyStrings(sent, ownOrigin),
+      request_body: sent,
       status,
-      reply: reply === null ? null : mapBodyStrings(reply, ownOrigin),
+      reply,
       markup:
         step.resource_type === "document" &&
         (mediaType === null
@@ -454,15 +412,14 @@ export const readScenarioBehaviorCapture = async (
   const steps = scenario.steps.map((step): StepObservation => {
     const accessibility = step.artifacts.accessibility;
     return {
+      start_origin: startOrigin,
       step_id: step.step_id,
       kind: scenarioStepKind(step.step_id),
       action: step.action,
       outcome: step.status,
       page_address: pages.get(step.step_id) ?? null,
       text:
-        accessibility.state === "captured"
-          ? ownOrigin(accessibility.value.text)
-          : null,
+        accessibility.state === "captured" ? accessibility.value.text : null,
       transactions: transactions.get(step.step_id) ?? [],
       gaps: [...(gaps.get(step.step_id) ?? []), ...omission],
     };

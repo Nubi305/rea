@@ -13,6 +13,7 @@ import {
   readScenarioBehaviorCapture,
 } from "./ScenarioBehaviorComparisonService.js";
 import {
+  ELSEWHERE,
   LEFT,
   RIGHT,
   captureEvidence,
@@ -28,9 +29,10 @@ import {
 } from "./scenarioBehaviorCapture.fixture.js";
 
 /**
- * Regressions from the proof round of clone runs: every way a wrong clone
+ * Regressions from the proof rounds of clone runs: every way a wrong clone
  * compared `unchanged`, every way a correct clone compared `changed`, and
- * beside each relaxation the neighbouring wrong case that must still differ.
+ * beside each relaxation the smallest wrong clone that could hide behind it,
+ * with what it reads: `changed`, `unknown` or `unstable`, never `unchanged`.
  */
 
 /** A step's status and its findings as `dimension/category side pointer-or-request`. */
@@ -75,6 +77,68 @@ it("finds an array and an object with index-like keys different", async () => {
     [json({ "0": "x", "1": "y" })],
   );
   expect(brief(root, "read")).toEqual(["changed", "body/value - "]);
+});
+
+it("finds a list and an object different whatever is declared volatile beneath them", async () => {
+  const ids = (value: JsonValue): Step[] => json({ ids: value });
+  const left = [ids(["0a1b", "2c3d"]), ids(["4e5f", "6a7b"])];
+  // Generated ids: every leaf beneath the container varies on the left and is declared.
+  const keyed = await compare(
+    left,
+    [ids({ "0": "8c9d", "1": "0e1f" }), ids({ "0": "2a3b", "1": "4c5d" })],
+    { volatile_fields: [{ step_id: "read", pointer: "/ids/*" }] },
+  );
+  expect(keyed.verdict).toBe("changed");
+  expect(stepOf(keyed, "read").findings).toEqual([
+    {
+      dimension: "body",
+      category: "value",
+      request: "GET /api/thing#1",
+      pointer: "/ids",
+      expected: '["0a1b","2c3d"]',
+      actual: '{"0":"8c9d","1":"0e1f"}',
+      side: null,
+    },
+  ]);
+  // No declaration took effect beneath the container.
+  expect(keyed.volatile_fields.map(({ honoured }) => honoured)).toEqual([
+    false,
+    false,
+  ]);
+  // The control: the same declaration is honoured for a list on both sides.
+  const listed = await compare(left, [ids(["8c9d", "0e1f"])], {
+    volatile_fields: [{ step_id: "read", pointer: "/ids/*" }],
+  });
+  expect(listed.verdict).toBe("unchanged");
+  // The other way round, with the member declared by its name, and at the root.
+  const member = await compare(
+    [json({ m: { "0": "0a1b" } }), json({ m: { "0": "2c3d" } })],
+    [json({ m: ["4e5f"] }), json({ m: ["6a7b"] })],
+    { volatile_fields: [{ step_id: "read", pointer: "/m/0" }] },
+  );
+  expect(brief(member, "read")).toEqual(["changed", "body/value - /m"]);
+  const root = await compare(
+    [json([{ id: "0a1b" }]), json([{ id: "2c3d" }])],
+    [json({ "0": { id: "4e5f" } })],
+    { volatile_fields: [{ step_id: "*", pointer: "/*/id" }] },
+  );
+  expect(brief(root, "read")).toEqual(["changed", "body/value - "]);
+  // A side that answers with either kind disagrees with itself: unstable, declared or not, never a match.
+  const either = [
+    ids(["0a1b", "2c3d"]),
+    ids({ "0": "0a1b", "1": "2c3d" }),
+  ];
+  for (const volatile_fields of [
+    [],
+    [{ step_id: "read", pointer: "/ids/*" }],
+  ]) {
+    expect(
+      brief(await compare(left, either, { volatile_fields }), "read"),
+    ).toEqual(["unstable", "body/repeats-differ right /ids"]);
+    expect(
+      brief(await compare(either, [left[0]!], { volatile_fields }), "read"),
+    ).toEqual(["unstable", "body/repeats-differ left /ids"]);
+  }
 });
 
 it("reads requests the capture itself omitted as unknown on every step, never as no requests", async () => {
@@ -388,7 +452,7 @@ it("reports a right side that agrees with the left in one capture as unsteady on
   ]);
 });
 
-it("compares each side without its own origin in on-screen text and reply values", async () => {
+it("reads the left's own address as the right's in text and bodies, through no placeholder a clone could print", async () => {
   const printed = (origin: string, shownOrigin = origin): Step[] => [
     list,
     {
@@ -399,7 +463,11 @@ it("compares each side without its own origin in on-screen text and reply values
           line: "POST /api/links",
           send: { returnTo: `${shownOrigin}/done` },
           reply: {
-            json: { self: `${shownOrigin}/api/abs`, other: `${LEFT}0/x` },
+            json: {
+              self: `${shownOrigin}/api/abs`,
+              pages: [{ [`${LEFT}/key`]: `${shownOrigin}/p/2` }],
+              other: `${LEFT}0/x`,
+            },
           },
         },
         {
@@ -412,21 +480,145 @@ it("compares each side without its own origin in on-screen text and reply values
   const left = printed(LEFT);
   const comparison = await compare([left, left], [printed(RIGHT)]);
   expect(comparison.verdict).toBe("unchanged");
-  // The table shows the placeholder, never an address.
+  // Per left capture: the text, the request body, two reply values and the text body. Never a field name, never another port.
+  expect(comparison.addresses_applied).toEqual([
+    { from: LEFT, to: RIGHT, values: 10 },
+  ]);
+  expect(comparison.renames_applied).toEqual([]);
+  // The table shows what the application gave at its own address.
   const table = describeScenarioBehavior([await readCapture(LEFT, left)]);
-  expect(JSON.stringify(table)).toContain("{origin}/api/abs");
-  expect(JSON.stringify(table)).toContain("Share {origin}/help");
-  // Another port is another origin: only the side's own is replaced.
-  expect(JSON.stringify(table)).toContain(`${LEFT}0/x`);
-  // A clone that prints the original's address is not printing its own.
-  const copied = await compare([left, left], [printed(RIGHT, LEFT)]);
-  expect(brief(copied, "read")).toEqual([
+  expect(JSON.stringify(table)).toContain(`Share ${LEFT}/help`);
+  // A clone that prints the original's address, or a template it never filled in, is not printing its own.
+  for (const shownOrigin of [LEFT, "{origin}", ""]) {
+    const copied = await compare([left, left], [printed(RIGHT, shownOrigin)]);
+    expect(brief(copied, "read")).toEqual([
+      "changed",
+      "text/value - -",
+      "request/value - POST /api/links#1",
+      "body/value - /self",
+      "body/value - /pages/0/http:~1~1127.0.0.1:4101~1key",
+      "body/value - ",
+    ]);
+    // The finding shows the left value as it was compared: at the right's address.
+    expect(stepOf(copied, "read").findings[2]).toMatchObject({
+      expected: `"${RIGHT}/api/abs"`,
+      actual: `"${shownOrigin}/api/abs"`,
+    });
+  }
+  // Two captures of one address print one address: nothing is read as another.
+  const same = compareScenarioBehaviorCaptures({
+    left: [await readCapture(LEFT, left)],
+    right: [await readCapture(LEFT, left)],
+    renames: [],
+    volatile_fields: [],
+  });
+  if (!same.ok) throw same.error;
+  expect(same.value.verdict).toBe("unchanged");
+  expect(same.value).not.toHaveProperty("addresses_applied");
+});
+
+it("reads the left's bare host and port as the right's, and no address that only resembles it", async () => {
+  const hostOf = (origin: string): string => origin.replace("http://", "");
+  const served = (shownHost: string, extra = "files.example:4101"): Step[] => [
+    list,
+    {
+      id: "read",
+      text: `Served from ${shownHost}`,
+      calls: [
+        {
+          line: "GET /api/addr",
+          reply: {
+            json: {
+              host: shownHost,
+              socket: `ws://${shownHost}/live`,
+              self: `http://${shownHost}/api/addr`,
+              extra,
+            },
+          },
+        },
+      ],
+    },
+  ];
+  const left = served(hostOf(LEFT));
+  const comparison = await compare([left, left], [served(hostOf(RIGHT))]);
+  expect(comparison.verdict).toBe("unchanged");
+  // Per left capture: the text and two values by host and port, one value by origin.
+  expect(comparison.addresses_applied).toEqual([
+    { from: LEFT, to: RIGHT, values: 2 },
+    { from: hostOf(LEFT), to: hostOf(RIGHT), values: 6 },
+  ]);
+  const wrong = async (right: Step[]) =>
+    brief(await compare([left, left], [right, right]), "read");
+  // A clone that prints the original's host and port, or its own port at another host.
+  expect(await wrong(served(hostOf(LEFT)))).toEqual([
     "changed",
     "text/value - -",
-    "request/value - POST /api/links#1",
+    "body/value - /host",
+    "body/value - /socket",
     "body/value - /self",
-    "body/value - ",
   ]);
+  expect(await wrong(served("203.0.113.9:4202"))).toEqual([
+    "changed",
+    "text/value - -",
+    "body/value - /host",
+    "body/value - /socket",
+    "body/value - /self",
+  ]);
+  // Another server's address is not the left's own: a longer port, a host that ends like it, the same port elsewhere.
+  for (const [other, cloned] of [
+    ["127.0.0.1:41019", "127.0.0.1:42029"],
+    ["10.127.0.0.1:4101", "10.127.0.0.1:4202"],
+    ["files.example:4101", "files.example:4202"],
+  ] as const)
+    expect(
+      brief(
+        await compare(
+          [served(hostOf(LEFT), other), served(hostOf(LEFT), other)],
+          [served(hostOf(RIGHT), cloned)],
+        ),
+        "read",
+      ),
+    ).toEqual(["changed", "body/value - /extra"]);
+});
+
+it("reads each left capture's own address as the right's first, and maps nothing on the right", async () => {
+  const shown = (origin: string): Step[] => [
+    list,
+    { id: "read", text: `You are at ${origin}` },
+  ];
+  const compared = async (
+    left: readonly string[],
+    right: readonly string[],
+  ): Promise<ScenarioBehaviorComparison> => {
+    const read = (origins: readonly string[]) =>
+      Promise.all(origins.map((origin) => readCapture(origin, shown(origin))));
+    const result = compareScenarioBehaviorCaptures({
+      left: await read(left),
+      right: await read(right),
+      renames: [],
+      volatile_fields: [],
+    });
+    if (!result.ok) throw result.error;
+    return result.value;
+  };
+  const twoLeft = await compared([LEFT, ELSEWHERE], [RIGHT, RIGHT]);
+  expect(twoLeft.verdict).toBe("unchanged");
+  expect(twoLeft.addresses_applied).toEqual([
+    { from: LEFT, to: RIGHT, values: 1 },
+    { from: ELSEWHERE, to: RIGHT, values: 1 },
+  ]);
+  expect(twoLeft.limitations).toEqual([
+    `The left captures started at more than one origin; the own address of each is read as ${RIGHT}.`,
+  ]);
+  // A right side at two addresses prints two texts: it disagrees with itself and is never a match.
+  const twoRight = await compared([LEFT, LEFT], [RIGHT, ELSEWHERE]);
+  expect(brief(twoRight, "read")).toEqual([
+    "unstable",
+    "text/repeats-differ right -",
+  ]);
+  expect(twoRight.limitations).toContainEqual(
+    expect.stringContaining("right captures started at more than one origin"),
+  );
 });
 
 it("reads a declared leaf the left holds steadily as not shown volatile, never as a match", async () => {
@@ -474,36 +666,107 @@ it("reads a declared leaf the left holds steadily as not shown volatile, never a
   expect(varying.verdict).toBe("unchanged");
 });
 
-it("honours a declared list pattern at every index once the left shows it varying", async () => {
+it("honours a `*` declaration only at the list positions where the left's own repeats differ", async () => {
+  // A fresh item with a generated id at position 0, a seeded one at position 1.
   const items = (...ids: string[]): Step[] =>
-    json(ids.map((id) => ({ id, kind: "bee" })));
-  const left = [items("a", "b", "c"), items("c", "b", "a")];
-  const volatile_fields = [{ step_id: "read", pointer: "/*/id" }];
-  const shuffled = await compare(left, [items("b", "c", "a")], {
-    volatile_fields,
+    json({ items: ids.map((id) => ({ id, label: "item" })) });
+  const left = [items("0a1b", "seed-1"), items("2c3d", "seed-1")];
+  const wrong = [items("4e5f", "WRONG-9"), items("6a7b", "WRONG-9")];
+  for (const step_id of ["read", "*"]) {
+    const comparison = await compare(left, wrong, {
+      volatile_fields: [{ step_id, pointer: "/items/*/id" }],
+    });
+    expect(comparison.verdict).toBe("unknown");
+    expect(stepOf(comparison, "read").findings).toEqual([
+      {
+        dimension: "body",
+        category: "declared-not-shown",
+        request: "GET /api/thing#1",
+        pointer: "/items/*/id",
+        expected: '"seed-1"',
+        actual: '"WRONG-9"',
+        side: "left",
+      },
+    ]);
+    expect(comparison.limitations).toEqual([
+      'Reply lists are compared position by position, also under a declared "*" pointer: /items/*/id at step read differs between the sides at a position where the left\'s captures agree. A list whose order varies between captures has to be requested in a fixed order.',
+    ]);
+  }
+  // Declared for the varying position only, the steady one is the clone's difference.
+  expect(
+    brief(
+      await compare(left, wrong, {
+        volatile_fields: [{ step_id: "read", pointer: "/items/0/id" }],
+      }),
+      "read",
+    ),
+  ).toEqual(["changed", "body/value - /items/1/id"]);
+  // A value of another shape at the steady position is a difference under the pattern too.
+  expect(
+    brief(
+      await compare(left, [items("4e5f", "seed 1")], {
+        volatile_fields: [{ step_id: "read", pointer: "/items/*/id" }],
+      }),
+      "read",
+    ),
+  ).toEqual(["changed", "body/value - /items/1/id"]);
+  // The clone that holds the steady value at the steady position compares.
+  const right = await compare(left, [items("4e5f", "seed-1")], {
+    volatile_fields: [{ step_id: "read", pointer: "/items/*/id" }],
   });
-  expect(shuffled.verdict).toBe("unchanged");
-  expect(shuffled.volatile_fields).toEqual([
+  expect(right.verdict).toBe("unchanged");
+  expect(right.limitations).toEqual([
+    expect.stringContaining("right side has one capture"),
+  ]);
+  expect(right.volatile_fields).toEqual([
     {
       step_id: "read",
       side: "left",
-      pointer: "/*/id",
+      pointer: "/items/*/id",
       declared: true,
       honoured: true,
     },
   ]);
-  // Undeclared, the same captures are not a match.
-  expect((await compare(left, [items("b", "c", "a")])).verdict).not.toBe(
-    "unchanged",
+});
+
+it("judges a list in varying order position by position, declared or not", async () => {
+  const items = (...ids: string[]): Step[] =>
+    json(ids.map((id) => ({ id, kind: "bee" })));
+  // The left's two orders coincide at position 1.
+  const left = [items("a", "b", "c"), items("c", "b", "a")];
+  const volatile_fields = [{ step_id: "read", pointer: "/*/id" }];
+  const hint = expect.stringContaining(
+    "/*/id at step read differs between the sides at a position where the left's captures agree",
   );
-  // An extra item, a value of another shape and an undeclared field are still differences.
+  // Declared: honoured where the left varies, not shown volatile where its captures coincide. Never a match.
+  const shuffled = await compare(left, [items("b", "c", "a")], {
+    volatile_fields,
+  });
+  expect(brief(shuffled, "read")).toEqual([
+    "unknown",
+    "body/declared-not-shown left /*/id",
+  ]);
+  expect(shuffled.limitations).toContainEqual(hint);
+  // Undeclared: the coinciding position is a difference beside the unstable ones, with the same advice.
+  const undeclared = await compare(left, [items("b", "c", "a")]);
+  expect(brief(undeclared, "read")).toEqual([
+    "changed",
+    "body/value - /1/id",
+    "body/undeclared-volatile left /*/id",
+  ]);
+  expect(undeclared.limitations).toContainEqual(hint);
+  // A right side that agrees at the coinciding position compares once the pattern is declared.
+  expect(
+    (await compare(left, [items("x", "b", "y")], { volatile_fields })).verdict,
+  ).toBe("unchanged");
+  // An extra item, a value of another shape and an undeclared field are differences.
   for (const right of [
     items("b", "c", "a", "d"),
-    items("b", "long id", "a"),
+    items("x", "long id", "y"),
     json([
-      { id: "b", kind: "bee" },
-      { id: "c", kind: "wasp" },
-      { id: "a", kind: "bee" },
+      { id: "x", kind: "bee" },
+      { id: "b", kind: "wasp" },
+      { id: "y", kind: "bee" },
     ]),
   ])
     expect(

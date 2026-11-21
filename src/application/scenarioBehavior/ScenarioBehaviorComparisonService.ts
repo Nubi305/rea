@@ -10,7 +10,6 @@ import {
   STEP_VOLATILE_FIELD_LIMIT,
   judgeReplyLeaves,
   orderScenarioFindings,
-  renameScenarioJson,
   renameScenarioText,
   scenarioBehaviorVerdict,
   scenarioStartState,
@@ -28,6 +27,11 @@ import {
 } from "../../domain/scenarioBehaviorComparison.js";
 import { inputError } from "../environment/environmentSource.js";
 import { readJsonFile } from "../JsonFiles.js";
+import {
+  mapBodyStrings,
+  ownAddressReader,
+  type OwnAddressReader,
+} from "./scenarioBehaviorAddress.js";
 import {
   readScenarioBehaviorCapture,
   scenarioBehaviorRefusal as refusal,
@@ -67,35 +71,48 @@ const TEXT_CONTEXT_CHARS = 30;
 /** Reply bodies larger than this are left out of the behaviour table, not out of the comparison. */
 const TABLE_BODY_LIMIT_BYTES = 8 * 1024;
 
-/** Declared renames applied to a left value at the point it is compared, so only compared values are counted. */
-interface Renamer {
-  readonly text: (text: string) => string;
-  readonly sent: (body: SentBody) => SentBody;
-  readonly reply: (body: RecordedBody) => RecordedBody;
+/** A request whose reply body a capture recorded whole. */
+type RepliedTransaction = TransactionObservation & {
+  readonly reply: RecordedBody;
+};
+
+/**
+ * A left value as it is compared: the capture's own address read as the
+ * right side's, then the declared renames. Applied at the point a value is
+ * compared, so only compared values are counted.
+ */
+interface LeftValues {
+  readonly text: (step: StepObservation) => string | null;
+  readonly sent: (transaction: TransactionObservation) => SentBody | null;
+  readonly reply: (transaction: RepliedTransaction) => RecordedBody;
 }
 
-const renamer = (
+const leftValues = (
+  addresses: OwnAddressReader,
   renames: readonly ScenarioBehaviorRename[],
   counts: number[],
-): Renamer => ({
-  text: (text) => renameScenarioText(text, renames, counts),
-  sent: (body) =>
-    body.kind === "json"
-      ? { kind: "json", value: renameScenarioJson(body.value, renames, counts) }
-      : body.kind === "text"
-        ? { kind: "text", text: renameScenarioText(body.text, renames, counts) }
-        : body,
-  reply: (body) =>
-    body.kind === "json"
-      ? { kind: "json", value: renameScenarioJson(body.value, renames, counts) }
-      : body.kind === "text"
-        ? { kind: "text", text: renameScenarioText(body.text, renames, counts) }
-        : body,
-});
+): LeftValues => {
+  const text = (value: string, origin: string): string =>
+    renameScenarioText(addresses.text(value, origin), renames, counts);
+  const body = <Body extends SentBody | RecordedBody>(
+    value: Body,
+    origin: string,
+  ): Body =>
+    renames.length === 0 && !addresses.applies(origin)
+      ? value
+      : mapBodyStrings(value, (string) => text(string, origin));
+  return {
+    text: (step) =>
+      step.text === null ? null : text(step.text, step.start_origin),
+    sent: ({ request_body: sent, start_origin: origin }) =>
+      sent === null ? null : body(sent, origin),
+    reply: ({ reply, start_origin: origin }) => body(reply, origin),
+  };
+};
 
 /** What the comparison of one step needs beyond what the reply comparison does. */
 interface ComparisonContext extends StepContext {
-  readonly rename: Renamer;
+  readonly left: LeftValues;
   /**
    * Whether this step's on-screen text is, in every capture, the previous
    * step's, whose difference between the sides is already reported there.
@@ -228,22 +245,24 @@ const requestKind = (transaction: TransactionObservation): string =>
     : "fetch or xhr request";
 
 /**
- * The recorded replies of one side's answered requests, a gap when none was
- * recorded, or undefined when no request was answered: that is already a gap
- * in the status dimension.
+ * One side's answered requests whose reply a capture recorded, a gap when
+ * none was recorded, or undefined when no request was answered: that is
+ * already a gap in the status dimension.
  */
 const recordedReplies = (
   context: StepContext,
   request: string,
   side: Side,
   transactions: readonly TransactionObservation[],
-): RecordedBody[] | undefined => {
+): RepliedTransaction[] | undefined => {
   const answered = transactions.filter(
     (transaction) => transaction.status !== null,
   );
   if (answered.length === 0) return undefined;
-  const recorded = answered.flatMap(({ reply }) =>
-    reply === null ? [] : [reply],
+  const recorded = answered.flatMap((transaction) =>
+    transaction.reply === null
+      ? []
+      : [{ ...transaction, reply: transaction.reply }],
   );
   if (recorded.length === 0)
     context.findings.push(finding("body", "not-recorded", { request, side }));
@@ -267,9 +286,7 @@ const compareTransaction = (
     context,
     { dimension: "request", category: "value", request },
     {
-      left: left.map(({ request_body: body }) =>
-        body === null ? null : context.rename.sent(body),
-      ),
+      left: left.map(context.left.sent),
       right: right.map((transaction) => transaction.request_body),
     },
     { equal: sameSentBody, show: shownSentBody },
@@ -292,6 +309,7 @@ const compareTransaction = (
   if (markup.left && markup.right) return;
   if (markup.left !== markup.right) {
     const data: Side = markup.left ? "right" : "left";
+    // Only whether the data was recorded matters here: nothing of it is compared, so nothing is read through `context.left`.
     const replies = recordedReplies(
       context,
       request,
@@ -311,6 +329,7 @@ const compareTransaction = (
   }
   const leftReplies = recordedReplies(context, request, "left", left);
   const rightReplies = recordedReplies(context, request, "right", right);
+  // A left reply is read as it is compared only when the right has one to compare it with.
   if (
     leftReplies !== undefined &&
     rightReplies !== undefined &&
@@ -320,8 +339,8 @@ const compareTransaction = (
     compareReplies(
       context,
       request,
-      leftReplies.map(context.rename.reply),
-      rightReplies,
+      leftReplies.map(context.left.reply),
+      rightReplies.map(({ reply }) => reply),
     );
 };
 
@@ -417,9 +436,7 @@ const compareObservations = (
       context,
       { dimension: "text", category: "value", request: null },
       {
-        left: left.map((step) =>
-          step.text === null ? null : context.rename.text(step.text),
-        ),
+        left: left.map(context.left.text),
         right: right.map((step) => step.text),
       },
       { equal: exact, show: textAtDifference },
@@ -662,7 +679,9 @@ export const compareScenarioBehaviorCaptures = (
   const rightIds = sideStepIds("right", request.right);
   if (!rightIds.ok) return rightIds;
   const counts: number[] = [];
-  const rename = renamer(request.renames, counts);
+  // Both sides hold a capture here. The right's address is its first capture's; a second right origin is a limitation below.
+  const addresses = ownAddressReader(request.right[0]?.start_origin ?? "");
+  const left = leftValues(addresses, request.renames, counts);
   const stepsOf = (
     captures: readonly ScenarioBehaviorCapture[],
     stepId: string,
@@ -672,6 +691,7 @@ export const compareScenarioBehaviorCaptures = (
     );
   const volatile: VolatileField[] = [];
   const limitations: string[] = [];
+  const steadyListPositions: string[] = [];
   const carry = new TextCarry([...request.left, ...request.right]);
   const steps = leftIds.value.map((stepId): ComparedStep => {
     const kind = scenarioStepKind(stepId);
@@ -695,7 +715,12 @@ export const compareScenarioBehaviorCaptures = (
         ),
       // Declarations do not apply to the fingerprint: it shows the start state as it is.
       declarationsApply: kind !== "fingerprint",
-      rename,
+      steadyListPosition: (pattern) => {
+        const position = `${pattern} at step ${stepId}`;
+        if (!steadyListPositions.includes(position))
+          steadyListPositions.push(position);
+      },
+      left,
       textCarried,
     };
     if (!shared)
@@ -726,6 +751,11 @@ export const compareScenarioBehaviorCaptures = (
     return step;
   });
   limitations.push(...carry.limitations());
+  const [steadyListPosition, ...otherListPositions] = steadyListPositions;
+  if (steadyListPosition !== undefined)
+    limitations.push(
+      `Reply lists are compared position by position, also under a declared "*" pointer: ${steadyListPosition}${otherListPositions.length === 0 ? "" : ` (and ${String(otherListPositions.length)} more)`} differs between the sides at a position where the left's captures agree. A list whose order varies between captures has to be requested in a fixed order.`,
+    );
   const rightOnly = rightIds.value.filter(
     (stepId) => !leftIds.value.includes(stepId),
   );
@@ -739,7 +769,9 @@ export const compareScenarioBehaviorCaptures = (
   ] as const) {
     if (new Set(captures.map((capture) => capture.start_origin)).size > 1)
       limitations.push(
-        `The ${side} captures started at more than one origin; each is compared without its own.`,
+        side === "left"
+          ? `The left captures started at more than one origin; the own address of each is read as ${addresses.to}.`
+          : `The right captures started at more than one origin; the left's own address is read as ${addresses.to}, the first's, so text that prints another right capture's own address differs from it.`,
       );
     if (captures.length === 1)
       limitations.push(
@@ -748,6 +780,7 @@ export const compareScenarioBehaviorCaptures = (
   }
   const count = (status: ComparedStep["status"]) =>
     steps.filter((step) => step.status === status).length;
+  const addressesApplied = addresses.applied();
   return ok({
     comparison: "scenario-behavior",
     verdict: scenarioBehaviorVerdict(steps.map((step) => step.status)),
@@ -768,6 +801,9 @@ export const compareScenarioBehaviorCaptures = (
         ? []
         : [{ from: rename_.from, to: rename_.to, values }];
     }),
+    ...(addressesApplied.length === 0
+      ? {}
+      : { addresses_applied: addressesApplied }),
     limitations,
   });
 };
@@ -793,9 +829,11 @@ const tableBody = (body: RecordedBody | SentBody | null): TableBody => {
 
 /**
  * One side's behaviour table: what the builders read instead of Evidence.
- * Every value is the first one a capture recorded; a page's markup is the
- * original's own source and is never copied into the table. The side's own
- * origin reads `{origin}` wherever the application printed it.
+ * Every value is the first one a capture recorded, as the application gave
+ * it: where it prints its own address, the table shows that side's, which a
+ * comparison reads as the other side's (`addresses_applied`). A page address
+ * is relative to the side's origin. A page's markup is the original's own
+ * source and is never copied into the table.
  */
 export const describeScenarioBehavior = (
   captures: readonly ScenarioBehaviorCapture[],

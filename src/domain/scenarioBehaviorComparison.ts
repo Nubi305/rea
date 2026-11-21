@@ -163,7 +163,10 @@ export const scenarioBehaviorExitCode = (
  * - `declared-not-shown`: a leaf is declared volatile, the left's repeats
  *   agree at it and the right's value differs with the same shape. Capturing
  *   the left again may show it varying; withdrawing the declaration makes
- *   the difference `changed`.
+ *   the difference `changed`. A `*` declaration is judged position by
+ *   position, so a list whose order varies between captures reads so at every
+ *   position where the left's captures happen to agree: such a list has to be
+ *   requested in a fixed order.
  * - `not-completed`, `other-origin`: the step or request proves nothing.
  */
 const GAP_CATEGORIES: ReadonlySet<string> = new Set([
@@ -293,8 +296,9 @@ export const volatilePointerPattern = (
 
 /**
  * Whether a volatile declaration names this leaf: segment for segment, a `*`
- * standing for one array index. A pointer to a container never matches the
- * leaves beneath it.
+ * standing for one array index and never for an object member, whatever its
+ * spelling (a member that is itself spelled `*` is named like any other). A
+ * pointer to a container never matches the leaves beneath it.
  */
 export const volatilePointerMatches = (
   declared: string,
@@ -311,15 +315,41 @@ export const volatilePointerMatches = (
   );
 };
 
+/** The kind of container an array index or an object member lies in. */
+export type JsonContainerKind = "array" | "object";
+
+/**
+ * Where two leaves of one pointer lie under different kinds of container: the
+ * pointer of the outermost such container and its kind on each side.
+ */
+export interface ContainerKindDifference {
+  readonly pointer: string;
+  readonly expected: JsonContainerKind;
+  readonly actual: JsonContainerKind;
+}
+
 /**
  * One reply leaf that is not the same everywhere. `varies` names each side
  * whose own repeats disagree at it (a leaf present in one repeat and absent
  * in another disagrees).
  *
- * - `honoured`: a declaration names the leaf and the left shows it varying:
- *   at the leaf itself, or, for a leaf the left holds in every repeat, at
- *   another leaf of the same pattern (`volatilePointerPattern`), so a list in
- *   varying order is covered at every index. The value is not compared.
+ * The kinds of container on the way to the leaf are compared first, for every
+ * reply of both sides and before any declaration is consulted, so no
+ * declaration beneath a container covers a difference in its kind:
+ *
+ * - `left-unsteady`: the left's own repeats hold the leaf under different
+ *   kinds of container.
+ * - `changed` with `kinds`: the left's repeats agree on the kinds and no right
+ *   repeat that holds the leaf agrees with them.
+ * - `right-unsteady` with `kinds`: some right repeats agree with the left's
+ *   kinds and others do not.
+ *
+ * With the same kinds everywhere:
+ *
+ * - `honoured`: a declaration names the leaf and the left's own repeats
+ *   differ at this very leaf. The value is not compared. A `*` in the
+ *   declaration is honoured index by index: an index the left holds steady is
+ *   not covered because another index varies.
  * - `shape`: honoured, the left's values share one shape and a right value
  *   has another or is absent.
  * - `unstable`: the left varies and no declaration names the leaf.
@@ -327,8 +357,8 @@ export const volatilePointerMatches = (
  *   repeats disagree and one of them equals the left's. The right disagrees
  *   with itself; nothing shows it differs from the left.
  * - `declared-not-shown`: a declaration names the leaf, the left's repeats
- *   agree at it, no leaf of its pattern varies on the left, and every right
- *   value differs from the left's only within its shape.
+ *   agree at it, and every right value differs from the left's only within
+ *   its shape.
  * - `single-observation`: as `declared-not-shown`, with one left reply, which
  *   cannot show the leaf steady or volatile.
  * - `changed`: the left holds one value and no right repeat agrees with it,
@@ -342,6 +372,7 @@ export interface ReplyLeafJudgement {
     | "honoured"
     | "shape"
     | "unstable"
+    | "left-unsteady"
     | "right-unsteady"
     | "declared-not-shown"
     | "single-observation"
@@ -351,7 +382,33 @@ export interface ReplyLeafJudgement {
   readonly actual: JsonValue | undefined;
   /** A second left value for a leaf the left varies at. */
   readonly other: JsonValue | undefined;
+  /** Set when the judgement is about the kind of a container on the way, not about the leaf's value. */
+  readonly kinds?: ContainerKindDifference;
 }
+
+const containerKind = (segment: string | number): JsonContainerKind =>
+  typeof segment === "number" ? "array" : "object";
+
+/** The outermost container two paths of one pointer enter as different kinds, or undefined when they walk the same kinds. */
+const containerKindDifference = (
+  left: readonly (string | number)[],
+  right: readonly (string | number)[],
+): ContainerKindDifference | undefined => {
+  const index = left.findIndex(
+    (segment, at) => typeof segment !== typeof right[at],
+  );
+  const [expected, actual] = [left[index], right[index]];
+  return expected === undefined || actual === undefined
+    ? undefined
+    : {
+        pointer: left
+          .slice(0, index)
+          .map((segment) => `/${escapeJsonPointerToken(String(segment))}`)
+          .join(""),
+        expected: containerKind(expected),
+        actual: containerKind(actual),
+      };
+};
 
 /** Whether two paths walk the same kinds of container: an array index and an object member spelled alike differ. */
 const sameContainerKinds = (
@@ -359,7 +416,7 @@ const sameContainerKinds = (
   right: readonly (string | number)[],
 ): boolean =>
   left.length === right.length &&
-  left.every((segment, index) => typeof segment === typeof right[index]);
+  containerKindDifference(left, right) === undefined;
 
 const sameLeafValue = (
   left: JsonLeaf | undefined,
@@ -404,28 +461,65 @@ interface LeafAcrossReplies {
   readonly contradiction: number;
 }
 
+type LeafVerdict = Pick<
+  ReplyLeafJudgement,
+  "outcome" | "expected" | "actual" | "other" | "kinds"
+>;
+
+/**
+ * Judge the kinds of container on the way to a leaf across every reply that
+ * holds it; undefined when all agree. Runs before any declaration is read.
+ */
+const judgeContainerKinds = (
+  across: LeafAcrossReplies,
+): LeafVerdict | undefined => {
+  const held = (values: readonly (JsonLeaf | undefined)[]): JsonLeaf[] =>
+    values.filter((value): value is JsonLeaf => value !== undefined);
+  const [first, ...lefts] = held(across.leftValues);
+  if (first === undefined) return undefined;
+  const against = (leaves: readonly JsonLeaf[]) =>
+    leaves.flatMap((leaf) => {
+      const kinds = containerKindDifference(first.path, leaf.path);
+      return kinds === undefined ? [] : [{ leaf, kinds }];
+    });
+  const [leftOther] = against(lefts);
+  if (leftOther !== undefined)
+    return {
+      outcome: "left-unsteady",
+      expected: first.value,
+      actual: undefined,
+      other: leftOther.leaf.value,
+      kinds: leftOther.kinds,
+    };
+  const rights = held(across.rightValues);
+  const others = against(rights);
+  const [rightOther] = others;
+  if (rightOther === undefined) return undefined;
+  return {
+    outcome: others.length === rights.length ? "changed" : "right-unsteady",
+    expected: first.value,
+    actual: rightOther.leaf.value,
+    other: undefined,
+    kinds: rightOther.kinds,
+  };
+};
+
 /** Judge a leaf the left holds in one value where a right repeat holds another. */
 const judgeSteadyLeaf = (
   across: LeafAcrossReplies,
-  facts: {
-    readonly declared: boolean;
-    /** Whether another leaf of this leaf's pattern varies on the left. */
-    readonly patternVaries: boolean;
-    readonly singleLeftReply: boolean;
-  },
+  facts: { readonly declared: boolean; readonly singleLeftReply: boolean },
 ): Pick<ReplyLeafJudgement, "outcome" | "actual"> => {
   const { leftValues, rightValues } = across;
   const first = leftValues[0];
   const contradicting = rightValues[across.contradiction]?.value;
-  const misshapen = misshapenIndex(leftValues, rightValues);
-  // A leaf the left never holds is not shown to vary by its neighbours: an extra item is a difference.
-  if (facts.declared && facts.patternVaries && first !== undefined)
-    return misshapen === -1
-      ? { outcome: "honoured", actual: contradicting }
-      : { outcome: "shape", actual: rightValues[misshapen]?.value };
   if (rightValues.some((value) => sameLeafValue(value, first)))
     return { outcome: "right-unsteady", actual: contradicting };
-  if (facts.declared && first !== undefined && misshapen === -1)
+  // A leaf the left never holds, or one the right holds in another shape or not at all, is a difference whatever is declared.
+  if (
+    facts.declared &&
+    first !== undefined &&
+    misshapenIndex(leftValues, rightValues) === -1
+  )
     return {
       outcome: facts.singleLeftReply
         ? "single-observation"
@@ -435,14 +529,41 @@ const judgeSteadyLeaf = (
   return { outcome: "changed", actual: contradicting };
 };
 
+/** Judge a leaf whose containers are of one kind in every reply that holds it. */
+const judgeLeafValues = (
+  across: LeafAcrossReplies,
+  facts: { readonly declared: boolean; readonly singleLeftReply: boolean },
+): LeafVerdict => {
+  const { leftValues, rightValues } = across;
+  const first = leftValues[0];
+  if (!across.leftVaries)
+    return {
+      expected: first?.value,
+      other: undefined,
+      ...judgeSteadyLeaf(across, facts),
+    };
+  const leftOther = leftValues.find((value) => !sameLeafValue(value, first));
+  const shown = {
+    expected: first?.value ?? leftOther?.value,
+    actual: rightValues[0]?.value,
+    other: first === undefined ? undefined : leftOther?.value,
+  };
+  if (!facts.declared) return { outcome: "unstable", ...shown };
+  const misshapen = misshapenIndex(leftValues, rightValues);
+  return misshapen === -1
+    ? { outcome: "honoured", ...shown }
+    : { outcome: "shape", ...shown, actual: rightValues[misshapen]?.value };
+};
+
 /**
  * Compare the replies of one transaction exactly, leaf by leaf, across every
  * repeat of both sides. Each argument holds one leaf list per observed reply;
  * with no right reply only the left's own disagreements are judged. Leaves
  * that are equal everywhere are not returned.
  * No normalisation applies: only a value the left holds steadily can be
- * contradicted, and a declaration takes effect only where the left's own
- * repeats show the leaf, or another leaf of its pattern, varying.
+ * contradicted, and a declaration takes effect only at a leaf the left's own
+ * repeats show varying, never at another leaf of its pattern and never across
+ * containers of different kinds.
  */
 export const judgeReplyLeaves = (
   left: readonly (readonly JsonLeaf[])[],
@@ -459,8 +580,7 @@ export const judgeReplyLeaves = (
   for (const leaves of [...left, ...right])
     for (const leaf of leaves)
       if (!order.has(leaf.pointer)) order.set(leaf.pointer, leaf);
-  const uneven: LeafAcrossReplies[] = [];
-  const variedPatterns = new Set<string>();
+  const judgements: ReplyLeafJudgement[] = [];
   for (const [pointer, leaf] of order) {
     const leftValues = lefts.map((reply) => reply.get(pointer));
     const rightValues = rights.map((reply) => reply.get(pointer));
@@ -470,57 +590,32 @@ export const judgeReplyLeaves = (
       (value) => !sameLeafValue(value, first),
     );
     if (!leftVaries && contradiction === -1) continue;
-    if (leftVaries) variedPatterns.add(volatilePointerPattern(leaf.path));
-    uneven.push({
+    const rightVaries = rightValues.some(
+      (value) => !sameLeafValue(value, rightValues[0]),
+    );
+    const across: LeafAcrossReplies = {
       leaf,
       leftValues,
       rightValues,
       leftVaries,
-      rightVaries: rightValues.some(
-        (value) => !sameLeafValue(value, rightValues[0]),
-      ),
+      rightVaries,
       contradiction,
-    });
-  }
-  return uneven.map((across): ReplyLeafJudgement => {
-    const { leaf, leftValues, rightValues, leftVaries } = across;
-    const first = leftValues[0];
-    const base = {
-      pointer: leaf.pointer,
+    };
+    judgements.push({
+      pointer,
       path: leaf.path,
       varies: [
         ...(leftVaries ? (["left"] as const) : []),
-        ...(across.rightVaries ? (["right"] as const) : []),
+        ...(rightVaries ? (["right"] as const) : []),
       ],
-    };
-    if (!leftVaries)
-      return {
-        ...base,
-        expected: first?.value,
-        other: undefined,
-        ...judgeSteadyLeaf(across, {
+      ...(judgeContainerKinds(across) ??
+        judgeLeafValues(across, {
           declared: declared(leaf),
-          patternVaries: variedPatterns.has(volatilePointerPattern(leaf.path)),
           singleLeftReply: left.length === 1,
-        }),
-      };
-    const leftOther = leftValues.find((value) => !sameLeafValue(value, first));
-    const shown = {
-      expected: first?.value ?? leftOther?.value,
-      actual: rightValues[0]?.value,
-      other: first === undefined ? undefined : leftOther?.value,
-    };
-    if (!declared(leaf)) return { ...base, outcome: "unstable", ...shown };
-    const misshapen = misshapenIndex(leftValues, rightValues);
-    return misshapen === -1
-      ? { ...base, outcome: "honoured", ...shown }
-      : {
-          ...base,
-          outcome: "shape",
-          ...shown,
-          actual: rightValues[misshapen]?.value,
-        };
-  });
+        })),
+    });
+  }
+  return judgements;
 };
 
 /**
@@ -542,31 +637,12 @@ export const renameScenarioText = (
   return renamed;
 };
 
-/** Apply the renames to every string value of a JSON value, never to a field name. */
-export const renameScenarioJson = (
-  value: JsonValue,
-  renames: readonly ScenarioBehaviorRename[],
-  counts: number[],
-): JsonValue => {
-  if (renames.length === 0) return value;
-  if (typeof value === "string")
-    return renameScenarioText(value, renames, counts);
-  if (value === null || typeof value !== "object") return value;
-  if (Array.isArray(value))
-    return value.map((item) => renameScenarioJson(item, renames, counts));
-  return Object.fromEntries(
-    Object.entries(value).map(([key, member]) => [
-      key,
-      renameScenarioJson(member, renames, counts),
-    ]),
-  );
-};
-
 /**
  * Text the clone replaces by declaration. Applied to the left side's
- * on-screen text, JSON string values and text bodies before comparison: every
- * occurrence, case-sensitive, in declaration order, each on the result of the
- * one before. Never to field names, paths, queries, statuses or addresses.
+ * on-screen text, JSON string values and text bodies before comparison, after
+ * the left's own address was read as the right's: every occurrence,
+ * case-sensitive, in declaration order, each on the result of the one before.
+ * Never to field names, paths, queries, statuses or page addresses.
  */
 export const scenarioBehaviorRenameSchema = z.strictObject({
   from: z.string().min(1),
@@ -581,7 +657,8 @@ export type ScenarioBehaviorRename = z.infer<
  * any one array index. The pointer names a leaf exactly: it never covers the
  * values beneath an object or array, and the whole body (the empty pointer)
  * cannot be declared. The step id `*` (`EVERY_STEP`) names every step of the
- * scenario.
+ * scenario. Either `*` only says where the declaration may apply: it takes
+ * effect at each step and each index where the left's own repeats differ.
  */
 export const scenarioBehaviorVolatileFieldSchema = z.strictObject({
   step_id: z.string().min(1),
@@ -687,6 +764,23 @@ export const scenarioBehaviorComparisonSchema = z.strictObject({
   renames_applied: z.array(
     scenarioBehaviorRenameSchema.extend({ values: z.int().min(1) }),
   ),
+  /**
+   * The left side's own address read as the right side's, which needs no
+   * declaration: each replaced form (the left's start origin, then its bare
+   * `host:port`) that changed at least one left value that was compared, with
+   * how many. Left out when none did: both sides started at one address, or
+   * the left's application never prints its own.
+   */
+  addresses_applied: z
+    .array(
+      z.strictObject({
+        from: z.string().min(1),
+        to: z.string().min(1),
+        values: z.int().min(1),
+      }),
+    )
+    .min(1)
+    .optional(),
   limitations: z.array(z.string().min(1)),
 });
 export type ScenarioBehaviorComparison = z.infer<
@@ -756,7 +850,8 @@ export interface ScenarioBehaviorCaptureFacts {
   }[];
   /**
    * Digest of everything the `fp-` steps observed, in every compared
-   * dimension, without the address. A `request` step observes its reply, not
+   * dimension, with page addresses and request lines relative to the start
+   * origin and every text as the application printed it. A `request` step observes its reply, not
    * the page behind it, so its on-screen text is left out. Null when the
    * capture has no `fp-` step, one did not complete, or one lacks an
    * observation (no response, a body that was expected and not recorded, a

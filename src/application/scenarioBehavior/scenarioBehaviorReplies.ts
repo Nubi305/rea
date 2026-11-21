@@ -6,6 +6,7 @@ import {
   jsonLeaves,
   judgeReplyLeaves,
   volatilePointerPattern,
+  type JsonContainerKind,
   type JsonLeaf,
   type ReplyLeafJudgement,
   type ScenarioBehaviorComparison,
@@ -46,6 +47,12 @@ export interface StepContext {
   readonly declared: (path: readonly (string | number)[]) => boolean;
   /** Whether declarations take effect at this step: never at a fingerprint step. */
   readonly declarationsApply: boolean;
+  /**
+   * Record a list pattern at which the sides differ at a position where the
+   * left's repeats agree, while the pattern is declared volatile or varies on
+   * the left at another position: a list in varying order reads so.
+   */
+  readonly steadyListPosition: (pattern: string) => void;
 }
 
 const VALUE_CHARS = 120;
@@ -149,6 +156,22 @@ const valueAt = (
   }
   return value;
 };
+
+/** The first container of `kind` that `pointer` names in the bodies. */
+const containerAt = (
+  bodies: readonly RecordedBody[],
+  pointer: string,
+  kind: JsonContainerKind,
+): JsonValue | undefined =>
+  bodies
+    .map((body) => valueAt(body, pointer))
+    .find(
+      (value) =>
+        value !== undefined &&
+        value !== null &&
+        typeof value === "object" &&
+        Array.isArray(value) === (kind === "array"),
+    );
 
 /**
  * The lists of one length the differ compared by an inferred pairing: it
@@ -294,7 +317,12 @@ const nameChangedLeaves = (
   return named;
 };
 
-/** Compare the reply bodies of one matched transaction: exactly by leaf, with the differ naming what it sees. */
+/**
+ * Compare the reply bodies of one matched transaction: exactly by leaf, with
+ * the differ naming what it sees. A container that is a list on one side and
+ * an object on the other is told at the container, whatever lies beneath it
+ * and whatever is declared there.
+ */
 export const compareReplies = (
   context: StepContext,
   request: string,
@@ -321,9 +349,11 @@ export const compareReplies = (
       finding("body", category, { request, pointer: pattern, ...values }),
     );
   };
+  /** Containers of one kind on the left and another on the right. */
+  const recast = new Set<string>();
   for (const judgement of judgements) {
     const pattern = volatilePointerPattern(judgement.path);
-    const { outcome } = judgement;
+    const { outcome, kinds } = judgement;
     for (const side of judgement.varies)
       context.volatile({
         side,
@@ -331,6 +361,28 @@ export const compareReplies = (
         declared: context.declared(judgement.path),
         honoured: outcome === "honoured" || outcome === "shape",
       });
+    if (kinds !== undefined) {
+      const held = (side: Side, kind: JsonContainerKind): string =>
+        shown(containerAt(replies[side], kinds.pointer, kind));
+      if (outcome === "changed") {
+        recast.add(kinds.pointer);
+        once("value", kinds.pointer, {
+          expected: held("left", kinds.expected),
+          actual: held("right", kinds.actual),
+        });
+      } else {
+        const side: Side = outcome === "left-unsteady" ? "left" : "right";
+        once(
+          "repeats-differ",
+          kinds.pointer,
+          sideValues(
+            side,
+            `${held(side, kinds.expected)} | ${held(side, kinds.actual)}`,
+          ),
+        );
+      }
+      continue;
+    }
     const expected = shown(judgement.expected);
     const actual = shown(judgement.actual);
     if (outcome === "shape")
@@ -353,24 +405,47 @@ export const compareReplies = (
       outcome === "single-observation"
     )
       once(outcome, pattern, { expected, actual, side: "left" });
-    if (outcome === "right-unsteady")
+    else if (outcome === "right-unsteady")
       once(
         "repeats-differ",
         pattern,
         sideValues("right", `${expected} | ${actual}`),
       );
+    if (outcome === "declared-not-shown" && pattern !== judgement.pointer)
+      context.steadyListPosition(pattern);
   }
-  const changed = judgements.filter(({ outcome }) => outcome === "changed");
+  // What lies beneath a container of another kind is told at the container.
+  const changed = judgements.filter(
+    ({ outcome, kinds, pointer }) =>
+      outcome === "changed" &&
+      kinds === undefined &&
+      ![...recast].some((container) => covers(container, pointer)),
+  );
   const differences = nameChangedLeaves(context, request, replies, changed);
-  // A right side that is a difference and also disagrees with itself is told so; one the left cannot yet judge is not.
-  for (const judgement of changed)
+  const leftVaried = new Set(
+    judgements
+      .filter(({ varies }) => varies.includes("left"))
+      .map(({ path }) => volatilePointerPattern(path)),
+  );
+  for (const judgement of changed) {
+    const pattern = volatilePointerPattern(judgement.path);
+    // A right side that is a difference and also disagrees with itself is told so; one the left cannot yet judge is not.
     if (
       judgement.varies.includes("right") &&
       differences.has(judgement.pointer)
     )
       once(
         "repeats-differ",
-        volatilePointerPattern(judgement.path),
+        pattern,
         sideValues("right", shown(judgement.actual)),
       );
+    // Both sides hold the leaf, and the left's repeats differ at another position of its list.
+    if (
+      pattern !== judgement.pointer &&
+      leftVaried.has(pattern) &&
+      judgement.expected !== undefined &&
+      judgement.actual !== undefined
+    )
+      context.steadyListPosition(pattern);
+  }
 };

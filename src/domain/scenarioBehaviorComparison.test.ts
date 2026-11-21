@@ -5,7 +5,6 @@ import {
   jsonLeaves,
   judgeReplyLeaves,
   orderScenarioFindings,
-  renameScenarioJson,
   renameScenarioText,
   replyBodyExpected,
   scenarioBehaviorExitCode,
@@ -161,10 +160,64 @@ it("never judges an array equal to an object with index-like keys", () => {
   }
   // The same container kinds with the same values are still equal.
   expect(judge([{ items: ["x"] }], [{ items: ["x"] }])).toEqual([]);
-  // One side's repeats answering with either kind disagree with themselves.
-  expect(judge([{ items: ["x"] }, { items: { "0": "x" } }], [])).toEqual([
-    { pointer: "/items/0", outcome: "unstable", varies: ["left"] },
+});
+
+it("compares the kinds of containers before any declaration, and tells the difference at the container", () => {
+  const kinds = (
+    left: readonly JsonValue[],
+    right: readonly JsonValue[],
+    declared: readonly string[],
+  ) =>
+    judgeReplyLeaves(left.map(jsonLeaves), right.map(jsonLeaves), (leaf) =>
+      declared.some((pointer) => volatilePointerMatches(pointer, leaf.path)),
+    ).map((judgement) => [
+      judgement.pointer,
+      judgement.outcome,
+      judgement.kinds,
+    ]);
+  // Every leaf beneath varies on the left and is declared: the list is still not an object.
+  expect(
+    kinds(
+      [{ ids: ["a", "b"] }, { ids: ["c", "d"] }],
+      [{ ids: { "0": "e", "1": "f" } }, { ids: { "0": "g", "1": "h" } }],
+      ["/ids/*"],
+    ),
+  ).toEqual(
+    ["/ids/0", "/ids/1"].map((pointer) => [
+      pointer,
+      "changed",
+      { pointer: "/ids", expected: "array", actual: "object" },
+    ]),
+  );
+  // The other way round, declared by its index, and at the root.
+  expect(
+    kinds([{ m: { "0": "a" } }, { m: { "0": "b" } }], [{ m: ["x"] }], ["/m/0"]),
+  ).toEqual([
+    ["/m/0", "changed", { pointer: "/m", expected: "object", actual: "array" }],
   ]);
+  expect(
+    kinds([[{ id: "a" }], [{ id: "b" }]], [{ "0": { id: "z" } }], ["/*/id"]),
+  ).toEqual([
+    ["/0/id", "changed", { pointer: "", expected: "array", actual: "object" }],
+  ]);
+  // The outermost container that differs is the one named.
+  expect(kinds([[["a"]]], [{ "0": { "0": "a" } }], [])).toEqual([
+    ["/0/0", "changed", { pointer: "", expected: "array", actual: "object" }],
+  ]);
+  // A side whose own repeats answer with either kind disagrees with itself, declared or not.
+  const either = [{ items: ["x"] }, { items: { "0": "x" } }];
+  const mixed = { pointer: "/items", expected: "array", actual: "object" };
+  for (const declared of [[], ["/items/0"], ["/items/*"]]) {
+    expect(kinds(either, [], declared)).toEqual([
+      ["/items/0", "left-unsteady", mixed],
+    ]);
+    expect(kinds(either, [{ items: ["y"] }], declared)).toEqual([
+      ["/items/0", "left-unsteady", mixed],
+    ]);
+    expect(kinds([either[0]!, either[0]!], either, declared)).toEqual([
+      ["/items/0", "right-unsteady", mixed],
+    ]);
+  }
 });
 
 it("reads a JSON value as leaves in document order, with the pattern a declaration would use", () => {
@@ -311,42 +364,58 @@ it("honours a volatile declaration only where the left varies, and still compare
   ]);
 });
 
-it("honours a declared pattern at every index once the left shows one index varying", () => {
-  // The left's two orders coincide at index 1, which a declaration by index would leave contradicted.
+it("honours a declared pattern only at the positions where the left's own repeats differ", () => {
+  // A fresh item and a seeded one: the pattern varies at position 0 and is steady at position 1.
   const left = [
-    [{ id: "a" }, { id: "b" }, { id: "c" }],
-    [{ id: "c" }, { id: "b" }, { id: "a" }],
+    [{ id: "u-1" }, { id: "seed-1" }],
+    [{ id: "u-2" }, { id: "seed-1" }],
   ];
-  const right = [[{ id: "b" }, { id: "c" }, { id: "a" }]];
-  expect(judge(left, right, ["/*/id"])).toEqual([
-    { pointer: "/0/id", outcome: "honoured", varies: ["left"] },
-    { pointer: "/1/id", outcome: "honoured", varies: [] },
-    { pointer: "/2/id", outcome: "honoured", varies: ["left"] },
+  const wrong = [
+    [{ id: "u-3" }, { id: "WRONG-9" }],
+    [{ id: "u-4" }, { id: "WRONG-9" }],
+  ];
+  expect(judge(left, wrong, ["/*/id"])).toEqual([
+    { pointer: "/0/id", outcome: "honoured", varies: ["left", "right"] },
+    { pointer: "/1/id", outcome: "declared-not-shown", varies: [] },
   ]);
-  // Undeclared, the coinciding index is a difference.
-  expect(judge(left, right)).toContainEqual({
+  // Declared by its position or by the pattern, the steady position reads the same.
+  expect(judge(left, wrong, ["/0/id", "/1/id"])).toEqual(
+    judge(left, wrong, ["/*/id"]),
+  );
+  // Only the varying position declared: the steady one is a difference.
+  expect(judge(left, wrong, ["/0/id"])).toContainEqual({
     pointer: "/1/id",
     outcome: "changed",
     varies: [],
   });
-  // The shape is still compared at the coinciding index.
+  // A right side that holds the steady value there is equal.
   expect(
-    judge(left, [[{ id: "b" }, { id: 7 }, { id: "a" }]], ["/*/id"]),
-  ).toContainEqual({ pointer: "/1/id", outcome: "shape", varies: [] });
-  // An item the left never holds is not covered by its neighbours.
-  expect(judge(left, [[...right[0]!, { id: "d" }]], ["/*/id"])).toContainEqual({
-    pointer: "/3/id",
+    judge(left, [[{ id: "u-3" }, { id: "seed-1" }]], ["/*/id"]),
+  ).toEqual([{ pointer: "/0/id", outcome: "honoured", varies: ["left"] }]);
+  // A list in varying order: the position where two captures coincide is not covered by its neighbours.
+  const shuffled = [
+    [{ id: "a" }, { id: "b" }, { id: "c" }],
+    [{ id: "c" }, { id: "b" }, { id: "a" }],
+  ];
+  const right = [[{ id: "b" }, { id: "c" }, { id: "a" }]];
+  expect(judge(shuffled, right, ["/*/id"])).toEqual([
+    { pointer: "/0/id", outcome: "honoured", varies: ["left"] },
+    { pointer: "/1/id", outcome: "declared-not-shown", varies: [] },
+    { pointer: "/2/id", outcome: "honoured", varies: ["left"] },
+  ]);
+  // Undeclared, or of another shape, the coinciding position is a difference.
+  expect(judge(shuffled, right)).toContainEqual({
+    pointer: "/1/id",
     outcome: "changed",
     varies: [],
   });
-  // A pattern no index of which varies on the left is not shown volatile.
   expect(
-    judge(
-      [left[0]!, left[0]!],
-      [[{ id: "a" }, { id: "x" }, { id: "c" }]],
-      ["/*/id"],
-    ),
-  ).toEqual([{ pointer: "/1/id", outcome: "declared-not-shown", varies: [] }]);
+    judge(shuffled, [[{ id: "b" }, { id: 7 }, { id: "a" }]], ["/*/id"]),
+  ).toContainEqual({ pointer: "/1/id", outcome: "changed", varies: [] });
+  // An item the left never holds is a difference.
+  expect(
+    judge(shuffled, [[...right[0]!, { id: "d" }]], ["/*/id"]),
+  ).toContainEqual({ pointer: "/3/id", outcome: "changed", varies: [] });
 });
 
 it("renames every occurrence in declaration order and counts the values it changed", () => {
@@ -360,15 +429,6 @@ it("renames every occurrence in declaration order and counts the values it chang
   );
   expect(renameScenarioText("acme", renames, counts)).toBe("acme");
   expect(counts).toEqual([1, 1]);
-  // String values only: never a field name, a number or a boolean.
-  expect(
-    renameScenarioJson(
-      { Acme: "Acme", list: ["x", "Acme!"], n: 1, ok: true },
-      renames,
-      counts,
-    ),
-  ).toEqual({ Acme: "Zenith", list: ["x", "Zenith!"], n: 1, ok: true });
-  expect(counts).toEqual([3, 1]);
   // A replacement is literal text, not a pattern.
   expect(renameScenarioText("a", [{ from: "a", to: "$&$&" }], [])).toBe("$&$&");
 });
