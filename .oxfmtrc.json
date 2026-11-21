@@ -16,6 +16,10 @@
     "mcp.json",
     "_reference/**",
     "third_party/**",
-    ".codex-plugin/mcp.json"
+    ".codex-plugin/mcp.json",
+    "bench/clone/apps/**",
+    "bench/tasks/*/src/**",
+    "bench/tasks/*/origin/**",
+    "bench/tasks/*/site/**"
   ]
 }

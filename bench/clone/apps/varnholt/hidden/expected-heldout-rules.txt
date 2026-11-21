@@ -1,0 +1,118 @@
+fp-manifests	GET /api/manifests
+  -> 200 {"items":[{"id":1,"uid":"mf_7c1e90ab","code":"NR-101","destination":"Northgate Depot","status":"open","capacityKg":50,"parcelCount":3,"totalWeightKg":21,"remainingKg":29,"totalChargeCents":3959,"createdAt":"2026-03-02T08:15:00.000Z"},{"id":5,"uid":"mf_d09c3b2e","code":"QA-550","destination":"Quarry Lane","status":"open","capacityKg":20,"parcelCount":0,"totalWeightKg":0,"remainingKg":20,"totalChargeCents":0,"createdAt":"2026-03-04T06:50:00.000Z"},{"id":2,"uid":"mf_02d4f6a1","code":"HB-204","destination":"Harbour Row","status":"sealed","capacityKg":40,"parcelCount":2,"totalWeightKg":8.2,"remainingKg":31.8,"totalChargeCents":1851,"createdAt":"2026-03-02T09:40:00.000Z"},{"id":3,"uid":"mf_b83a11c7","code":"EW-310","destination":"Eastwick Lockers","status":"dispatched","capacityKg":60,"parcelCount":2,"totalWeightKg":23.3,"remainingKg":36.7,"totalChargeCents":3580,"createdAt":"2026-03-03T07:05:00.000Z"},{"id":4,"uid":"mf_4e5f6071","code":"SM-007","destination":"South Mill","status":"delivered","capacityKg":50,"parcelCount":1,"totalWeightKg":9.9,"remainingKg":40.1,"totalChargeCents":1783,"createdAt":"2026-03-03T11:30:00.000Z"}],"total":5}
+fp-parcels	GET /api/parcels
+  -> 200 {"items":[{"id":6,"uid":"pc_3d9e8a47","manifestId":3,"recipient":"Kofi Lindqvist","weightKg":20,"fragile":false,"chargeCents":2750,"createdAt":"2026-03-03T07:10:00.000Z"},{"id":3,"uid":"pc_c3410f9d","manifestId":1,"recipient":"Odile Ferrant","weightKg":12,"fragile":true,"chargeCents":2059,"createdAt":"2026-03-02T08:31:00.000Z"},{"id":8,"uid":"pc_62b8e3fa","manifestId":4,"recipient":"Per Halloran","weightKg":9.9,"fragile":true,"chargeCents":1783,"createdAt":"2026-03-03T11:36:00.000Z"},{"id":4,"uid":"pc_8e6a5512","manifestId":2,"recipient":"Tomas Reyes","weightKg":7.2,"fragile":false,"chargeCents":1310,"createdAt":"2026-03-02T09:44:00.000Z"},{"id":2,"uid":"pc_5b7d2e80","manifestId":1,"recipient":"bao Tran","weightKg":4.5,"fragile":false,"chargeCents":950,"createdAt":"2026-03-02T08:24:00.000Z"},{"id":1,"uid":"pc_19aa04f3","manifestId":1,"recipient":"Ines Marlow","weightKg":4.5,"fragile":false,"chargeCents":950,"createdAt":"2026-03-02T08:20:00.000Z"},{"id":7,"uid":"pc_a67c0d15","manifestId":3,"recipient":"Mira Stone","weightKg":3.3,"fragile":false,"chargeCents":830,"createdAt":"2026-03-03T07:12:00.000Z"},{"id":5,"uid":"pc_f0217b6c","manifestId":2,"recipient":"Wren Abara","weightKg":1,"fragile":true,"chargeCents":541,"createdAt":"2026-03-02T09:52:00.000Z"}],"total":8}
+fp-summary	GET /api/summary
+  -> 200 {"manifests":{"open":2,"sealed":1,"dispatched":1,"delivered":1,"total":5},"parcels":8,"fragileParcels":3,"totalWeightKg":62.4,"inTransitWeightKg":23.3,"averageParcelWeightKg":7.8,"totalChargeCents":11173,"heaviest":{"id":3,"code":"EW-310","totalWeightKg":23.3}}
+list-parcels-tie-break	GET /api/parcels?manifestId=1
+  -> 200 {"items":[{"id":3,"uid":"pc_c3410f9d","manifestId":1,"recipient":"Odile Ferrant","weightKg":12,"fragile":true,"chargeCents":2059,"createdAt":"2026-03-02T08:31:00.000Z"},{"id":2,"uid":"pc_5b7d2e80","manifestId":1,"recipient":"bao Tran","weightKg":4.5,"fragile":false,"chargeCents":950,"createdAt":"2026-03-02T08:24:00.000Z"},{"id":1,"uid":"pc_19aa04f3","manifestId":1,"recipient":"Ines Marlow","weightKg":4.5,"fragile":false,"chargeCents":950,"createdAt":"2026-03-02T08:20:00.000Z"}],"total":3}
+list-manifests-open	GET /api/manifests?status=open
+  -> 200 {"items":[{"id":1,"uid":"mf_7c1e90ab","code":"NR-101","destination":"Northgate Depot","status":"open","capacityKg":50,"parcelCount":3,"totalWeightKg":21,"remainingKg":29,"totalChargeCents":3959,"createdAt":"2026-03-02T08:15:00.000Z"},{"id":5,"uid":"mf_d09c3b2e","code":"QA-550","destination":"Quarry Lane","status":"open","capacityKg":20,"parcelCount":0,"totalWeightKg":0,"remainingKg":20,"totalChargeCents":0,"createdAt":"2026-03-04T06:50:00.000Z"}],"total":2}
+list-manifests-search	GET /api/manifests?q=LOCK
+  -> 200 {"items":[{"id":3,"uid":"mf_b83a11c7","code":"EW-310","destination":"Eastwick Lockers","status":"dispatched","capacityKg":60,"parcelCount":2,"totalWeightKg":23.3,"remainingKg":36.7,"totalChargeCents":3580,"createdAt":"2026-03-03T07:05:00.000Z"}],"total":1}
+list-manifests-bad-status	GET /api/manifests?status=lost
+  -> 422 {"error":"status_invalid","message":"Unknown status.","allowed":["open","sealed","dispatched","delivered"]}
+seal-empty-refused	PUT /api/manifests/5/status {"status":"sealed"}
+  -> 409 {"error":"manifest_empty","message":"An empty manifest cannot be sealed."}
+manifest-create-normalised	POST /api/manifests {"code":"  kd-412 ","destination":"  Kestrel   Dock  "}
+  -> 201 {"id":6,"uid":"mf_ef12bb56","code":"KD-412","destination":"Kestrel Dock","status":"open","capacityKg":50,"parcelCount":0,"totalWeightKg":0,"remainingKg":50,"totalChargeCents":0,"createdAt":"2026-11-20T03:40:14.549Z"}
+manifest-code-taken	POST /api/manifests {"code":"nr-101","destination":"Elsewhere"}
+  -> 409 {"error":"code_taken","message":"Another manifest uses that code.","existingId":1}
+manifest-code-format	POST /api/manifests {"code":"N-1010","destination":"Elsewhere"}
+  -> 422 {"error":"code_format","message":"A code is two letters, a dash and three digits.","pattern":"AA-000"}
+manifest-capacity-over	POST /api/manifests {"code":"ZZ-900","destination":"Elsewhere","capacityKg":201}
+  -> 422 {"error":"capacity_invalid","message":"Capacity is a whole number of kilograms from 1 to 200.","min":1,"max":200}
+manifest-capacity-fraction	POST /api/manifests {"code":"ZZ-900","destination":"Elsewhere","capacityKg":12.5}
+  -> 422 {"error":"capacity_invalid","message":"Capacity is a whole number of kilograms from 1 to 200.","min":1,"max":200}
+manifest-destination-short	POST /api/manifests {"code":"ZZ-900","destination":" x "}
+  -> 422 {"error":"destination_length","message":"A destination has 2 to 60 characters.","min":2,"max":60}
+parcel-round-half-up-fragile	POST /api/parcels {"manifestId":6,"recipient":"  Ada   Okafor ","weightKg":2.25,"fragile":true}
+  -> 201 {"id":9,"uid":"pc_41f3795e","manifestId":6,"recipient":"Ada Okafor","weightKg":2.3,"fragile":true,"chargeCents":817,"createdAt":"2026-11-20T03:40:14.555Z"}
+parcel-round-then-bill	POST /api/parcels {"manifestId":6,"recipient":"Ben Achterberg","weightKg":2.04}
+  -> 201 {"id":10,"uid":"pc_5b51a83b","manifestId":6,"recipient":"Ben Achterberg","weightKg":2,"fragile":false,"chargeCents":590,"createdAt":"2026-11-20T03:40:14.556Z"}
+parcel-recipient-duplicate-case	POST /api/parcels {"manifestId":6,"recipient":"ADA  okafor","weightKg":1}
+  -> 409 {"error":"recipient_duplicate","message":"This manifest already carries a parcel for that recipient.","existingId":9}
+parcel-recipient-other-manifest	POST /api/parcels {"manifestId":5,"recipient":"ada okafor","weightKg":1}
+  -> 201 {"id":11,"uid":"pc_8aa505e1","manifestId":5,"recipient":"ada okafor","weightKg":1,"fragile":false,"chargeCents":470,"createdAt":"2026-11-20T03:40:14.559Z"}
+parcel-weight-rounds-to-zero	POST /api/parcels {"manifestId":6,"recipient":"Cy Dane","weightKg":0.04}
+  -> 422 {"error":"weight_invalid","message":"Weight is a number of kilograms above zero."}
+parcel-weight-string	POST /api/parcels {"manifestId":6,"recipient":"Cy Dane","weightKg":"4.5"}
+  -> 422 {"error":"weight_invalid","message":"Weight is a number of kilograms above zero."}
+parcel-weight-limit-edge	POST /api/parcels {"manifestId":6,"recipient":"Cy Dane","weightKg":30.04}
+  -> 201 {"id":12,"uid":"pc_327a65dc","manifestId":6,"recipient":"Cy Dane","weightKg":30,"fragile":false,"chargeCents":3950,"createdAt":"2026-11-20T03:40:14.561Z"}
+parcel-weight-over-limit	POST /api/parcels {"manifestId":6,"recipient":"Di Emre","weightKg":30.25}
+  -> 422 {"error":"weight_over_limit","message":"A parcel weighs at most 30 kg.","maxKg":30}
+parcel-recipient-short	POST /api/parcels {"manifestId":6,"recipient":" D ","weightKg":1}
+  -> 422 {"error":"recipient_length","message":"A recipient has 2 to 40 characters.","min":2,"max":40}
+parcel-manifest-missing	POST /api/parcels {"manifestId":99,"recipient":"Di Emre","weightKg":1}
+  -> 404 {"error":"manifest_not_found","message":"No such manifest.","id":99}
+parcel-fills-capacity	POST /api/parcels {"manifestId":6,"recipient":"Di Emre","weightKg":15.7}
+  -> 201 {"id":13,"uid":"pc_745381c6","manifestId":6,"recipient":"Di Emre","weightKg":15.7,"fragile":false,"chargeCents":2270,"createdAt":"2026-11-20T03:40:14.563Z"}
+parcel-over-capacity	POST /api/parcels {"manifestId":6,"recipient":"Eli Fount","weightKg":0.1}
+  -> 409 {"error":"capacity_exceeded","message":"That parcel does not fit the manifest's capacity.","capacityKg":50,"usedKg":50,"requestedKg":0.1}
+manifest-derived-totals	GET /api/manifests/6
+  -> 200 {"id":6,"uid":"mf_ef12bb56","code":"KD-412","destination":"Kestrel Dock","status":"open","capacityKg":50,"parcelCount":4,"totalWeightKg":50,"remainingKg":0,"totalChargeCents":7627,"createdAt":"2026-11-20T03:40:14.549Z"}
+parcel-grow-over-capacity	PUT /api/parcels/9 {"weightKg":2.4}
+  -> 409 {"error":"capacity_exceeded","message":"That parcel does not fit the manifest's capacity.","capacityKg":50,"usedKg":47.7,"requestedKg":2.4}
+parcel-shrink-own-weight	PUT /api/parcels/13 {"weightKg":15.25,"fragile":true}
+  -> 200 {"id":13,"uid":"pc_745381c6","manifestId":6,"recipient":"Di Emre","weightKg":15.3,"fragile":true,"chargeCents":2611,"createdAt":"2026-11-20T03:40:14.563Z"}
+parcel-move-refused	PUT /api/parcels/13 {"manifestId":1}
+  -> 422 {"error":"manifest_immutable","message":"A parcel cannot move to another manifest.","manifestId":6}
+manifest-capacity-below-load	PUT /api/manifests/6 {"capacityKg":49}
+  -> 409 {"error":"capacity_below_load","message":"Capacity cannot drop below what is already loaded.","capacityKg":49,"usedKg":49.6}
+setup-fill-4	POST /api/parcels {"manifestId":1,"recipient":"Fay Gull","weightKg":1}
+  -> 201 {"id":14,"uid":"pc_57b39889","manifestId":1,"recipient":"Fay Gull","weightKg":1,"fragile":false,"chargeCents":470,"createdAt":"2026-11-20T03:40:14.568Z"}
+setup-fill-5	POST /api/parcels {"manifestId":1,"recipient":"Gus Hale","weightKg":1}
+  -> 201 {"id":15,"uid":"pc_963b51df","manifestId":1,"recipient":"Gus Hale","weightKg":1,"fragile":false,"chargeCents":470,"createdAt":"2026-11-20T03:40:14.569Z"}
+setup-fill-6	POST /api/parcels {"manifestId":1,"recipient":"Hal Ibsen","weightKg":1}
+  -> 201 {"id":16,"uid":"pc_f0b65e1a","manifestId":1,"recipient":"Hal Ibsen","weightKg":1,"fragile":false,"chargeCents":470,"createdAt":"2026-11-20T03:40:14.570Z"}
+parcel-seventh-refused	POST /api/parcels {"manifestId":1,"recipient":"Ivy Jost","weightKg":1}
+  -> 409 {"error":"manifest_full","message":"A manifest carries at most 6 parcels.","maxParcels":6}
+parcel-full-before-duplicate	POST /api/parcels {"manifestId":1,"recipient":"ines marlow","weightKg":1}
+  -> 409 {"error":"manifest_full","message":"A manifest carries at most 6 parcels.","maxParcels":6}
+status-skip-refused	PUT /api/manifests/6/status {"status":"dispatched"}
+  -> 409 {"error":"invalid_transition","message":"A manifest that is open cannot become dispatched.","from":"open","to":"dispatched","allowed":["sealed"]}
+status-seal	PUT /api/manifests/6/status {"status":"sealed"}
+  -> 200 {"id":6,"uid":"mf_ef12bb56","code":"KD-412","destination":"Kestrel Dock","status":"sealed","capacityKg":50,"parcelCount":4,"totalWeightKg":49.6,"remainingKg":0.4,"totalChargeCents":7968,"createdAt":"2026-11-20T03:40:14.549Z"}
+parcel-add-locked	POST /api/parcels {"manifestId":6,"recipient":"Jo Kemp","weightKg":1}
+  -> 409 {"error":"manifest_locked","message":"Only an open manifest can be changed.","status":"sealed"}
+parcel-edit-locked	PUT /api/parcels/9 {"fragile":false}
+  -> 409 {"error":"manifest_locked","message":"Only an open manifest can be changed.","status":"sealed"}
+parcel-delete-locked	DELETE /api/parcels/9
+  -> 409 {"error":"manifest_locked","message":"Only an open manifest can be changed.","status":"sealed"}
+manifest-edit-locked	PUT /api/manifests/6 {"destination":"Kestrel Yard"}
+  -> 409 {"error":"manifest_locked","message":"Only an open manifest can be changed.","status":"sealed"}
+status-reopen	PUT /api/manifests/6/status {"status":"open"}
+  -> 200 {"id":6,"uid":"mf_ef12bb56","code":"KD-412","destination":"Kestrel Dock","status":"open","capacityKg":50,"parcelCount":4,"totalWeightKg":49.6,"remainingKg":0.4,"totalChargeCents":7968,"createdAt":"2026-11-20T03:40:14.549Z"}
+status-same-refused	PUT /api/manifests/6/status {"status":"open"}
+  -> 409 {"error":"invalid_transition","message":"A manifest that is open cannot become open.","from":"open","to":"open","allowed":["sealed"]}
+status-unknown	PUT /api/manifests/6/status {"status":"lost"}
+  -> 422 {"error":"status_invalid","message":"Unknown status.","allowed":["open","sealed","dispatched","delivered"]}
+parcel-delete-open	DELETE /api/parcels/10
+  -> 200 {"deleted":true,"id":10}
+setup-seal-again	PUT /api/manifests/6/status {"status":"sealed"}
+  -> 200 {"id":6,"uid":"mf_ef12bb56","code":"KD-412","destination":"Kestrel Dock","status":"sealed","capacityKg":50,"parcelCount":3,"totalWeightKg":47.6,"remainingKg":2.4,"totalChargeCents":7378,"createdAt":"2026-11-20T03:40:14.549Z"}
+status-dispatch	PUT /api/manifests/6/status {"status":"dispatched"}
+  -> 200 {"id":6,"uid":"mf_ef12bb56","code":"KD-412","destination":"Kestrel Dock","status":"dispatched","capacityKg":50,"parcelCount":3,"totalWeightKg":47.6,"remainingKg":2.4,"totalChargeCents":7378,"createdAt":"2026-11-20T03:40:14.549Z"}
+status-back-refused	PUT /api/manifests/6/status {"status":"sealed"}
+  -> 409 {"error":"invalid_transition","message":"A manifest that is dispatched cannot become sealed.","from":"dispatched","to":"sealed","allowed":["delivered"]}
+manifest-delete-dispatched-refused	DELETE /api/manifests/6
+  -> 409 {"error":"manifest_in_transit","message":"A dispatched manifest cannot be deleted until it is delivered.","status":"dispatched"}
+summary-while-dispatched	GET /api/summary
+  -> 200 {"manifests":{"open":2,"sealed":1,"dispatched":2,"delivered":1,"total":6},"parcels":15,"fragileParcels":5,"totalWeightKg":114,"inTransitWeightKg":70.9,"averageParcelWeightKg":7.6,"totalChargeCents":20431,"heaviest":{"id":6,"code":"KD-412","totalWeightKg":47.6}}
+status-deliver	PUT /api/manifests/6/status {"status":"delivered"}
+  -> 200 {"id":6,"uid":"mf_ef12bb56","code":"KD-412","destination":"Kestrel Dock","status":"delivered","capacityKg":50,"parcelCount":3,"totalWeightKg":47.6,"remainingKg":2.4,"totalChargeCents":7378,"createdAt":"2026-11-20T03:40:14.549Z"}
+status-delivered-final	PUT /api/manifests/6/status {"status":"open"}
+  -> 409 {"error":"invalid_transition","message":"A manifest that is delivered cannot become open.","from":"delivered","to":"open","allowed":[]}
+manifest-delete-cascades	DELETE /api/manifests/6
+  -> 200 {"deleted":true,"id":6,"parcelsRemoved":3}
+parcel-gone-after-cascade	GET /api/parcels/9
+  -> 404 {"error":"parcel_not_found","message":"No such parcel.","id":9}
+manifest-code-free-again	POST /api/manifests {"code":"kd-412","destination":"Kestrel Dock","capacityKg":20}
+  -> 201 {"id":7,"uid":"mf_953838e4","code":"KD-412","destination":"Kestrel Dock","status":"open","capacityKg":20,"parcelCount":0,"totalWeightKg":0,"remainingKg":20,"totalChargeCents":0,"createdAt":"2026-11-20T03:40:14.582Z"}
+parcel-id-not-reused	POST /api/parcels {"manifestId":7,"recipient":"Lu Marsh","weightKg":0.25}
+  -> 201 {"id":17,"uid":"pc_7391f30c","manifestId":7,"recipient":"Lu Marsh","weightKg":0.3,"fragile":false,"chargeCents":470,"createdAt":"2026-11-20T03:40:14.582Z"}
+summary-final	GET /api/summary
+  -> 200 {"manifests":{"open":3,"sealed":1,"dispatched":1,"delivered":1,"total":6},"parcels":13,"fragileParcels":3,"totalWeightKg":66.7,"inTransitWeightKg":23.3,"averageParcelWeightKg":5.13,"totalChargeCents":13523,"heaviest":{"id":1,"code":"NR-101","totalWeightKg":24}}
+list-manifests-final	GET /api/manifests
+  -> 200 {"items":[{"id":7,"uid":"mf_953838e4","code":"KD-412","destination":"Kestrel Dock","status":"open","capacityKg":20,"parcelCount":1,"totalWeightKg":0.3,"remainingKg":19.7,"totalChargeCents":470,"createdAt":"2026-11-20T03:40:14.582Z"},{"id":1,"uid":"mf_7c1e90ab","code":"NR-101","destination":"Northgate Depot","status":"open","capacityKg":50,"parcelCount":6,"totalWeightKg":24,"remainingKg":26,"totalChargeCents":5369,"createdAt":"2026-03-02T08:15:00.000Z"},{"id":5,"uid":"mf_d09c3b2e","code":"QA-550","destination":"Quarry Lane","status":"open","capacityKg":20,"parcelCount":1,"totalWeightKg":1,"remainingKg":19,"totalChargeCents":470,"createdAt":"2026-03-04T06:50:00.000Z"},{"id":2,"uid":"mf_02d4f6a1","code":"HB-204","destination":"Harbour Row","status":"sealed","capacityKg":40,"parcelCount":2,"totalWeightKg":8.2,"remainingKg":31.8,"totalChargeCents":1851,"createdAt":"2026-03-02T09:40:00.000Z"},{"id":3,"uid":"mf_b83a11c7","code":"EW-310","destination":"Eastwick Lockers","status":"dispatched","capacityKg":60,"parcelCount":2,"totalWeightKg":23.3,"remainingKg":36.7,"totalChargeCents":3580,"createdAt":"2026-03-03T07:05:00.000Z"},{"id":4,"uid":"mf_4e5f6071","code":"SM-007","destination":"South Mill","status":"delivered","capacityKg":50,"parcelCount":1,"totalWeightKg":9.9,"remainingKg":40.1,"totalChargeCents":1783,"createdAt":"2026-03-03T11:30:00.000Z"}],"total":6}

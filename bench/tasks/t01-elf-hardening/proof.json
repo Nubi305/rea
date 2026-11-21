@@ -1,0 +1,20 @@
+{
+  "task": "t01-elf-hardening",
+  "measured_on": {
+    "commit": "0e089b3e",
+    "version": "6.9.0",
+    "node_version": "v24.22.3"
+  },
+  "route_stdout_bytes": 4895,
+  "route_ok": true,
+  "steps": [
+    {
+      "command": "rea inspect-binary-hardening {input}/keyd --json",
+      "exit": 0,
+      "stdout_bytes": 4895,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    }
+  ]
+}

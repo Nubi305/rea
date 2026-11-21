@@ -1,0 +1,34 @@
+{
+  "task": "t12-page-click-request",
+  "measured_on": {
+    "commit": "0e089b3e",
+    "version": "6.9.0",
+    "node_version": "v24.22.3"
+  },
+  "route_stdout_bytes": 10825,
+  "route_ok": true,
+  "steps": [
+    {
+      "command": "rea capture-browser-scenario {work}/scenario.json --detail summary --evidence_output {work}/capture.evidence.json --json",
+      "exit": 0,
+      "stdout_bytes": 6890,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    },
+    {
+      "command": "rea inspect-evidence-bundle {\"path\":\"{work}/capture.evidence.json\",\"detail\":\"complete\"} --json --filter-output records[0,1].normalized_result.events.items[10,16]",
+      "exit": 0,
+      "stdout_bytes": 3935,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    }
+  ],
+  "naive_first_call": {
+    "command": "rea capture-browser-scenario {work}/scenario.json --json",
+    "exit": 0,
+    "stdout_bytes": 16370,
+    "stderr_bytes": 0
+  }
+}

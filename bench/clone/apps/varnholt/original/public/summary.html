@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Summary - Varnholt</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Varnholt</h1>
+      <nav aria-label="Sections">
+        <a href="/">Manifests</a>
+        <a href="/summary">Summary</a>
+        <a href="/about">About</a>
+      </nav>
+    </header>
+    <main>
+      <h2 id="heading">Summary</h2>
+      <div id="notice" aria-live="polite"></div>
+      <dl id="totals" hidden>
+        <dt>Manifests</dt><dd id="s-manifests"></dd>
+        <dt>Open</dt><dd id="s-open"></dd>
+        <dt>Sealed</dt><dd id="s-sealed"></dd>
+        <dt>Dispatched</dt><dd id="s-dispatched"></dd>
+        <dt>Delivered</dt><dd id="s-delivered"></dd>
+        <dt>Parcels</dt><dd id="s-parcels"></dd>
+        <dt>Fragile parcels</dt><dd id="s-fragile"></dd>
+        <dt>Total weight</dt><dd id="s-weight"></dd>
+        <dt>On the road</dt><dd id="s-transit"></dd>
+        <dt>Average parcel</dt><dd id="s-average"></dd>
+        <dt>Total charges</dt><dd id="s-charges"></dd>
+        <dt>Heaviest manifest</dt><dd id="s-heaviest"></dd>
+      </dl>
+    </main>
+    <footer>Varnholt dispatch desk</footer>
+    <!--boot-->
+    <script src="/assets/common.js"></script>
+    <script src="/assets/summary.js"></script>
+  </body>
+</html>

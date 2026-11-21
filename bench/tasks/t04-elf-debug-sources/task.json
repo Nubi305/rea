@@ -1,0 +1,56 @@
+{
+  "id": "t04-elf-debug-sources",
+  "title": "Source files and optimisation level from debug information",
+  "audit_request": null,
+  "question": "{input}/tallyd still has debug information. Which source files was it compiled from, and at which optimisation level?",
+  "inputs": [
+    {
+      "kind": "cc",
+      "from": "src",
+      "sources": ["main.c", "tariff.c", "ledger.c"],
+      "to": "tallyd",
+      "flags": ["-O2", "-g", "-lm"]
+    }
+  ],
+  "answer": {
+    "fields": {
+      "source_files": "array of strings: the source file names, without directories",
+      "optimisation": "string: the compiler's optimisation flag, such as \"-O0\""
+    }
+  },
+  "facts": [
+    {
+      "id": "source-files",
+      "field": "source_files",
+      "check": "set_equals",
+      "value": ["main.c", "tariff.c", "ledger.c"]
+    },
+    {
+      "id": "optimisation",
+      "field": "optimisation",
+      "check": "one_of",
+      "value": ["-O2", "O2"]
+    }
+  ],
+  "first_command": {
+    "expected": "inspect-dwarf-units",
+    "also_accepted": ["inspect-artifact"]
+  },
+  "flood": {
+    "args": ["inspect-with-objdump", "{input}/tallyd", "dwarf", "--json"],
+    "why": "The complete DWARF dump, twice, where the compile units are wanted."
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": ["inspect-dwarf-units", "{input}/tallyd", "--json"],
+        "must_contain": [
+          "\"value\":\"main.c\"",
+          "\"value\":\"tariff.c\"",
+          "\"value\":\"ledger.c\"",
+          " -O2 "
+        ]
+      }
+    ]
+  }
+}

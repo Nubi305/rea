@@ -1,0 +1,108 @@
+#!/usr/bin/env node
+// Checks a clone-benchmark application against the layout in
+// bench/clone/README.md and proves its held-out scenarios: two instances of
+// the original are replayed against each other through the judge checkout,
+// and every step must come out unchanged, so every rule must agree.
+//
+//   node bench/harness/clone-check-app.mjs --app <id> --judge <checkout>
+//        --ports <a>,<b> [--node <node>] [--keep]
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { parseArgs } from "node:util";
+import { controlOriginal, copyOriginal, loadApp } from "./lib/clone-app.mjs";
+import { replayHeldout } from "./lib/heldout.mjs";
+import { checkoutFacts } from "./lib/proc.mjs";
+import { portOpen } from "./lib/service.mjs";
+
+const USAGE =
+  "usage: clone-check-app.mjs --app <id> --judge <checkout> --ports <a>,<b> [--node <node>] [--keep]";
+
+const options = () => {
+  const { values } = parseArgs({
+    options: {
+      app: { type: "string" },
+      judge: { type: "string" },
+      ports: { type: "string" },
+      node: { type: "string", default: process.execPath },
+      browser: {
+        type: "string",
+        default:
+          process.env.REA_BROWSER_EXECUTABLE ?? "/opt/pw-browsers/chromium",
+      },
+      keep: { type: "boolean", default: false },
+    },
+  });
+  const ports = (values.ports ?? "").split(",").map(Number);
+  if (
+    !values.app ||
+    !values.judge ||
+    ports.length !== 2 ||
+    ports.some(Number.isNaN)
+  )
+    throw new Error(USAGE);
+  return { ...values, ports };
+};
+
+const side = (app, workDir, name, port) => {
+  const ctl = copyOriginal(app, join(workDir, name));
+  return {
+    ctl,
+    port,
+    address: `http://127.0.0.1:${port}`,
+    reset: async () => {
+      const result = controlOriginal(ctl, port, "reset");
+      return { ok: result.ok, detail: result.output };
+    },
+  };
+};
+
+const main = async () => {
+  const values = options();
+  const app = loadApp(values.app);
+  const judge = checkoutFacts(values.judge, values.node);
+  for (const port of values.ports)
+    if (await portOpen(port))
+      throw new Error(`port ${port} is taken; nothing was started`);
+  const workDir = mkdtempSync(join(tmpdir(), `rea-bench-check-${app.id}-`));
+  const sides = {
+    original: side(app, workDir, "left", values.ports[0]),
+    clone: side(app, workDir, "right", values.ports[1]),
+  };
+  let report;
+  try {
+    report = await replayHeldout({
+      app,
+      judge,
+      sides,
+      cloneName: "Benchmark Mirror",
+      workDir,
+      browser: values.browser,
+      declareRenames: false,
+    });
+  } finally {
+    for (const item of Object.values(sides))
+      controlOriginal(item.ctl, item.port, "stop");
+    if (!values.keep) rmSync(workDir, { recursive: true, force: true });
+  }
+  const ok =
+    report.captures_failed === 0 &&
+    report.steps.steps > 0 &&
+    report.steps.unchanged === report.steps.steps &&
+    report.rules_agree === report.rules_total;
+  console.log(
+    JSON.stringify(
+      {
+        app: app.id,
+        judge: { commit: judge.commit_short, version: judge.version },
+        ok,
+        ...report,
+      },
+      null,
+      1,
+    ),
+  );
+  if (!ok) process.exitCode = 1;
+};
+
+await main();

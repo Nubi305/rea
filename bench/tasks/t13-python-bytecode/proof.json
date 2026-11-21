@@ -1,0 +1,20 @@
+{
+  "task": "t13-python-bytecode",
+  "measured_on": {
+    "commit": "0e089b3e",
+    "version": "6.9.0",
+    "node_version": "v24.22.3"
+  },
+  "route_stdout_bytes": 6985,
+  "route_ok": true,
+  "steps": [
+    {
+      "command": "rea inspect-python-pyc {input}/ledger.pyc --json",
+      "exit": 0,
+      "stdout_bytes": 6985,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    }
+  ]
+}

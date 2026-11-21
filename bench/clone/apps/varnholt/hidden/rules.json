@@ -1,0 +1,363 @@
+{
+  "schema": "rea.bench.hidden-rules/1",
+  "application": "Varnholt",
+  "scenarios": {
+    "heldout-rules": "heldout-rules.json",
+    "heldout-pages": "heldout-pages-portable.json"
+  },
+  "differences": "heldout-differences.json",
+  "notes": [
+    "The mapping of steps to rules is the one HIDDEN.md gives in prose: every step a rule's bullets name, setup steps included, and for R10 the steps that carry the charges its bullets describe.",
+    "heldout-pages is replayed from heldout-pages-portable.json: heldout-pages.json as its author wrote it, with the one locator \"#notice p[role=status]\" replaced by \"[role=status]\". An element id of the original is not behaviour a clean-room clone can be asked to match; with the id, the step fails on every such clone and the eight steps after it are never run."
+  ],
+  "rules": [
+    {
+      "id": "R01-code-normalised",
+      "difficulty": "visible",
+      "rule": "A manifest code is trimmed and upper-cased, then must be two letters, a dash and three digits.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "manifest-create-normalised",
+            "manifest-code-format"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R02-derived-totals",
+      "difficulty": "visible",
+      "rule": "A manifest reports parcelCount, totalWeightKg, remainingKg and totalChargeCents derived from its parcels; they are never stored.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "fp-manifests",
+            "manifest-derived-totals"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R03-manifest-order",
+      "difficulty": "visible",
+      "rule": "Manifests list by status in the order open, sealed, dispatched, delivered, and by code ascending within a status.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "fp-manifests",
+            "list-manifests-final"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R04-statuses-on-screen",
+      "difficulty": "visible",
+      "rule": "The manifest page offers the status buttons its status allows and shows money from cents, weights with one decimal and the parcel count as N of 6 parcels.",
+      "cases": [
+        {
+          "scenario": "heldout-pages",
+          "step_ids": [
+            "page-manifest-open",
+            "page-manifest-missing",
+            "page-manifest-after-add",
+            "page-manifest-sealed",
+            "page-manifest-dispatched"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R05-code-unique",
+      "difficulty": "edge",
+      "rule": "A code in use is refused whatever case it was typed in: 409 code_taken with the holder's id.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "manifest-code-taken"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R06-recipient-unique-per-manifest",
+      "difficulty": "edge",
+      "rule": "A recipient is trimmed and collapsed with its case kept; within one manifest two parcels may not have the same recipient compared without letter case; another manifest may.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "parcel-round-half-up-fragile",
+            "parcel-recipient-duplicate-case",
+            "parcel-recipient-other-manifest"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R07-text-limits",
+      "difficulty": "edge",
+      "rule": "Destination 2 to 60 characters, recipient 2 to 40, measured after trimming and collapsing.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "manifest-destination-short",
+            "parcel-recipient-short"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R08-weight-rounding",
+      "difficulty": "edge",
+      "rule": "weightKg must be a JSON number, is rounded to the nearest 0.1 kg half up, and is refused when it rounds to 0 or less.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "parcel-round-half-up-fragile",
+            "parcel-round-then-bill",
+            "parcel-id-not-reused",
+            "parcel-shrink-own-weight",
+            "parcel-weight-rounds-to-zero",
+            "parcel-weight-string"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R09-weight-limit",
+      "difficulty": "edge",
+      "rule": "A parcel weighs at most 30 kg, judged after rounding.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "parcel-weight-limit-edge",
+            "parcel-weight-over-limit"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R10-charge",
+      "difficulty": "edge",
+      "rule": "chargeCents is 350 plus 120 for every started kilogram of the rounded weight; a fragile parcel pays 15% more, rounded half up to the cent; recomputed on every edit.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "parcel-round-then-bill",
+            "parcel-round-half-up-fragile",
+            "fp-parcels",
+            "parcel-shrink-own-weight"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R11-parcel-order",
+      "difficulty": "edge",
+      "rule": "Parcels list by weight descending, equal weights by recipient ascending without letter case, then by id.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "list-parcels-tie-break"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R12-capacity-field",
+      "difficulty": "edge",
+      "rule": "capacityKg defaults to 50 and must be a whole number from 1 to 200.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "manifest-capacity-over",
+            "manifest-capacity-fraction"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R13-list-filters",
+      "difficulty": "edge",
+      "rule": "?status= keeps one status and refuses an unknown one; ?q= keeps manifests whose code or destination contains the text without letter case.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "list-manifests-open",
+            "list-manifests-search",
+            "list-manifests-bad-status"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R14-capacity-quota",
+      "difficulty": "several-steps",
+      "rule": "The parcels of a manifest may weigh at most its capacityKg in total; reaching it exactly is allowed; an edit is judged without the parcel's own old weight; capacity cannot be lowered below the load.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "parcel-fills-capacity",
+            "parcel-over-capacity",
+            "parcel-grow-over-capacity",
+            "parcel-shrink-own-weight",
+            "manifest-capacity-below-load"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R15-parcel-quota",
+      "difficulty": "several-steps",
+      "rule": "A manifest carries at most 6 parcels; the count is checked before the recipient and the capacity.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "setup-fill-4",
+            "setup-fill-5",
+            "setup-fill-6",
+            "parcel-seventh-refused",
+            "parcel-full-before-duplicate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R16-state-machine",
+      "difficulty": "several-steps",
+      "rule": "Status moves open to sealed, sealed to open or dispatched, dispatched to delivered, delivered to nothing; anything else is 409 invalid_transition, a value that is not a status 422 status_invalid.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "status-skip-refused",
+            "status-seal",
+            "status-reopen",
+            "status-dispatch",
+            "status-deliver",
+            "status-same-refused",
+            "status-unknown",
+            "status-back-refused",
+            "status-delivered-final"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R17-seal-needs-parcels",
+      "difficulty": "several-steps",
+      "rule": "An empty manifest cannot be sealed.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "seal-empty-refused"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R18-lock",
+      "difficulty": "several-steps",
+      "rule": "Only an open manifest can change: its fields and adding, editing or deleting its parcels answer 409 manifest_locked otherwise, checked after field validation and before the quotas.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "parcel-add-locked",
+            "parcel-edit-locked",
+            "parcel-delete-locked",
+            "manifest-edit-locked",
+            "parcel-delete-open"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R19-delete-and-cascade",
+      "difficulty": "several-steps",
+      "rule": "A dispatched manifest cannot be deleted; deleting any other manifest deletes its parcels and reports how many.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "manifest-delete-dispatched-refused",
+            "manifest-delete-cascades",
+            "parcel-gone-after-cascade"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R20-ids-and-freed-codes",
+      "difficulty": "several-steps",
+      "rule": "Ids are never reused, and a deleted manifest's code is free again.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "manifest-code-free-again",
+            "parcel-id-not-reused"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R21-summary",
+      "difficulty": "several-steps",
+      "rule": "GET /api/summary is derived: manifests per status and in total, parcels, fragile parcels, total and in-transit weight, average parcel weight to two decimals, total charge and the heaviest loaded manifest.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "fp-summary",
+            "summary-while-dispatched",
+            "summary-final"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R22-parcel-stays",
+      "difficulty": "several-steps",
+      "rule": "A parcel cannot move: a manifestId in an edit that differs from its own is refused.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "parcel-move-refused"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R23-order-of-checks",
+      "difficulty": "several-steps",
+      "rule": "Existence (404), then field validation (422), then conflicts (409) in the order locked, full, duplicate recipient, capacity.",
+      "cases": [
+        {
+          "scenario": "heldout-rules",
+          "step_ids": [
+            "parcel-manifest-missing",
+            "parcel-add-locked",
+            "parcel-full-before-duplicate"
+          ]
+        }
+      ]
+    }
+  ]
+}

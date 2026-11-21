@@ -1,0 +1,133 @@
+{
+  "id": "t12-page-click-request",
+  "title": "The request a page sends when a button is clicked",
+  "audit_request": "R9",
+  "question": "The page at {address}/ has a button named \"Reserve table\". When it is clicked with the form as it loads, which request does the page send (method and path), which JSON fields does the request carry, which status comes back, and which reference does the reply give?",
+  "inputs": [],
+  "service": { "script": "site/server.mjs", "health_path": "/health" },
+  "needs_browser": true,
+  "answer": {
+    "fields": {
+      "method": "string: the HTTP method of the request the click sends",
+      "path": "string: the path of that request",
+      "request_fields": "array of strings: the names of the top-level fields of the JSON body the request carries",
+      "status": "integer: the HTTP status of the reply",
+      "reference": "string: the value of the field reference in the reply"
+    }
+  },
+  "facts": [
+    {
+      "id": "method",
+      "field": "method",
+      "check": "equals",
+      "value": "POST",
+      "ignore_case": true
+    },
+    {
+      "id": "path",
+      "field": "path",
+      "check": "equals",
+      "value": "/api/reservations"
+    },
+    {
+      "id": "request-fields",
+      "field": "request_fields",
+      "check": "set_equals",
+      "value": ["slot", "party", "channel", "token"]
+    },
+    { "id": "status", "field": "status", "check": "equals", "value": 201 },
+    {
+      "id": "reference",
+      "field": "reference",
+      "check": "equals",
+      "value": "HT-04-2015"
+    }
+  ],
+  "first_command": {
+    "expected": "capture-browser-scenario",
+    "also_accepted": ["validate-browser-scenario"],
+    "economical_flags": [
+      "--detail summary",
+      "--detail=summary",
+      "--filter-output"
+    ]
+  },
+  "flood": {
+    "args": ["capture-browser-scenario", "{work}/scenario.json", "--json"],
+    "why": "The complete capture Evidence on standard output, where a saved file and a receipt would do."
+  },
+  "proof": {
+    "steps": [
+      {
+        "write": {
+          "path": "{work}/scenario.json",
+          "content": {
+            "browser": {
+              "mode": "launch",
+              "executable_path": "{browser}",
+              "headless": true
+            },
+            "start_url": { "url": "{address}/" },
+            "actions": [
+              {
+                "step_id": "click-reserve",
+                "action": "click",
+                "locator": {
+                  "kind": "role",
+                  "role": "button",
+                  "name": "Reserve table"
+                },
+                "timeout_ms": 15000,
+                "save_response": {
+                  "method": "POST",
+                  "path": "/api/reservations",
+                  "save": [
+                    { "name": "reference", "json_pointer": "/reference" }
+                  ]
+                }
+              }
+            ],
+            "capture": {
+              "after_each_step": ["accessibility", "url"],
+              "at_end": ["url"],
+              "events": ["network", "console", "page-errors"],
+              "network": {
+                "request_body": true,
+                "response_body": true,
+                "header_values": false
+              }
+            }
+          }
+        }
+      },
+      {
+        "args": [
+          "capture-browser-scenario",
+          "{work}/scenario.json",
+          "--detail",
+          "summary",
+          "--evidence_output",
+          "{work}/capture.evidence.json",
+          "--json"
+        ]
+      },
+      {
+        "args": [
+          "inspect-evidence-bundle",
+          "{\"path\":\"{work}/capture.evidence.json\",\"detail\":\"complete\"}",
+          "--json",
+          "--filter-output",
+          "records[0,1].normalized_result.events.items[10,16]"
+        ],
+        "must_contain": [
+          "\"method\":\"POST\"",
+          "/api/reservations",
+          "\"status\":201",
+          "eyJzbG90IjoiMjA6MTUiLCJwYXJ0eSI6NCwiY2hhbm5lbCI6IndlYiIsInRva2VuIjoiZDU2MDAifQ==",
+          "eyJyZWZlcmVuY2UiOiJIVC0wNC0yMDE1IiwiaGVsZF9taW51dGVzIjoxNX0="
+        ]
+      }
+    ]
+  },
+  "notes": "Bodies are in the capture Evidence as base64: the request body decodes to {\"slot\":\"20:15\",\"party\":4,\"channel\":\"web\",\"token\":\"d5600\"} and the reply to {\"reference\":\"HT-04-2015\",\"held_minutes\":15}. A click that does not wait for its reply (save_response) can end the capture before the reply arrives."
+}

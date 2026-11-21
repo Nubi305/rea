@@ -1,0 +1,66 @@
+{
+  "id": "t03-elf-dependencies",
+  "title": "Run-time dependencies of an ELF binary",
+  "audit_request": null,
+  "question": "Which shared libraries does {input}/meterd need at run time, which program interpreter (dynamic loader) does it ask for, and does it import system or popen?",
+  "inputs": [
+    {
+      "kind": "cc",
+      "from": "src",
+      "sources": ["meterd.c"],
+      "to": "meterd",
+      "flags": ["-O1", "-lm"]
+    }
+  ],
+  "answer": {
+    "fields": {
+      "needed_libraries": "array of strings: the names of the shared libraries the binary declares as needed",
+      "interpreter": "string: the path of the program interpreter",
+      "imports_system": "boolean: true when the binary imports the function system",
+      "imports_popen": "boolean: true when the binary imports the function popen"
+    }
+  },
+  "facts": [
+    {
+      "id": "needed",
+      "field": "needed_libraries",
+      "check": "set_equals",
+      "value": ["libm.so.6", "libc.so.6"]
+    },
+    {
+      "id": "interpreter",
+      "field": "interpreter",
+      "check": "equals",
+      "value": "/lib64/ld-linux-x86-64.so.2"
+    },
+    {
+      "id": "imports-system",
+      "field": "imports_system",
+      "check": "equals",
+      "value": false
+    },
+    {
+      "id": "imports-popen",
+      "field": "imports_popen",
+      "check": "equals",
+      "value": true
+    }
+  ],
+  "first_command": {
+    "expected": "inspect-elf-dependencies",
+    "also_accepted": ["inspect-artifact"]
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": ["inspect-elf-dependencies", "{input}/meterd", "--json"],
+        "must_contain": [
+          "\"name\":\"libm.so.6\"",
+          "\"name\":\"libc.so.6\"",
+          "/lib64/ld-linux-x86-64.so.2",
+          "\"name\":\"popen\""
+        ]
+      }
+    ]
+  }
+}

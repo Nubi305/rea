@@ -1,0 +1,79 @@
+{
+  "id": "t18-process-run",
+  "title": "What a command prints and which files it touches",
+  "audit_request": "R15",
+  "question": "Run {input}/migrate --dry-run {input}/state and tell me what it prints, which status it exits with, and which files in {input}/state it creates or changes.",
+  "inputs": [
+    {
+      "kind": "cc",
+      "from": "src/migrate",
+      "sources": ["migrate.c"],
+      "to": "migrate",
+      "flags": ["-O1"]
+    },
+    { "kind": "copy", "from": "src/state", "to": "state" }
+  ],
+  "answer": {
+    "fields": {
+      "stdout_lines": "array of strings: the lines the command prints, in order",
+      "exit_code": "integer: the status the command exits with",
+      "files_created": "array of strings: the names, relative to the state directory, of files the run creates",
+      "files_changed": "array of strings: the names, relative to the state directory, of files that existed and whose content the run changes"
+    }
+  },
+  "facts": [
+    {
+      "id": "stdout",
+      "field": "stdout_lines",
+      "check": "list_equals",
+      "value": [
+        "schema at version 6, 3 migrations pending",
+        "dry run: nothing applied"
+      ]
+    },
+    { "id": "exit-code", "field": "exit_code", "check": "equals", "value": 3 },
+    {
+      "id": "files-created",
+      "field": "files_created",
+      "check": "set_equals",
+      "value": ["plan.txt"]
+    },
+    {
+      "id": "files-changed",
+      "field": "files_changed",
+      "check": "set_equals",
+      "value": []
+    }
+  ],
+  "first_command": {
+    "expected": "capture-process",
+    "also_accepted": []
+  },
+  "proof": {
+    "steps": [
+      {
+        "write": {
+          "path": "{work}/scenario.json",
+          "content": {
+            "executable": "{input}/migrate",
+            "arguments": ["--dry-run", "{input}/state"],
+            "timeout_ms": 5000,
+            "filesystem_observation_paths": ["{input}/state"]
+          }
+        }
+      },
+      {
+        "args": ["capture-process", "{work}/scenario.json", "--json"],
+        "must_contain": [
+          "\"exit\":{\"code\":3",
+          "schema at version 6, 3 migrations pending",
+          "dry run: nothing applied",
+          "\"path\":\"root_0:plan.txt\",\"status\":\"created\"",
+          "\"path\":\"root_0:schema.version\",\"status\":\"unchanged\""
+        ]
+      }
+    ]
+  },
+  "known_gap": "On 0e089b3 the fields of the scenario file (executable, arguments, filesystem_observation_paths) are in no text an agent can reach through the CLI: not in the skill, not in --help and not in --schema, and a validation error names one missing field at a time (audit request R15: clear over MCP, blocked on the CLI). Expect agents to fail the two file facts until that changes.",
+  "notes": "The first run creates plan.txt; a second run rewrites it with the same content and shows it unchanged."
+}

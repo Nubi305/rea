@@ -1,0 +1,80 @@
+{
+  "id": "t14-js-bundle-endpoints",
+  "title": "Endpoints a minified web bundle calls",
+  "audit_request": "R8",
+  "question": "{input}/webapp is the production build of our courier board. Which URL paths does it request with fetch, and which WebSocket address does it open?",
+  "inputs": [{ "kind": "copy", "from": "src/webapp", "to": "webapp" }],
+  "answer": {
+    "fields": {
+      "fetch_paths": "array of strings: the distinct URL paths the code requests with fetch, each without its query string",
+      "websocket_url": "string: the address of the WebSocket the code opens"
+    }
+  },
+  "facts": [
+    {
+      "id": "fetch-paths",
+      "field": "fetch_paths",
+      "check": "set_equals",
+      "value": [
+        "/api/v3/depots",
+        "/api/v3/parcels",
+        "/api/v3/parcels/status",
+        "/api/v3/session",
+        "/api/v3/health"
+      ]
+    },
+    {
+      "id": "websocket",
+      "field": "websocket_url",
+      "check": "equals",
+      "value": "wss://live.courier.example.test/board"
+    }
+  ],
+  "first_command": {
+    "expected": "analyze-javascript-application",
+    "also_accepted": ["analyze", "inspect-artifact"],
+    "economical_flags": [
+      "--detail summary",
+      "--detail=summary",
+      "--filter-output"
+    ]
+  },
+  "flood": {
+    "args": ["analyze-javascript-application", "{input}/webapp", "--json"],
+    "why": "The complete semantic graph of a 2.3 KB bundle, where its endpoint facts are wanted."
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": [
+          "analyze-javascript-application",
+          "{input}/webapp",
+          "--detail",
+          "summary",
+          "--evidence_output",
+          "{work}/webapp.evidence.json",
+          "--json"
+        ],
+        "capture": { "parent": "\"parent_evidence_id\":\"(ev_[a-f0-9]{64})\"" }
+      },
+      {
+        "args": [
+          "inspect-analysis-view",
+          "{\"source\":{\"kind\":\"evidence-file\",\"path\":\"{work}/webapp.evidence.json\",\"evidence_id\":\"{parent}\"},\"view\":{\"kind\":\"javascript-facts\",\"where\":{\"kinds\":[\"endpoint\"]},\"property_keys\":[\"mechanism\",\"value\"],\"limit\":32}}",
+          "--json",
+          "--filter-output",
+          "normalized_result.rows[0,32].properties"
+        ],
+        "must_contain": [
+          "\"mechanism\":\"call:fetch\",\"value\":\"/api/v3/depots\"",
+          "\"mechanism\":\"call:fetch\",\"value\":\"/api/v3/parcels\"",
+          "\"mechanism\":\"call:fetch\",\"value\":\"/api/v3/parcels/status\"",
+          "\"mechanism\":\"call:fetch\",\"value\":\"/api/v3/session\"",
+          "\"mechanism\":\"call:fetch\",\"value\":\"/api/v3/health\"",
+          "\"mechanism\":\"call:WebSocket\",\"value\":\"wss://live.courier.example.test/board\""
+        ]
+      }
+    ]
+  },
+  "notes": "origin/ holds the three modules the bundle was built from with esbuild 0.28.2 (--bundle --minify --format=iife --target=es2020 --sourcemap=linked --sources-content=false); the map's source paths were then rewritten to src/. origin/ is not given to the agent. REA also lists two form field names (\"weight\", \"recipient\") as endpoint candidates; they are not endpoints."
+}

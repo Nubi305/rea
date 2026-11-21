@@ -1,0 +1,36 @@
+{
+  "task": "t07-sqlite-contents",
+  "measured_on": {
+    "commit": "0e089b3e",
+    "version": "6.9.0",
+    "node_version": "v24.22.3"
+  },
+  "route_stdout_bytes": 19147,
+  "route_ok": true,
+  "steps": [
+    {
+      "command": "rea inspect-sqlite-database {input}/app.db --json",
+      "exit": 0,
+      "stdout_bytes": 5441,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    },
+    {
+      "command": "rea inspect-sqlite-database {input}/app.db --table settings --json",
+      "exit": 0,
+      "stdout_bytes": 6328,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    },
+    {
+      "command": "rea inspect-sqlite-database {input}/app.db --table transfers --column id --row-limit 100 --json",
+      "exit": 0,
+      "stdout_bytes": 7378,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    }
+  ]
+}

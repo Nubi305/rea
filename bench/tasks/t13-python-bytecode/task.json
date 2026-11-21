@@ -1,0 +1,67 @@
+{
+  "id": "t13-python-bytecode",
+  "title": "What a compiled Python module defines",
+  "audit_request": null,
+  "question": "We lost the source of {input}/ledger.pyc. Which top-level functions and classes does it define, which URL does it post to, and which HTTP header does it add to the request?",
+  "inputs": [
+    {
+      "kind": "pyc",
+      "from": "src/ledger.py",
+      "to": "ledger.pyc",
+      "name": "ledger.py"
+    }
+  ],
+  "answer": {
+    "fields": {
+      "functions": "array of strings: the names of the module's top-level functions",
+      "classes": "array of strings: the names of the module's classes",
+      "url": "string: the URL the module posts to",
+      "header": "string: the name of the HTTP header the module adds"
+    }
+  },
+  "facts": [
+    {
+      "id": "functions",
+      "field": "functions",
+      "check": "set_equals",
+      "value": ["sign", "post_batch"]
+    },
+    {
+      "id": "classes",
+      "field": "classes",
+      "check": "set_equals",
+      "value": ["Batch"]
+    },
+    {
+      "id": "url",
+      "field": "url",
+      "check": "equals",
+      "value": "https://ledger.example.test/v2/post"
+    },
+    {
+      "id": "header",
+      "field": "header",
+      "check": "equals",
+      "value": "X-Ledger-Signature",
+      "ignore_case": true
+    }
+  ],
+  "first_command": {
+    "expected": "inspect-python-pyc",
+    "also_accepted": ["inspect-artifact"]
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": ["inspect-python-pyc", "{input}/ledger.pyc", "--json"],
+        "must_contain": [
+          "\"qualname\":\"sign\"",
+          "\"qualname\":\"post_batch\"",
+          "\"qualname\":\"Batch\"",
+          "https://ledger.example.test/v2/post",
+          "X-Ledger-Signature"
+        ]
+      }
+    ]
+  }
+}

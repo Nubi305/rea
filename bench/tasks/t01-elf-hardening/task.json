@@ -1,0 +1,70 @@
+{
+  "id": "t01-elf-hardening",
+  "title": "Hardening of an ELF binary",
+  "audit_request": "R14",
+  "question": "Is {input}/keyd built with PIE, RELRO and stack canaries? And does it carry a run-time library search path: if so, which?",
+  "inputs": [
+    {
+      "kind": "cc",
+      "from": "src",
+      "sources": ["keyd.c"],
+      "to": "keyd",
+      "flags": [
+        "-O1",
+        "-no-pie",
+        "-fstack-protector-all",
+        "-Wl,-z,relro",
+        "-Wl,-z,lazy",
+        "-Wl,-z,noexecstack",
+        "-Wl,-rpath,/opt/keyd/lib"
+      ]
+    }
+  ],
+  "answer": {
+    "fields": {
+      "pie": "boolean: true when the binary is position independent",
+      "relro": "string: \"none\", \"partial\" or \"full\"",
+      "stack_canary": "boolean: true when the binary uses a stack protector",
+      "runpath": "string: the library search path recorded in the binary, or \"\" when there is none"
+    }
+  },
+  "facts": [
+    { "id": "pie", "field": "pie", "check": "equals", "value": false },
+    {
+      "id": "relro",
+      "field": "relro",
+      "check": "equals",
+      "value": "partial",
+      "ignore_case": true
+    },
+    {
+      "id": "stack-canary",
+      "field": "stack_canary",
+      "check": "equals",
+      "value": true
+    },
+    {
+      "id": "runpath",
+      "field": "runpath",
+      "check": "equals",
+      "value": "/opt/keyd/lib"
+    }
+  ],
+  "first_command": {
+    "expected": "inspect-binary-hardening",
+    "also_accepted": ["inspect-artifact"]
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": ["inspect-binary-hardening", "{input}/keyd", "--json"],
+        "must_contain": [
+          "\"property\":\"pie\",\"state\":\"disabled\"",
+          "\"property\":\"relro\",\"state\":\"partial\"",
+          "\"property\":\"stack_protector\",\"state\":\"enabled\"",
+          "/opt/keyd/lib"
+        ]
+      }
+    ]
+  }
+}

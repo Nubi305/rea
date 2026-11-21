@@ -1,0 +1,75 @@
+{
+  "id": "t16-model-tensors",
+  "title": "What a model file holds",
+  "audit_request": null,
+  "question": "What is inside {input}/model.safetensors? How many tensors, what are the shape and the element type of embed.weight, how many parameters in total, and which task does its metadata name?",
+  "inputs": [
+    {
+      "kind": "node",
+      "script": "src/make-model.mjs",
+      "to": "model.safetensors"
+    }
+  ],
+  "answer": {
+    "fields": {
+      "tensor_count": "integer: the number of tensors",
+      "embed_shape": "array of integers: the shape of embed.weight",
+      "embed_dtype": "string: the element type of embed.weight, as the file names it",
+      "parameter_count": "integer: the number of parameters over all tensors",
+      "task": "string: the task the file's metadata names"
+    }
+  },
+  "facts": [
+    {
+      "id": "tensor-count",
+      "field": "tensor_count",
+      "check": "equals",
+      "value": 6
+    },
+    {
+      "id": "embed-shape",
+      "field": "embed_shape",
+      "check": "list_equals",
+      "value": [512, 64]
+    },
+    {
+      "id": "embed-dtype",
+      "field": "embed_dtype",
+      "check": "equals",
+      "value": "F16",
+      "ignore_case": true
+    },
+    {
+      "id": "parameter-count",
+      "field": "parameter_count",
+      "check": "equals",
+      "value": 37896
+    },
+    {
+      "id": "task",
+      "field": "task",
+      "check": "equals",
+      "value": "parcel-intent"
+    }
+  ],
+  "first_command": {
+    "expected": "inspect-model-artifact",
+    "also_accepted": ["inspect-artifact"]
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": [
+          "inspect-model-artifact",
+          "{input}/model.safetensors",
+          "--json"
+        ],
+        "must_contain": [
+          "\"name\":\"embed.weight\",\"type\":\"F16\",\"type_id\":null,\"shape\":[\"512\",\"64\"]",
+          "\"parameter_count\":\"37896\"",
+          "\"value\":\"parcel-intent\""
+        ]
+      }
+    ]
+  }
+}
