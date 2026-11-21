@@ -321,17 +321,10 @@ const projectResolvedAnalysisView = (
   );
   if (!identity.ok) return identity;
   const result = statedOnce(projected.value, connection);
-  const delivered = createAnalysisViewEvidence(input, presentation, result);
   if (connection !== undefined && result.kind === "summary")
-    rememberStated(connection, result, delivered.evidence_id);
-  return ok(delivered);
+    rememberStated(connection, result);
+  return ok(createAnalysisViewEvidence(input, presentation, result));
 };
-
-/** Limitation sentences a connection already received with a parent's summary. */
-interface StatedLimitations {
-  readonly summaryEvidenceId: string;
-  readonly sentences: ReadonlySet<string>;
-}
 
 /**
  * Per retaining connection (its Evidence lookup), the parents whose summary
@@ -340,23 +333,19 @@ interface StatedLimitations {
  */
 const statedOnConnection = new WeakMap<
   EvidenceLookup,
-  Map<string, StatedLimitations>
+  Map<string, ReadonlySet<string>>
 >();
 
 const rememberStated = (
   connection: EvidenceLookup,
   summary: AnalysisViewResult,
-  summaryEvidenceId: string,
 ): void => {
   let parents = statedOnConnection.get(connection);
   if (parents === undefined) {
     parents = new Map();
     statedOnConnection.set(connection, parents);
   }
-  parents.set(summary.parent_evidence_id, {
-    summaryEvidenceId,
-    sentences: new Set(summary.limitations),
-  });
+  parents.set(summary.parent_evidence_id, new Set(summary.limitations));
 };
 
 /**
@@ -373,9 +362,7 @@ const statedOnce = (
     .get(connection)
     ?.get(result.parent_evidence_id);
   if (stated === undefined) return result;
-  const kept = result.limitations.filter(
-    (sentence) => !stated.sentences.has(sentence),
-  );
+  const kept = result.limitations.filter((sentence) => !stated.has(sentence));
   const omitted = result.limitations.length - kept.length;
   if (omitted === 0) return result;
   const { view_digest: _digest, ...unsigned } = result;
@@ -383,7 +370,7 @@ const statedOnce = (
     ...unsigned,
     limitations: [
       ...kept,
-      `${String(omitted)} limitation${omitted === 1 ? "" : "s"} of parent ${result.parent_evidence_id} were stated with its summary ${stated.summaryEvidenceId} on this connection; inspect_analysis_view with view {"kind":"summary"} states them again.`,
+      `${String(omitted)} limitation${omitted === 1 ? " was" : "s were"} stated with this parent's summary on this connection; view {"kind":"summary"} repeats them.`,
     ],
   });
 };
@@ -593,7 +580,7 @@ const viewEvidenceLimitations = (stated: readonly string[]): string[] =>
   stated.length === 0
     ? []
     : [
-        `${String(stated.length)} limitation${stated.length === 1 ? "" : "s"} of this view: normalized_result.limitations.`,
+        `${String(stated.length)} limitation${stated.length === 1 ? "" : "s"}: normalized_result.limitations.`,
       ];
 
 /** The artifact a view names: the presented file target and its display path. */

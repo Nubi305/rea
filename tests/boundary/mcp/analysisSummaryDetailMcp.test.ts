@@ -238,7 +238,7 @@ it("states each limitation sentence once per reply and keeps every sentence reac
     limitations: expect.arrayContaining([
       expect.stringMatching(
         new RegExp(
-          `^${String(recorded.size)} limitations of parent ${parent.evidence_id} were stated with its summary ${summaryEvidence.evidence_id} on this connection`,
+          `^${String(recorded.size)} limitations were stated with this parent's summary on this connection`,
           "u",
         ),
       ),
@@ -246,7 +246,7 @@ it("states each limitation sentence once per reply and keeps every sentence reac
   });
   expect(viewEvidence.limitations).toEqual([
     expect.stringMatching(
-      /^\d+ limitations? of this view: normalized_result\.limitations\.$/u,
+      /^\d+ limitations?: normalized_result\.limitations\.$/u,
     ),
   ]);
 });

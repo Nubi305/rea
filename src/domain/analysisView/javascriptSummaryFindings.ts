@@ -52,9 +52,9 @@ const observationsOf = (
     ),
   );
 
-const ENDPOINT_KINDS = new Set(["endpoint"]);
-const IPC_KINDS = new Set(["ipc-channel", "ipc-handler"]);
-const ENTRY_KINDS = new Set([
+export const ENDPOINT_KINDS = new Set(["endpoint"]);
+export const IPC_KINDS = new Set(["ipc-channel", "ipc-handler"]);
+export const ENTRY_KINDS = new Set([
   "electron-main",
   "electron-preload",
   "electron-renderer",
@@ -71,6 +71,14 @@ const label = (observation: Observation): string =>
   text(observation.properties.path) ??
   observation.label ??
   "(unnamed)";
+
+/** The facts views that page each finding; the summary names the same ones. */
+export const JAVASCRIPT_FINDING_VIEWS = {
+  endpoints: () => factsView(ENDPOINT_KINDS, ["mechanism", "value"]),
+  ipc_channels: () => factsView(IPC_KINDS, ["channel", "value", "mechanism"]),
+  entry_points: () =>
+    factsView(ENTRY_KINDS, ["resolved_path", "declared_path", "mechanism"]),
+};
 
 const factsView = (
   kinds: ReadonlySet<string>,
@@ -97,7 +105,7 @@ export const javascriptSummaryFindings = (
       (_node, observation) =>
         `${mechanismName(observation)} ${label(observation)}${qualifiers(observation)}`,
     ),
-    factsView(ENDPOINT_KINDS, ["mechanism", "value"]),
+    JAVASCRIPT_FINDING_VIEWS.endpoints(),
   ),
   summaryFinding(
     "ipc_channels",
@@ -107,7 +115,7 @@ export const javascriptSummaryFindings = (
       (node, observation) =>
         `${node.kind} ${mechanismName(observation)} ${label(observation)}${qualifiers(observation)}`,
     ),
-    factsView(IPC_KINDS, ["channel", "value", "mechanism"]),
+    JAVASCRIPT_FINDING_VIEWS.ipc_channels(),
   ),
   summaryFinding(
     "entry_points",
@@ -117,6 +125,6 @@ export const javascriptSummaryFindings = (
       (node, observation) =>
         `${node.kind} ${label(observation)}${qualifiers(observation)}`,
     ),
-    factsView(ENTRY_KINDS, ["resolved_path", "declared_path", "mechanism"]),
+    JAVASCRIPT_FINDING_VIEWS.entry_points(),
   ),
 ];

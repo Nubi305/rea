@@ -57,7 +57,8 @@ describe("summary findings", () => {
     const capture = analysisViewCaptureFixture();
     const [finding] = findingsOf(analysisViewCaptureEvidence(capture));
     expect(finding?.name).toBe("requests_failed_first_then_slowest");
-    expect(finding?.view).toEqual({ kind: "capture", limit: 20 });
+    // The finding points at the named view that pages every record.
+    expect(finding?.view).toBe(0);
     // Record 1 is the fixture's 404; records without a response follow it.
     expect(finding?.rows[0]).toMatch(/^#1 GET \S+ 404/u);
     const statuses = finding!.rows.map((row) => row.split(" ")[3]);

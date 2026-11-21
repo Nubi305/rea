@@ -102,6 +102,7 @@ import { projectAndroidJniView } from "./androidJniView.js";
 import { projectDartAotView } from "./dartAotView.js";
 import { projectIl2cppMetadataView } from "./il2cppMetadataView.js";
 import { nameSummaryViews } from "./summaryNamedViews.js";
+import { findingsWithViewIndices } from "./summaryFindings.js";
 
 import type { AnalysisViewParent } from "./analysisViewParent.js";
 import type { GroupingViewKind } from "./analysisViewShape.js";
@@ -313,12 +314,16 @@ export const projectAnalysisView = (
   const projected = projectSelectedView(parent, view, accumulators);
   if (!projected.ok || projected.value.kind !== "summary") return projected;
   const { view_digest: _digest, ...unsigned } = projected.value;
+  const views = nameSummaryViews(parent, (candidate) =>
+    projectSelectedView(parent, candidate, {}),
+  );
   return ok(
     sealAnalysisView({
       ...unsigned,
-      views: nameSummaryViews(parent, (candidate) =>
-        projectSelectedView(parent, candidate, {}),
-      ),
+      ...(unsigned.findings === undefined
+        ? {}
+        : { findings: findingsWithViewIndices(unsigned.findings, views) }),
+      views,
     }),
   );
 };

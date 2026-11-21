@@ -53,6 +53,35 @@ const nonZeroBlock = <Name extends string>(
   };
 };
 
+/**
+ * Semantic families with their counts; a family whose counts are all zero is
+ * named with its status only, as a block of zero counts says no more.
+ */
+const semanticFamilyCounts = (
+  families: JavaScriptApplicationAnalysisResult["semantic_graph"]["coverage"]["families"],
+) => {
+  const counted = families.map(({ unknown_ids, ...family }) => ({
+    ...family,
+    unknown_count: unknown_ids.length,
+  }));
+  const zero = counted.filter(
+    (family) =>
+      family.retained_relations === 0 &&
+      family.omitted_relations === 0 &&
+      family.unknown_count === 0,
+  );
+  return {
+    families: counted.filter((family) => !zero.includes(family)),
+    ...(zero.length === 0
+      ? {}
+      : {
+          families_with_zero_counts: zero.map(
+            (family) => `${family.family} (${family.status})`,
+          ),
+        }),
+  };
+};
+
 const OPERATION = "inspect_analysis_view";
 
 const inputError = (
@@ -408,10 +437,9 @@ export const projectJavaScriptApplicationView = (
       kind: "summary" as const,
       view,
       ...presentFindings(javascriptSummaryFindings(analysis.graph.nodes)),
+      // The analysed path and root digest are the view's artifact.
       summary: {
-        input_path: analysis.input_path,
         format: analysis.format,
-        root_artifact_sha256: analysis.root_artifact_sha256,
         ...(analysis.source_selection === undefined
           ? {}
           : {
@@ -429,11 +457,8 @@ export const projectJavaScriptApplicationView = (
               application: analysis.graph.coverage,
               semantic: {
                 ...analysis.semantic_graph.coverage,
-                families: analysis.semantic_graph.coverage.families.map(
-                  ({ unknown_ids, ...family }) => ({
-                    ...family,
-                    unknown_count: unknown_ids.length,
-                  }),
+                ...semanticFamilyCounts(
+                  analysis.semantic_graph.coverage.families,
                 ),
               },
               application_unknowns: sourceCoverage.application_unknown_count,

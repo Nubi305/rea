@@ -10,6 +10,7 @@ import {
   type AnalysisViewRequest,
 } from "./analysisViewRequest.js";
 import type { AnalysisViewParent } from "./analysisViewParent.js";
+import { JAVASCRIPT_FINDING_VIEWS } from "./javascriptSummaryFindings.js";
 
 /** At most this many views are named by one summary. */
 export const SUMMARY_NAMED_VIEW_LIMIT = 6;
@@ -56,6 +57,12 @@ const javascriptFacts = (
   kind: "javascript-facts",
   where: { kinds: [...kinds] },
   property_keys: [...propertyKeys],
+  limit: NAMED_PAGE_ROWS,
+});
+
+/** A finding's view, asking for one named page of rows. */
+const paged = (view: ViewInput): ViewInput => ({
+  ...view,
   limit: NAMED_PAGE_ROWS,
 });
 
@@ -110,19 +117,9 @@ const CANDIDATES = new Map<string, readonly ViewInput[]>([
   [
     "analyze_javascript_application",
     [
-      javascriptFacts(["endpoint"], ["mechanism", "value"]),
-      javascriptFacts(["ipc-channel", "ipc-handler"], ["channel", "value"]),
-      javascriptFacts(
-        [
-          "electron-main",
-          "electron-preload",
-          "electron-renderer",
-          "electron-utility",
-          "worker",
-          "service-worker",
-        ],
-        ["path"],
-      ),
+      paged(JAVASCRIPT_FINDING_VIEWS.endpoints()),
+      paged(JAVASCRIPT_FINDING_VIEWS.ipc_channels()),
+      paged(JAVASCRIPT_FINDING_VIEWS.entry_points()),
       routes("routes"),
       {
         kind: "javascript",

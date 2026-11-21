@@ -13,7 +13,11 @@ export const summaryFindingSchema = z.strictObject({
   rows: z.array(z.string()),
   total: z.int().nonnegative(),
   omitted: z.int().nonnegative(),
-  view: jsonObjectSchema.nullable(),
+  /**
+   * The view that pages all rows: its index in the summary's `views`, or its
+   * view input when it is not among them.
+   */
+  view: z.union([z.int().nonnegative(), jsonObjectSchema]).nullable(),
 });
 export type SummaryFinding = z.output<typeof summaryFindingSchema>;
 
@@ -36,4 +40,29 @@ export const presentFindings = (
 ): { readonly findings?: SummaryFinding[] } => {
   const present = findings.filter((finding) => finding.total > 0);
   return present.length === 0 ? {} : { findings: present };
+};
+
+const withoutLimit = (view: unknown): string => {
+  if (view === null || typeof view !== "object" || Array.isArray(view))
+    return JSON.stringify(view);
+  const {
+    limit: _limit,
+    offset: _offset,
+    ...rest
+  } = view as Record<string, unknown>;
+  return JSON.stringify(rest);
+};
+
+/** Point each finding at the named view that pages it, by index. */
+export const findingsWithViewIndices = (
+  findings: readonly SummaryFinding[],
+  named: readonly { readonly arguments: { readonly view: unknown } }[],
+): SummaryFinding[] => {
+  const keys = named.map((view) => withoutLimit(view.arguments.view));
+  return findings.map((finding) => {
+    if (finding.view === null || typeof finding.view === "number")
+      return finding;
+    const index = keys.indexOf(withoutLimit(finding.view));
+    return index === -1 ? finding : { ...finding, view: index };
+  });
 };

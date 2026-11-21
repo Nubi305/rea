@@ -366,9 +366,10 @@ const layoutSummarySchema = z.strictObject({
 });
 
 const javascriptSummarySchema = z.strictObject({
-  input_path: z.string().min(1),
+  /** Earlier summaries repeated artifact.path and artifact.sha256 here. */
+  input_path: z.string().min(1).exactOptional(),
   format: z.enum(["asar", "directory"]),
-  root_artifact_sha256: digestSchema,
+  root_artifact_sha256: digestSchema.exactOptional(),
   source_selection: javaScriptSourceSelectionSchema.exactOptional(),
   statistics: jsonObjectSchema.exactOptional(),
   /** Omitted when every Electron count is zero. */
