@@ -815,7 +815,7 @@ describe("unknown MCP subcommand output", () => {
           commands: [
             {
               command: "rea mcp --help",
-              description: "see all available commands",
+              description: "see the command index",
             },
           ],
         },
@@ -914,7 +914,7 @@ describe("unknown MCP subcommand output", () => {
           commands: [
             {
               command: "rea mcp --help",
-              description: "see all available commands",
+              description: "see the command index",
             },
           ],
         },

@@ -113,6 +113,9 @@ const CASES: readonly ParityCase[] = [
   { name: "help-root-bare", arguments: fixed() },
   { name: "help-root", arguments: fixed("--help") },
   { name: "help-root-short", arguments: fixed("-h") },
+  { name: "help-family", arguments: fixed("help", "start") },
+  { name: "help-all", arguments: fixed("help", "all") },
+  { name: "help-options", arguments: fixed("help", "options") },
   {
     name: "help-root-with-format",
     arguments: fixed("--help", "--format", "json"),

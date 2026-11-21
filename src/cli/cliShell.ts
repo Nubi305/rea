@@ -21,9 +21,12 @@ import { reportUnknownMcpSubcommand } from "./mcpBuiltinCommands.js";
 import { serveMcpRegistration } from "./mcpRegistration.js";
 import { presentOmittableDefaults } from "./omittableDefaults.js";
 import type { CliInstance, CliServeOptions } from "./types.js";
+import { assignCliCommandRegistrar, cliCommands } from "./commandRegistry.js";
 
 /** A registrar and the module it was loaded from. */
 export interface LoadedCliCommandRegistration {
+  /** The registrar's id in the registration table, recorded on its commands. */
+  readonly id?: string | undefined;
   readonly registration: CliCommandRegistration;
   readonly module: unknown;
 }
@@ -46,15 +49,16 @@ const registerCommands = (
   options: CliShellOptions,
 ): void => {
   let analysis: DirectAnalysis | undefined;
-  for (const { registration, module } of options.registrations) {
-    if (!registration.analysis) {
-      registration.register(module, context);
-      continue;
+  for (const { id, registration, module } of options.registrations) {
+    const before = cliCommands(context.cli).length;
+    if (!registration.analysis) registration.register(module, context);
+    else {
+      if (options.createAnalysis === undefined)
+        throw new Error("A CLI registrar needs analysis that was not provided");
+      analysis ??= options.createAnalysis(context.environment);
+      registration.register(module, { ...context, analysis });
     }
-    if (options.createAnalysis === undefined)
-      throw new Error("A CLI registrar needs analysis that was not provided");
-    analysis ??= options.createAnalysis(context.environment);
-    registration.register(module, { ...context, analysis });
+    if (id !== undefined) assignCliCommandRegistrar(context.cli, before, id);
   }
 };
 

@@ -84,6 +84,11 @@ export interface CliCommandEntry {
   /** Contract operations the command runs, in the order it chooses them. */
   readonly operations: readonly CliCommandOperation[];
   readonly source: CliCommandSource;
+  /**
+   * The registrar that defined the command, when the CLI was built from the
+   * registration table; help groups commands into families by it.
+   */
+  readonly registrar?: string | undefined;
 }
 
 const registries = new WeakMap<CliInstance, CliCommandEntry[]>();
@@ -114,6 +119,18 @@ export const registerCliCommand = <
     source: registration.source ?? { kind: "host" },
   });
   registries.set(cli, entries);
+};
+
+/** Record the registrar of every command registered from `from` onward. */
+export const assignCliCommandRegistrar = (
+  cli: CliInstance,
+  from: number,
+  registrar: string,
+): void => {
+  const entries = registries.get(cli);
+  if (entries === undefined) return;
+  for (let index = from; index < entries.length; index += 1)
+    entries[index] = { ...entries[index]!, registrar };
 };
 
 /** Commands registered on this CLI, in registration order. */

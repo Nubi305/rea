@@ -5,7 +5,7 @@ Error: 'no-such-command' is not a command for 'rea'. Did you mean 'cutter-comman
 
 Suggested commands:
   rea cutter-command
-  rea --help          # see all available commands
+  rea --help          # see the command index
 <end>
 --- stderr
 <end>

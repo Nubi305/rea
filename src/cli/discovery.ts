@@ -9,7 +9,6 @@ import {
 import { redactExplicitText } from "../domain/explicitSensitiveValues.js";
 import {
   CLI_DOCUMENT_OUTPUT_FORMATS,
-  CLI_OUTPUT_FORMATS,
   readCliOutputArguments,
   renderCliDocument,
   renderCliOutputArgumentError,
@@ -39,28 +38,25 @@ import {
   updateNoticeCta,
   type UpdateEnvironment,
 } from "./updateNotice.js";
+import { formatCommandHelp, formatCommandListHelp } from "./help.js";
 import {
-  formatCommandHelp,
-  formatCommandListHelp,
-  type HelpCommandRow,
-} from "./help.js";
+  commandPage,
+  CLI_CUSTOM_GLOBAL_OPTIONS,
+  CLI_DESCRIPTION,
+  COMPLETIONS_DESCRIPTION,
+  helpTopicPage,
+  MCP_GROUP_DESCRIPTION,
+  rootPage,
+} from "./helpPages.js";
 import { MCP_SUBCOMMANDS } from "./mcpBuiltinCommands.js";
+
+export {
+  CLI_CUSTOM_GLOBAL_OPTIONS,
+  CLI_DESCRIPTION,
+  COMPLETIONS_DESCRIPTION,
+  MCP_GROUP_DESCRIPTION,
+};
 import type { CliInstance } from "./types.js";
-
-/** The root page's description of REA. */
-export const CLI_DESCRIPTION =
-  "Reverse engineer anything from your terminal or agent.";
-
-/** Global options REA defines beyond the standard output controls. */
-export const CLI_CUSTOM_GLOBAL_OPTIONS = z.object({
-  timings: z
-    .boolean()
-    .default(false)
-    .describe("Write measured command timing to stderr."),
-});
-
-export const MCP_GROUP_DESCRIPTION = "Register as MCP server";
-export const COMPLETIONS_DESCRIPTION = "Generate shell completion script";
 
 /** REA's verified update command is the only CLI installation workflow. */
 export const CLI_UPDATE_REFUSAL = {
@@ -92,36 +88,6 @@ const completionsHint = (name: string): string => {
     )
     .join("\n")}`;
 };
-
-/** The global options block of a page for a command that renders results. */
-const commandGlobalOptions = {
-  formats: CLI_OUTPUT_FORMATS,
-  custom: CLI_CUSTOM_GLOBAL_OPTIONS,
-};
-
-const rootPage = (cli: CliInstance): string =>
-  formatCommandListHelp(cli.name, {
-    version: PRODUCT_IDENTITY.packageVersion,
-    description: CLI_DESCRIPTION,
-    commands: cliCommands(cli)
-      .map(({ name, definition }): HelpCommandRow => ({
-        name,
-        description: definition.description,
-      }))
-      .sort((left, right) => left.name.localeCompare(right.name)),
-    globalOptions: {
-      ...commandGlobalOptions,
-      root: {
-        integrations: [
-          { name: "completions", description: COMPLETIONS_DESCRIPTION },
-          {
-            name: "mcp",
-            description: `${MCP_GROUP_DESCRIPTION} (${[...MCP_SUBCOMMANDS.keys()].join(", ")})`,
-          },
-        ],
-      },
-    },
-  });
 
 /** The position of an integration command: first, or after the CLI's own name. */
 const integrationIndex = (
@@ -214,6 +180,9 @@ const presentDiscoveryAnswer = (
     ? `${window.text}\n[truncated: showing tokens ${window.start}–${window.end} of ${window.total}]\n`
     : text;
 };
+
+const isCommand = (cli: CliInstance, name: string): boolean =>
+  cliCommands(cli).some((entry) => entry.name === name);
 
 const sortedCommands = (cli: CliInstance): readonly CliCommandEntry[] =>
   [...cliCommands(cli)].sort((left, right) =>
@@ -498,23 +467,26 @@ const discoveryAnswer = (
   if (flags.has("--version") && !help)
     return answer(PRODUCT_IDENTITY.packageVersion);
   if (command.length === 0) return answer(rootPage(cli));
+  if (command[0] === "help" && !isCommand(cli, "help")) {
+    const page = helpTopicPage(cli, command[1]);
+    return answer(
+      page.exitCode === 0
+        ? page.text
+        : redactExplicitText(
+            page.text,
+            declaredSensitiveValues(global.command),
+          ),
+      page.exitCode,
+    );
+  }
   if (help) {
     const entry = cliCommands(cli).find(({ name }) => name === command[0]);
-    if (entry === undefined) return answer(rootPage(cli));
-    const { definition } = entry;
     return answer(
-      formatCommandHelp(`${cli.name} ${entry.name}`, {
-        description: definition.description,
-        args: definition.args,
-        options: definition.options,
-        alias: definition.alias,
-        globalOptions: commandGlobalOptions,
-      }),
+      entry === undefined ? rootPage(cli) : commandPage(cli, entry),
     );
   }
   if (flags.has("--schema")) return schemaAnswer(cli, global);
-  if (cliCommands(cli).some(({ name }) => name === command[0]))
-    return undefined;
+  if (isCommand(cli, command[0]!)) return undefined;
   return unknownCommandAnswer(cli, global, invocation);
 };
 

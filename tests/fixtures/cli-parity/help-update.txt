@@ -3,22 +3,12 @@ exit: 0
 --- stdout
 rea update — Update this REA installation and verify the installed release
 
-Usage: rea update
+Usage: rea update [options]
 
-Custom Global Options:
-  --timings  Write measured command timing to stderr.
+Options:
+  --upstream  Replace this fork build with npm's upstream release, which lacks the fork's clone-run commands
 
-Global Options:
-  --filter-output <keys>                      Filter output by key paths (e.g. foo,bar.baz,a[0,3])
-  --format <toon|json|yaml|md|jsonl|csv|tsv>  Output format
-  --full-output                               Show full output envelope
-  --help                                      Show help
-  --json                                      Shorthand for --format json
-  --llms, --llms-full                         Print LLM-readable manifest
-  --schema                                    Show JSON Schema for command
-  --token-count                               Print token count of output (instead of output)
-  --token-limit <n>                           Limit output to n tokens
-  --token-offset <n>                          Skip first n tokens of output
+Global options (--json, --format, --filter-output, --token-limit, --timings, ...): rea help options
 <end>
 --- stderr
 <end>

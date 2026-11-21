@@ -89,6 +89,7 @@ export const loadCliRuntime = async (
         selectedEnvironment: environment,
         resultOutput,
         registrations: selected.map((registration, index) => ({
+          id: ids[index],
           registration,
           module: modules[index],
         })),

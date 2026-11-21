@@ -45,7 +45,7 @@ export const unknownCommandReply = ({
     );
   const commands = [
     ...(replayable ? [{ command: corrected.join(" ") }] : []),
-    { command: `${parent} --help`, description: "see all available commands" },
+    { command: `${parent} --help`, description: "see the command index" },
   ];
   return {
     command: text(unknown),

@@ -1,0 +1,21 @@
+$ rea help start
+exit: 0
+--- stdout
+rea help start — Set up, check and update REA; guides; providers
+
+Usage: rea <command> [options]
+
+Commands:
+  capabilities      List provider capabilities and side effects
+  doctor            Check whether REA is ready
+  guidance          Search or read the installed REA workflow guidance
+  guided-workflows  List or render REA's existing guided workflows
+  providers         List configured analysis providers
+  setup             Configure agent integrations and optional analysis providers
+  uninstall         Remove REA-owned agent configuration and skill files
+  update            Update this REA installation and verify the installed release
+
+rea <command> --help shows a command's arguments and options.
+<end>
+--- stderr
+<end>
