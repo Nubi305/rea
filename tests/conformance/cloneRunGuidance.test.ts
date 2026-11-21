@@ -298,11 +298,11 @@ describe("clone run playbook", () => {
     const skill = await readFile(resolve(SKILL_PATH), "utf8");
     const description = /^description: (.*)$/mu.exec(skill)?.[1] ?? "";
     expect(description).toMatch(/rebuild \(clone\) a web application/u);
-    const routes = section(skill, "Route the target first");
-    const firstRoute = routes.slice(routes.indexOf("\n- "));
-    expect(firstRoute.slice(0, firstRoute.indexOf("\n- ", 1))).toContain(
-      `(${PLAYBOOK})`,
-    );
+    const rows = section(skill, "First step")
+      .split("\n")
+      .filter((line) => line.startsWith("| ") && !line.startsWith("| ---"));
+    // rows[0] is the header row.
+    expect(rows[1]).toContain(`(${PLAYBOOK})`);
   });
 
   it("states the exit status of each verdict as the code computes it", async () => {
