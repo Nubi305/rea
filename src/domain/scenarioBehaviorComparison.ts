@@ -852,7 +852,11 @@ const recordedBodySchema = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("not-recorded") }),
 ]);
 
-/** One side's observed behaviour per step, without addresses: `behavior/<scenario>.json`. */
+/**
+ * One side's observed behaviour per step: `behavior/<scenario>.json`. A page
+ * address is relative to the side's origin; texts and bodies are as the
+ * application gave them, its own address included where it prints it.
+ */
 export const scenarioBehaviorTableSchema = z.strictObject({
   table: z.literal("scenario-behavior"),
   captures: z.int().min(1),
