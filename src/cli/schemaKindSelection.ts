@@ -1,3 +1,5 @@
+import { isRecord } from "../kernel/isRecord.js";
+
 /**
  * `--schema-kind <kind,...>`: keep only the named alternatives of the
  * schema's unions that are told apart by a `kind` constant, such as the 58
@@ -10,18 +12,13 @@
 /** The flag that selects kinds in a `--schema` request. */
 export const SCHEMA_KIND_FLAG = "--schema-kind";
 
-type JsonObject = Readonly<Record<string, unknown>>;
-
-const isObject = (value: unknown): value is JsonObject =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 const UNION_KEYS = ["oneOf", "anyOf"] as const;
 
 /** The `kind` constants an alternative stands for, or undefined when none. */
 const alternativeKinds = (schema: unknown): readonly string[] | undefined => {
-  if (!isObject(schema)) return undefined;
+  if (!isRecord(schema)) return undefined;
   const properties = schema.properties;
-  if (isObject(properties) && isObject(properties.kind)) {
+  if (isRecord(properties) && isRecord(properties.kind)) {
     const kind = properties.kind;
     if (typeof kind.const === "string") return [kind.const];
     if (
@@ -56,7 +53,7 @@ export const selectSchemaKinds = (
   const available = new Set<string>();
   const visit = (node: unknown, outermost: boolean): unknown => {
     if (Array.isArray(node)) return node.map((item) => visit(item, outermost));
-    if (!isObject(node)) return node;
+    if (!isRecord(node)) return node;
     for (const key of UNION_KEYS) {
       const alternatives = node[key];
       if (!Array.isArray(alternatives)) continue;

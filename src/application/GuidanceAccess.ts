@@ -533,6 +533,7 @@ const CURSOR_DIGEST_LENGTH = 16;
 const SHORT_CURSOR = /^p(\d{1,9})\.([a-f0-9]{16})\.([a-f0-9]{16})$/u;
 
 const encodeGuidanceCursor = (cursor: GuidanceCursor): string =>
+  // generation-cap: a digest prefix that names the bundle and query, not a list.
   `p${cursor.offset}.${cursor.bundle.slice(0, CURSOR_DIGEST_LENGTH)}.${cursor.query.slice(0, CURSOR_DIGEST_LENGTH)}`;
 
 /** The short cursor, or the earlier `rea-guidance-page-v1.` form. */

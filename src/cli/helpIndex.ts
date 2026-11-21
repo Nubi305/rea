@@ -1,3 +1,4 @@
+import { ellipsisExcerpt } from "../domain/excerpt.js";
 import { cliCommands, type CliCommandEntry } from "./commandRegistry.js";
 import { formatHelpIndex, type HelpCommandRow } from "./help.js";
 import {
@@ -30,9 +31,7 @@ export const listedDescription = (description: string | undefined): string => {
   if (description === undefined) return "";
   const sentence = /^.*?[.!?](?=\s|$)/u.exec(description)?.[0] ?? description;
   const text = sentence.endsWith(".") ? sentence.slice(0, -1) : sentence;
-  return text.length <= LISTED_DESCRIPTION_LIMIT
-    ? text
-    : `${text.slice(0, LISTED_DESCRIPTION_LIMIT - 1).trimEnd()}…`;
+  return ellipsisExcerpt(text, LISTED_DESCRIPTION_LIMIT - 1);
 };
 
 /** Commands by family id, sorted by name, in family order. */

@@ -1,3 +1,4 @@
+import { ellipsisExcerpt } from "../domain/excerpt.js";
 import type { GuideSection } from "./GuidanceSections.js";
 
 /**
@@ -249,10 +250,10 @@ export const contextFor = (
       best = line;
     }
   }
-  const text = best.replaceAll(/\s+/gu, " ").trim();
-  return text.length <= CONTEXT_LIMIT
-    ? text
-    : `${text.slice(0, CONTEXT_LIMIT - 1).trimEnd()}…`;
+  return ellipsisExcerpt(
+    best.replaceAll(/\s+/gu, " ").trim(),
+    CONTEXT_LIMIT - 1,
+  );
 };
 
 export const compareText = (left: string, right: string): number =>
