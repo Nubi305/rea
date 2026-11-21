@@ -1,7 +1,9 @@
+import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
 import {
   appendFile,
   copyFile,
+  lstat,
   mkdir,
   readFile,
   readdir,
@@ -10,9 +12,11 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { promisify } from "node:util";
 
 import { expect, it } from "vitest";
 
+import { readWithoutFifoWriter } from "../../../tests/fixtures/fifoInput.js";
 import { createTestTempDirectory } from "../../../tests/fixtures/temporaryDirectory.js";
 import { AnalysisInputError } from "../../domain/analysisErrorCore.js";
 import { browserScenarioSchema } from "../../domain/browserScenario.js";
@@ -698,7 +702,11 @@ it("blocks on a changed, unknown or unstable step and says who does what", async
   expect(oneSided.counts.ungated_steps).toBe(1);
   expect(
     oneSided.next.find((entry) => entry.step_id === "fp-list"),
-  ).toMatchObject({ reason: "parity_unknown", role: "verifier", side: "clone" });
+  ).toMatchObject({
+    reason: "parity_unknown",
+    role: "verifier",
+    side: "clone",
+  });
   // Data no capture of either side recorded is only counted on a setup or fingerprint step.
   await observedBy("original", [
     { create: MISSING, open: "a", "setup-seed": "x", "fp-list": MISSING },
@@ -1416,6 +1424,240 @@ it("names the recorded cause of a step that did not complete or is unsteady, and
   });
   expect(collapsed.next[0]?.message).toContain(
     "Steps fp-list, setup-seed, create and open of scenario notes differ",
+  );
+});
+
+it("collapses the unsteady findings of one field into one item with the every-step declaration", async () => {
+  const { run } = await scaffold();
+  await evaluate(run);
+  const stamp = (request: string, expected: string) => ({
+    status: "unstable" as const,
+    finding: {
+      category: "undeclared-volatile",
+      side: "left" as const,
+      pointer: "/items/*/createdAt",
+      request,
+      expected,
+    },
+  });
+  const gate = await evaluateScripted(run, {
+    "setup-seed": stamp("POST /api/seed#1", '"t0" | "t9"'),
+    create: stamp("POST /api/notes#1", '"t1" | "t2"'),
+    open: stamp("GET /api/notes#1", '"t3" | "t4"'),
+  });
+  // Each behaviour step still counts; the setup step is unsteady and not gated.
+  expect(gate.blocking).toEqual([{ reason: "parity_unstable", count: 2 }]);
+  expect(gate.counts.ungated_steps).toBe(1);
+  expect(gate.next).toHaveLength(1);
+  const [unsteady] = gate.next;
+  expect(unsteady).toMatchObject({
+    role: "lead",
+    side: "original",
+    file: "intended-differences.json",
+    step_id: "create",
+    step_ids: ["create", "open"],
+    pointer: "/items/*/createdAt",
+  });
+  expect(unsteady?.message).toContain(
+    '{"scenario":"notes","step_id":"*","pointer":"/items/*/createdAt","reason":"<why it varies>"}',
+  );
+  expect(unsteady?.message).toContain(
+    "honoured only at the steps where the original's captures differ",
+  );
+  // The steps name different requests, so the first one's is not printed as if it were every step's.
+  expect(unsteady?.message).toContain(
+    'Steps create and open of scenario notes: body /items/*/createdAt differs between the original\'s own captures (at create: "t1" | "t2")',
+  );
+  // The other usual cause comes with its command, as the verifier's item for the clone has it.
+  expect(unsteady?.message).toContain(
+    `rm '${join(run, "evidence", "original", "notes", "run-1.json")}' '${join(run, "evidence", "original", "notes", "run-2.json")}'`,
+  );
+  // Another field is another line of work, and a single step keeps its own step id in the entry.
+  const two = await evaluateScripted(run, {
+    create: stamp("POST /api/notes#1", '"t1" | "t2"'),
+    open: {
+      status: "unstable",
+      finding: {
+        category: "undeclared-volatile",
+        side: "left",
+        pointer: "/items/*/id",
+      },
+    },
+  });
+  expect(two.next).toHaveLength(2);
+  expect(two.next[0]?.message).toContain(
+    '{"scenario":"notes","step_id":"create","pointer":"/items/*/createdAt","reason":"<why it varies>"}',
+  );
+});
+
+it("tells a download and a page fetched by a request step from a difference to build", async () => {
+  const { run } = await scaffold();
+  await evaluate(run);
+  const lost = (side: "left" | "right", request: string) => ({
+    category: "not-recorded",
+    side,
+    request,
+    pointer: null,
+  });
+  const both = (request: string) => ({
+    status: "unknown" as const,
+    finding: lost("left", request),
+    more: [lost("right", request)],
+  });
+  // A click that saves a file: no capture of either side records the body, so no capture command is given.
+  const download = item(
+    await evaluateScripted(run, { open: both("GET /export.csv#1") }),
+    "parity_unknown",
+  );
+  expect(download).toMatchObject({
+    role: "prober",
+    file: "scenarios/notes.json",
+    step_id: "open",
+    command: `rea evaluate-clone-run '${run}' --exit-code`,
+  });
+  for (const text of [
+    "body of GET /export.csv#1 was recorded by no capture of either side",
+    "no capture command is given",
+    "the prober adds a request step for the same path to scenarios/notes.json",
+    "renames it setup-open",
+  ])
+    expect(download.message).toContain(text);
+  expect(download.message).not.toContain("one more can supply it");
+  // A request step whose reply is over the limit on both sides: a smaller reply, or setup-.
+  const large = item(
+    await evaluateScripted(run, { create: both("POST /api/notes#1") }),
+    "parity_unknown",
+  );
+  expect(large.message).toContain("this reply is larger on both sides");
+  expect(large.message).toContain("request a smaller reply");
+  // Missing on one side only: captures fold, so that side is captured again, and a prefix is not the way out.
+  const oneSided = item(
+    await evaluateScripted(run, {
+      create: {
+        status: "unknown",
+        finding: lost("right", "POST /api/notes#1"),
+      },
+    }),
+    "parity_unknown",
+  );
+  expect(oneSided).toMatchObject({ role: "verifier", side: "clone" });
+  expect(oneSided.command).toContain("/evidence/clone/notes/run-3.json'");
+  for (const text of [
+    "was not recorded on the clone, and the original's captures recorded it",
+    "Captures fold, so one more can supply it",
+    "it blocks on a setup- step too",
+  ])
+    expect(oneSided.message).toContain(text);
+  expect(oneSided.message).not.toContain("renames it setup-");
+
+  // A request step that fetches a page compares markup byte for byte: the scenario is the remedy, not the clone.
+  const markup = (first: string) =>
+    JSON.stringify(`${first}\n<html lang="en"><head><title>Topics</title>`);
+  const page = item(
+    await evaluateScripted(run, {
+      create: {
+        status: "changed",
+        finding: {
+          pointer: "",
+          request: "GET /about#1",
+          expected: markup("<!doctype html>"),
+          actual: markup("<!DOCTYPE html>"),
+        },
+      },
+    }),
+    "parity_changed",
+  );
+  expect(page).toMatchObject({
+    role: "prober",
+    file: "scenarios/notes.json",
+    step_id: "create",
+  });
+  for (const text of [
+    "Both replies are HTML pages, and a request step compares a reply byte for byte",
+    "A page is compared by its on-screen text, through a goto step",
+    "that one is the builder's",
+  ])
+    expect(page.message).toContain(text);
+  expect(page.message).not.toContain("Change the clone");
+  // The same difference in a reply that is not a page stays the builder's.
+  const data = item(
+    await evaluateScripted(run, {
+      create: {
+        status: "changed",
+        finding: { pointer: "", expected: '"a,b\\n1,2"', actual: '"a;b"' },
+      },
+    }),
+    "parity_changed",
+  );
+  expect(data.role).toBe("builder");
+  expect(data.message).toContain("Change the clone");
+});
+
+it("prints a command that runs when target.json cannot say how the run spells the CLI", async () => {
+  const folder = await scaffold();
+  const { run } = folder;
+  await editJson(join(run, "target.json"), (file) => {
+    file.rea_command = "node /opt/rea/scripts/rea.mjs";
+  });
+  await captureBoth(folder);
+  await writeJson(join(run, "unknowns", "prober-1.json"), {
+    statement: "Open question.",
+  });
+  const target = await readFile(join(run, "target.json"), "utf8");
+  // A refused file that still states its spelling keeps it.
+  await writeFile(
+    join(run, "target.json"),
+    JSON.stringify({ rea_command: "node /opt/rea/scripts/rea.mjs" }),
+  );
+  const stated = await evaluate(
+    run,
+    fakeComparer(),
+    "'/usr/bin/node' '/x/rea.mjs'",
+  );
+  expect(new Set(stated.next.map(({ command }) => command))).toEqual(
+    new Set([
+      `node /opt/rea/scripts/rea.mjs evaluate-clone-run '${run}' --exit-code`,
+    ]),
+  );
+  // A file cut in the middle states nothing: the command is the one this evaluation was started with, never one read back from gate.json.
+  await writeFile(join(run, "target.json"), target.slice(0, 300));
+  const cut = await evaluate(
+    run,
+    fakeComparer(),
+    "'/usr/bin/node' '/x/rea.mjs'",
+  );
+  expect(cut.blocking.map(({ reason }) => reason)).toEqual([
+    "target_invalid",
+    "unknown_open",
+  ]);
+  expect(new Set(cut.next.map(({ command }) => command))).toEqual(
+    new Set([
+      `'/usr/bin/node' '/x/rea.mjs' evaluate-clone-run '${run}' --exit-code`,
+    ]),
+  );
+  expect(item(cut, "target_invalid").message).toContain(
+    "target.json could not be read for how this run spells the CLI (rea_command), so the command is spelled the way this evaluation was started",
+  );
+  // The outlook names the check that kept this evaluation from being judged, not captures that are all in place.
+  expect(cut.stall.judged).toBe(false);
+  expect(cut.stall.outlook).toContain(
+    "Not judged: target.json is refused (check scope, reason target_invalid)",
+  );
+  expect(cut.stall.outlook).not.toContain("lacks admitted captures");
+  // Without a known invocation the item says which command applies.
+  const unknown = await evaluate(run);
+  expect(item(unknown, "target_invalid").message).toContain(
+    "run the same command that was just run",
+  );
+  // Each other cause of an unjudged evaluation is named as itself.
+  await writeFile(join(run, "target.json"), target);
+  await rm(join(run, "evidence", "clone", "notes", "run-2.json"));
+  expect((await evaluate(run)).stall.outlook).toContain(
+    "Not judged: a scenario lacks admitted captures on a side (check evidence)",
+  );
+  await rm(folder.cloneRoot, { recursive: true });
+  expect((await evaluate(run)).stall.outlook).toContain(
+    "Not judged: the clone root is missing (check scope, reason clone_root_missing)",
   );
 });
 
@@ -2192,6 +2434,57 @@ it("repairs a journal that ends in a partial line instead of joining the next en
       .success,
   ).toBe(true);
 });
+
+it.skipIf(process.platform === "win32")(
+  "never opens a journal that is not a regular file, and writes its own in its place",
+  async () => {
+    const folder = await scaffold();
+    const { run } = folder;
+    await captureBoth(folder, { observed: { create: "other" } });
+    const journal = join(run, "journal.jsonl");
+    const judgedOnce = await evaluate(run);
+    expect(judgedOnce.stall).toMatchObject({ round: 1, attempts: 1 });
+    // A named pipe an agent left there: reading it would wait for a writer forever.
+    await rm(journal);
+    await promisify(execFile)("mkfifo", [journal]);
+    const piped = await readWithoutFifoWriter(journal, () =>
+      evaluateCloneRun(run, {
+        comparer: fakeComparer(),
+        digestTree: digestCloneTree,
+        now: () => new Date((clock += 1000)),
+        hostResolver,
+      }),
+    );
+    if (piped.state !== "completed")
+      throw new Error("The referee waited for a writer on journal.jsonl");
+    // The same verdict as with no journal: the pipe decides nothing and is replaced by the referee's own file.
+    expect(piped.result.ok && piped.result.value).toMatchObject({
+      verdict: "not_done",
+      stall: { round: 1, attempts: 1 },
+    });
+    expect((await lstat(journal)).isFile()).toBe(true);
+    expect(await readJournal(run)).toHaveLength(1);
+    // A link is not the referee's own output either: it is not read through, here to a file of nine judged rounds.
+    const [line] = await readJournal(run);
+    const other = join(folder.base, "other-journal.jsonl");
+    await writeFile(
+      other,
+      `${Array.from({ length: 9 }, (_, round) =>
+        JSON.stringify({
+          ...line,
+          clone_tree_sha256: `${"0".repeat(63)}${round}`,
+        }),
+      ).join("\n")}\n`,
+    );
+    await rm(journal);
+    await symlink(other, journal);
+    expect(await evaluate(run)).toMatchObject({
+      verdict: "not_done",
+      stall: { round: 1, attempts: 1 },
+    });
+    expect((await lstat(journal)).isFile()).toBe(true);
+  },
+);
 
 it("rejects an Evidence entry that is not a regular file and never offers its name to a capture", async () => {
   const folder = await scaffold();

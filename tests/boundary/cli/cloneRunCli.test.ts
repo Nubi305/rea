@@ -1,5 +1,7 @@
+import { execFile } from "node:child_process";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { promisify } from "node:util";
 
 import { describe, expect } from "vitest";
 
@@ -328,6 +330,48 @@ describe("rea evaluate-clone-run", () => {
   });
 
   cliTest(
+    "prints a command that runs as printed when target.json cannot be read",
+    async ({ cli }) => {
+      const root = await createTestTempDirectory("rea-clone-run-cli-");
+      const directory = join(root, "run");
+      const created = await run(
+        cli,
+        initArguments(directory, join(root, "clone")),
+      );
+      expect(created.exitCode, created.stdout + created.stderr).toBe(0);
+      const target = await readFile(join(directory, "target.json"), "utf8");
+      await writeFile(join(directory, "target.json"), target.slice(0, 300));
+      const cut = await run(cli, [
+        "evaluate-clone-run",
+        directory,
+        "--exit-code",
+      ]);
+      expect(cut.exitCode, cut.stdout + cut.stderr).toBe(1);
+      const gate = cloneRunGateSchema.parse(cut.json);
+      const [first] = gate.next;
+      expect(first?.reason).toBe("target_invalid");
+      // The file cannot say how the run spells the CLI, and `rea` need not be on PATH: the command is this process's own start.
+      const command = first?.command ?? "";
+      expect(command).toBe(
+        `'${process.execPath}' '${resolve("scripts/rea.mjs")}' evaluate-clone-run '${directory}' --exit-code`,
+      );
+      expect(first?.message).toContain(
+        "so the command is spelled the way this evaluation was started",
+      );
+      expect(gate.stall.outlook).toContain(
+        "Not judged: target.json is refused",
+      );
+      // It runs as printed, without reading any referee output back: the same verdict by exit status.
+      await writeFile(join(directory, "gate.json"), "{}");
+      const again = await promisify(execFile)("sh", ["-c", command]).then(
+        () => 0,
+        (cause: { readonly code?: unknown }) => cause.code,
+      );
+      expect(again).toBe(1);
+    },
+  );
+
+  cliTest(
     "refuses a folder that is not a run, with or without --exit-code",
     async ({ cli }) => {
       const root = await createTestTempDirectory("rea-clone-run-cli-");
@@ -491,6 +535,11 @@ describe("clone-run command help", () => {
         "evaluate, do next, evaluate",
       ])
         expect(evaluate).toContain(text);
+      // The values that leave gating off are said where the flag is read: =1 does not mean on.
+      for (const text of [compare, evaluate])
+        expect(text.replaceAll(/\s+/gu, " ")).toContain(
+          "Only the bare flag or =true turns it on",
+        );
     },
   );
 });

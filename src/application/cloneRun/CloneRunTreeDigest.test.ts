@@ -7,6 +7,7 @@ import { createTestTempDirectory } from "../../../tests/fixtures/temporaryDirect
 import { sha256Hex } from "../../kernel/sha256Hex.js";
 import { cloneFilesNamingOriginal } from "./CloneRunCleanRoom.js";
 import {
+  cloneTreeLinkTextLeavesRoot,
   cloneTreeSha256,
   digestCloneTree,
   digestOriginalMaterial,
@@ -128,6 +129,37 @@ it("records a link by its text and lists those that leave the root or enter an e
       ])
     ).unsafeLinks,
   ).toEqual([]);
+});
+
+it("lists a link whose text rises above the root, also when it comes back in by the root's own name", async () => {
+  const base = await createTestTempDirectory("clone-tree-link-walk-");
+  const root = join(base, "clone");
+  await mkdir(join(root, "sub", "deep"), { recursive: true });
+  await writeFile(join(root, "sub", "real.mjs"), "export const real = 1;\n");
+  // Out and back in: it resolves inside the root today and names the root from outside.
+  await symlink("../clone/sub/real.mjs", join(root, "back.mjs"));
+  await symlink("../../clone/sub/real.mjs", join(root, "sub", "back.mjs"));
+  await symlink(
+    "deep/../../../clone/sub/real.mjs",
+    join(root, "sub", "late.mjs"),
+  );
+  // An absolute text names the root from outside as well.
+  await symlink(join(root, "sub", "real.mjs"), join(root, "absolute.mjs"));
+  // Links that stay inside on every segment of their way are not listed.
+  await symlink("sub/real.mjs", join(root, "plain.mjs"));
+  await symlink("../real.mjs", join(root, "sub", "deep", "up-one.mjs"));
+  await symlink("./deep/../real.mjs", join(root, "sub", "around.mjs"));
+  await symlink("../sub/deep/../real.mjs", join(root, "sub", "sibling.mjs"));
+  expect((await digest(root)).unsafeLinks).toEqual([
+    { path: "absolute.mjs", cause: "outside" },
+    { path: "back.mjs", cause: "outside" },
+    { path: "sub/back.mjs", cause: "outside" },
+    { path: "sub/late.mjs", cause: "outside" },
+  ]);
+  expect(cloneTreeLinkTextLeavesRoot("a/b/link", "../../x")).toBe(false);
+  expect(cloneTreeLinkTextLeavesRoot("a/b/link", "../../../x")).toBe(true);
+  expect(cloneTreeLinkTextLeavesRoot("link", "x/../../clone/y")).toBe(true);
+  expect(cloneTreeLinkTextLeavesRoot("link", "x//./y/../..")).toBe(false);
 });
 
 it("refuses a root that is absent or not a directory", async () => {

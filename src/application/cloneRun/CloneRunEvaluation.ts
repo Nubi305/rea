@@ -620,10 +620,17 @@ const incompleteStep = (
   }`;
 };
 
-/** Whether a recorded value is a text reply that starts as an HTML page (`bodyLeaves` shows a text body under "text body"). */
+/**
+ * Whether a finding's value is a text reply that starts as an HTML page. The
+ * comparer shows a text body as a JSON string, or under "text body" where it
+ * names the difference itself; a long page is cut to an excerpt either way,
+ * so only its start is read.
+ */
 const isHtmlReply = (value: string | null | undefined): boolean =>
   value != null &&
-  /^\{"text body":"(?:\\[nrt]|\s)*<(?:!doctype html|html[\s>\\])/iu.test(value);
+  /^(?:\{"text body":)?"(?:\\[nrt]|\s)*<(?:!doctype html|html[\s>\\])/iu.test(
+    value,
+  );
 
 /** A request line only the clone sent, where the original's own request lines vary: the finding carries the clone's line as its right value. */
 const isCloneOnlyRequest = (finding: ScenarioBehaviorFinding): boolean =>
@@ -1118,7 +1125,8 @@ const materialSources = async (
 
 const UNSAFE_LINK_TEXT: Readonly<Record<CloneTreeUnsafeLink["cause"], string>> =
   {
-    outside: "that leads outside the clone root",
+    outside:
+      "that leads outside the clone root: its text is an absolute path or rises above the root with .. (also when it comes back in by the root's own name), or its target lies outside",
     excluded: "that leads under an excluded path",
     unresolved:
       "that cannot be resolved now (its target is absent, or the links loop)",
