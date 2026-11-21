@@ -34,26 +34,29 @@ An agent, on any model and in any client, pays as little context as possible to:
 repository. It measures scripted tasks in bytes, in the repository's own estimate and in real BPE tokens
 (o200k as the proxy; no tokenizer for the models agents run on exists offline). `ceilings.json` holds the
 current value of every row as a ceiling that only ratchets down, and the target. The rows that matter most,
-with their values on the synced base (commit 6928a7e) and targets:
+with where each started (the synced base, commit 6928a7e), where it stands, and its target:
 
-| Row                                                                 | Now                         | Target                       |
-| ------------------------------------------------------------------- | --------------------------- | ---------------------------- |
-| `mcp.ten-calls.default` (ten MCP calls, default arguments)          | 118,158 tokens              | at most 20,000               |
-| `mcp.ten-calls.summary` (a summary asked each time)                 | 10,914 tokens               | at most 9,700, stretch 7,100 |
-| `mcp.status.default`                                                | 18,615 B                    | at most 8,000 B              |
-| `mcp.bundle.default`                                                | 349,485 B                   | lean by default              |
-| `cli.census-full.largest` (largest first answer, repository inputs) | 1,023,454 B                 | at most the budget           |
-| `cli.census-full.total` (54 calls)                                  | 3.9 MB                      | under 300 KB                 |
-| `cli.mistakes.largest` (largest error)                              | 1,022,704 B                 | at most 1,500 B              |
-| `cli.help`                                                          | 29,652 B                    | index at most 3,000 B        |
-| `cli.setup.one-client`                                              | 6,675 tokens                | at most 1,500                |
-| `guidance.search.mean`                                              | 1,751 tokens                | at most 600                  |
-| `skill.body`                                                        | 10,879 tokens               | at most 1,500                |
-| `skill.loaded-per-request` (fifteen requests)                       | 14,115 tokens               | at most 2,000                |
-| `skill.routes-clear`                                                | 7 of 15                     | at least 13                  |
-| `clone.loop.stdout` (one scenario's loop)                           | 31,183 tokens               | at most 5,000                |
-| `clone.verdict.ten-items`                                           | 8,050 characters            | at most 6,000                |
-| `clone.step-read`                                                   | 1,511 tokens on the fixture | at most 700                  |
+| Row                                                        | At the start     | Now (work branch) | On a branch, not merged yet | Target                                                  |
+| ---------------------------------------------------------- | ---------------- | ----------------- | --------------------------- | ------------------------------------------------------- |
+| `mcp.ten-calls.default` (ten MCP calls, default arguments) | 118,158 tokens   | 117,394           | 12,085 (MCP budget)         | at most 20,000                                          |
+| `mcp.ten-calls.summary` (a summary asked each time)        | 10,914 tokens    | 9,575             |                             | at most 9,700, stretch 7,100                            |
+| `mcp.status.default`                                       | 18,615 B         | 18,613            | 4,754 (MCP budget)          | at most 8,000 B                                         |
+| `mcp.bundle.default`                                       | 349,485 B        | 345,552           | 4,956 (MCP budget)          | lean by default                                         |
+| `mcp.page.one-row`                                         | 7,655 B          | 2,105             |                             | none set                                                |
+| `cli.census.largest` (largest first answer, fifteen calls) | 1,022,330 B      | 1,022,330         | being wired (CLI budget)    | at most the budget                                      |
+| `cli.mistakes.largest` (largest error)                     | 1,022,704 B      | 1,022,704         | being wired (CLI budget)    | at most 1,500 B                                         |
+| `cli.help`                                                 | 29,652 B         | 1,990             |                             | index at most 3,000 B                                   |
+| `cli.setup.one-client`                                     | 6,675 tokens     | 643               |                             | at most 1,500                                           |
+| `guidance.search.mean`                                     | 1,751 tokens     | 274               |                             | at most 600                                             |
+| `skill.body`                                               | 10,879 tokens    | 1,572             |                             | at most 1,650 (was 1,500; see the routing decisions)    |
+| `skill.loaded-per-request` (fifteen requests)              | 14,115 tokens    | 2,952             |                             | at most 2,000 (missed: two requests need a whole guide) |
+| `skill.routes-clear`                                       | 7 of 15          | 15 of 15          |                             | at least 13                                             |
+| `clone.loop.stdout` (one scenario's loop)                  | 31,183 tokens    | 33,906            | 3,028 (round 3 referee)     | at most 5,000                                           |
+| `clone.verdict.ten-items`                                  | 8,050 characters | 8,050             | 4,868 (round 3 referee)     | at most 6,000                                           |
+| `clone.step-read`                                          | 1,511 tokens     | 1,250             | 561 (round 3 referee)       | at most 700                                             |
+
+Values are as of 2026-11-21, commit 16996a8. `scripts/context-ledger/ceilings.json` is the source of truth
+for the "now" column from then on.
 
 The audit's own census (121 calls on inputs outside the repository) measured 24.8 MB of first answers with a
 largest of 15.9 MB; with the answer budget at 6,000 bytes the simulated total is 371 KB, and that row's
@@ -71,6 +74,12 @@ scenarios, found two rules only partly matched and seven differences no step pro
 **J3, the task benchmark** (agents in the loop): `bench/tasks/`, eighteen small reverse-engineering questions
 with answers a script checks, plus a floor cell. Per run: right or wrong per fact, whether the first REA
 command was the expected one, peak context, tokens, and what filled the context.
+
+Results so far (2026-11-21, one sample per cell; `bench/results/tasks/2026-11-21-r1-notes.md` has the
+detail). Agent label `a1`: 18 of 18 tasks right on every build; prompt tokens over all cells 15.9 million on
+the first build, 12.0 million with the router skill, 9.4 million with tool-side routing and summaries that
+answer. Agent label `b1` (a smaller agent): 18 of 18, then 16 of 18 with the router skill alone, then 18 of
+18 again; 21.4, 19.2 and 13.4 million prompt tokens. The answer budget is in none of these builds yet.
 
 J1 gates every change. J2 and J3 are run before and after each wave on the same applications and questions.
 Agents under test reach REA through the CLI and the installed skill only; the MCP surface is judged by J1.
