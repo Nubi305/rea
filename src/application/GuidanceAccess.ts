@@ -304,7 +304,8 @@ const searchGuidanceInScope = async (
       source: SOURCE,
       content_kind: "documentation",
       package: `${PRODUCT_IDENTITY.packageName}@${PRODUCT_IDENTITY.packageVersion}`,
-      bundle_sha256: bundle.digest,
+      // No bundle digest here: each locator binds its section and the cursor
+      // binds the bundle; a section or contents read reports the digest.
       query: parsed.data.query,
       matches: page.map(presentMatch),
       total_matches: ranked.length,

@@ -34,7 +34,6 @@ export const searchGuidanceOutputSchema = z.discriminatedUnion("status", [
     source: z.literal("installed_rea_guidance"),
     content_kind: z.literal("documentation"),
     package: z.string(),
-    bundle_sha256: z.string().length(64),
     query: z.string(),
     matches: z.array(
       z.strictObject({

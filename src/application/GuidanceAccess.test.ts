@@ -501,15 +501,26 @@ it("lists the guides and their headings with locators that read", async () => {
   ).toMatchObject({ ok: false });
 });
 
-it("still reads a locator in the earlier long form", async () => {
-  const result = await valueOf(
+it("leaves the bundle digest out of a search reply and reports it on a read", async () => {
+  const search = await valueOf(
     searchGuidanceWithReader(
       { query: "betaword" },
       nestedReader,
       new ArtifactResourceScope(),
     ),
   );
-  if (result.status !== "matches") throw new Error("Expected matches");
+  if (search.status !== "matches") throw new Error("Expected matches");
+  expect(search).not.toHaveProperty("bundle_sha256");
+  const read = await readSection(search.matches[0]!.locator);
+  expect(read).toMatchObject({
+    status: "section",
+    bundle_sha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+  });
+});
+
+it("still reads a locator in the earlier long form", async () => {
+  const result = await readSection("contents");
+  if (result.status !== "contents") throw new Error("Expected contents");
   const content = "### Step beta\n\nUse betaword here.";
   const long = `rea-guide-v1.${Buffer.from(
     JSON.stringify({
