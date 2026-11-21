@@ -900,6 +900,370 @@ it("reports one on-screen text difference once, and judges unsteady text at ever
   expect(ticking.limitations).toEqual([]);
 });
 
+it("reads a right side that is wrong in every second capture as unstable in every dimension, never as unchanged", async () => {
+  const act = (wrong: {
+    text?: string;
+    page?: string;
+    status?: number;
+    send?: JsonValue;
+    reply?: JsonValue;
+  }): Step[] => [
+    list,
+    {
+      id: "act",
+      page: wrong.page ?? "/a",
+      text: wrong.text ?? "ready",
+      calls: [
+        {
+          line: "POST /api/thing",
+          status: wrong.status ?? 200,
+          send: wrong.send ?? { q: 1 },
+          reply: { json: wrong.reply ?? { a: 1, b: 2 } },
+        },
+      ],
+    },
+  ];
+  const good = act({});
+  for (const [wrong, finding] of [
+    [act({ text: "BAD" }), "text/repeats-differ right -"],
+    [act({ page: "/b" }), "page_address/repeats-differ right -"],
+    [act({ status: 500 }), "status/repeats-differ right POST /api/thing#1"],
+    [act({ send: { q: 2 } }), "request/repeats-differ right POST /api/thing#1"],
+    [act({ reply: { a: 1, b: 9 } }), "body/repeats-differ right /b"],
+  ] as const) {
+    expect(brief(await compare([good, good], [good, wrong]), "act")).toEqual([
+      "unstable",
+      finding,
+    ]);
+    // Wrong in two of three captures, in any order.
+    expect(
+      brief(await compare([good, good], [wrong, good, wrong]), "act"),
+    ).toEqual(["unstable", finding]);
+    // Wrong in every capture is the difference.
+    expect(
+      stepOf(await compare([good, good], [wrong, wrong]), "act").status,
+    ).toBe("changed");
+  }
+  // Wrong at another leaf in each capture: each leaf agrees once, so each is unsteady and the step is not a match.
+  expect(
+    brief(
+      await compare(
+        [good, good],
+        [act({ reply: { a: 1, b: 9 } }), act({ reply: { a: 9, b: 2 } })],
+      ),
+      "act",
+    ),
+  ).toEqual([
+    "unstable",
+    "body/repeats-differ right /a",
+    "body/repeats-differ right /b",
+  ]);
+});
+
+it("holds what the left sends steadily against the right beside a request line that varies", async () => {
+  const steady: Call = { line: "GET /api/steady", reply: { json: { s: 1 } } };
+  const poll = (nonce: number, calls: Call[] = [steady], n = 1): Step[] => [
+    list,
+    {
+      id: "act",
+      calls: [
+        { line: `GET /api/poll?_=${String(nonce)}`, reply: { json: { n } } },
+        ...calls,
+      ],
+    },
+  ];
+  const left = [poll(1), poll(2)];
+  const status = async (right: Step[][]) =>
+    stepOf(await compare(left, right), "act").status;
+  // The control: only the varying line differs.
+  expect(await status([poll(3), poll(4)])).toBe("unstable");
+  // A wrong reply to the steady request, and the steady request left out.
+  expect(
+    await status([
+      poll(3, [{ ...steady, reply: { json: { s: 2 } } }]),
+      poll(4, [{ ...steady, reply: { json: { s: 2 } } }]),
+    ]),
+  ).toBe("changed");
+  expect(await status([poll(3, []), poll(4, [])])).toBe("changed");
+  // A request the right adds in every capture cannot contradict request lines that vary: unstable, not a match.
+  const extra: Call = { line: "POST /api/extra", reply: { json: {} } };
+  const added = await compare(left, [
+    poll(3, [steady, extra]),
+    poll(4, [steady, extra]),
+  ]);
+  expect(brief(added, "act")).toContain(
+    "request/repeats-differ left POST /api/extra#1",
+  );
+  expect(stepOf(added, "act").status).toBe("unstable");
+  // The reply to a line no other capture sends is compared with nothing: the step stays unstable.
+  expect(await status([poll(3, [steady], 999), poll(4, [steady], 999)])).toBe(
+    "unstable",
+  );
+});
+
+it("gives a wrong text that first appears on a later step a finding of its own", async () => {
+  const pages = (...texts: string[]): Step[] => [
+    list,
+    ...texts.map((text, index) => ({ id: `s${String(index + 1)}`, text })),
+  ];
+  const statuses = async (left: Step[], right: Step[][]) =>
+    (await compare([left, left], right)).steps
+      .slice(2)
+      .map(({ status }) => status);
+  const twice = (steps: Step[]): Step[][] => [steps, steps];
+  // Equal at first, wrong from the second step on: found there, carried after.
+  expect(
+    await statuses(
+      pages("home", "saved", "saved"),
+      twice(pages("home", "failed", "failed")),
+    ),
+  ).toEqual(["unchanged", "changed", "unchanged"]);
+  // A second wrong text after a carried one, on both sides or on either alone.
+  expect(
+    await statuses(pages("A", "A", "B", "B"), twice(pages("X", "X", "Y", "Y"))),
+  ).toEqual(["changed", "unchanged", "changed", "unchanged"]);
+  expect(
+    await statuses(pages("A", "A", "B"), twice(pages("X", "X", "X"))),
+  ).toEqual(["changed", "unchanged", "changed"]);
+  expect(
+    await statuses(pages("A", "A", "A"), twice(pages("X", "X", "Y"))),
+  ).toEqual(["changed", "unchanged", "changed"]);
+  // The right's text comes to equal the left's and goes wrong again.
+  expect(
+    await statuses(pages("A", "A", "A"), twice(pages("X", "A", "X"))),
+  ).toEqual(["changed", "unchanged", "changed"]);
+  // Wrong in one right capture only, from a later step on: unsteady at every step that shows it, never carried.
+  expect(
+    await statuses(pages("A", "A", "A"), [
+      pages("A", "A", "A"),
+      pages("A", "X", "X"),
+    ]),
+  ).toEqual(["unchanged", "unstable", "unstable"]);
+  // First shown on a setup step: that step is the difference, and the next one carries it.
+  const setup = (text: string): Step[] => [
+    list,
+    { id: "setup-open", text },
+    { id: "read", text },
+  ];
+  const opened = await compare(twice(setup("A")), twice(setup("WRONG")));
+  expect(brief(opened, "setup-open")).toEqual(["changed", "text/value - -"]);
+  expect(brief(opened, "read")).toEqual(["unchanged"]);
+  expect(opened.limitations).toEqual([
+    expect.stringContaining("text difference at step setup-open"),
+  ]);
+});
+
+it("honours a declaration for every step only at the steps and requests where the left varies", async () => {
+  const slug = (line: string, value: string): Call => ({
+    line,
+    reply: { json: { slug: value } },
+  });
+  const steps = (
+    fresh: string,
+    second: string,
+    third = "steady",
+  ): Step[] => [
+    { id: "fp-notes", calls: [slug("GET /api/notes", fresh)] },
+    { id: "one", calls: [slug("GET /api/a", fresh)] },
+    {
+      id: "two",
+      calls: [slug("GET /api/b", fresh), slug("GET /api/c", second)],
+    },
+    { id: "setup-three", calls: [slug("GET /api/d", third)] },
+  ];
+  const left = [steps("r1", "good"), steps("r2", "good")];
+  const volatile_fields = [{ step_id: "*", pointer: "/slug" }];
+  const wrong = await compare(
+    left,
+    [steps("r3", "evil", "broken"), steps("r4", "evil", "broken")],
+    { volatile_fields },
+  );
+  // Honoured where the left's own captures differ.
+  expect(brief(wrong, "one")).toEqual(["unchanged"]);
+  // Never at a fingerprint step: a start state that varies is unstable whatever is declared.
+  expect(brief(wrong, "fp-notes")).toEqual([
+    "unstable",
+    "body/undeclared-volatile left /slug",
+  ]);
+  // A request of the same step that the left answers steadily is not covered by its neighbour.
+  expect(stepOf(wrong, "two").findings).toEqual([
+    expect.objectContaining({
+      category: "declared-not-shown",
+      request: "GET /api/c#1",
+      pointer: "/slug",
+      expected: '"good"',
+      actual: '"evil"',
+    }),
+  ]);
+  // Nor is another step, whatever its prefix.
+  expect(brief(wrong, "setup-three")).toEqual([
+    "unknown",
+    "body/declared-not-shown left /slug",
+  ]);
+  expect(wrong.verdict).toBe("unknown");
+  // Declared for the varying step alone, the steady ones are the clone's differences.
+  const narrowed = await compare(
+    left,
+    [steps("r3", "evil", "broken"), steps("r4", "evil", "broken")],
+    { volatile_fields: [{ step_id: "one", pointer: "/slug" }] },
+  );
+  expect(stepOf(narrowed, "two").status).toBe("changed");
+  expect(stepOf(narrowed, "setup-three").status).toBe("changed");
+});
+
+it("compares a document of another or of no media type as data, and a page only with a page", async () => {
+  const visit = (reply: Reply, page = "/"): Step[] => [
+    list,
+    {
+      id: "export",
+      page,
+      calls: [{ line: "GET /export", type: "document", reply }],
+    },
+  ];
+  const twice = (steps: Step[]): Step[][] => [steps, steps];
+  const of = async (left: Step[], right: Step[]) =>
+    brief(await compare(twice(left), twice(right)), "export");
+  // No media type and a recorded body: compared whole, also at the address the page ended on.
+  const untyped = (text: string, page?: string): Step[] =>
+    visit({ text, media: null }, page);
+  expect(await of(untyped("id,total"), untyped("id,total"))).toEqual([
+    "unchanged",
+  ]);
+  expect(await of(untyped("id,total"), untyped("id;total"))).toEqual([
+    "changed",
+    "body/value - ",
+  ]);
+  expect(
+    await of(untyped("id,total", "/export"), untyped("id;total", "/export")),
+  ).toEqual(["changed", "body/value - "]);
+  // Markup of another media type than HTML is data.
+  const typed = (text: string): Step[] =>
+    visit({ text, media: "application/xml" });
+  expect(await of(typed("<a>1</a>"), typed("<a>2</a>"))).toEqual([
+    "changed",
+    "body/value - ",
+  ]);
+  // A page against data, typed or not, differs whichever side shows the page.
+  const page = visit({ html: "<p>id,total" });
+  expect(await of(page, untyped("<p>id,total"))).toEqual([
+    "changed",
+    "body/value - GET /export#1",
+  ]);
+  expect(await of(untyped("<p>id,total"), page)).toEqual([
+    "changed",
+    "body/value - GET /export#1",
+  ]);
+  // A page against a file whose body no capture holds (a download) is unknown on the side that lost it.
+  const download = visit({ lost: "body-read-failed" });
+  expect(await of(page, download)).toEqual([
+    "unknown",
+    "body/not-recorded right GET /export#1",
+  ]);
+  expect(await of(download, page)).toEqual([
+    "unknown",
+    "body/not-recorded left GET /export#1",
+  ]);
+});
+
+it("reads text replies as JSON only when every reply of both sides is JSON", async () => {
+  const text = (body: string, media = "text/html"): Step[] =>
+    read({ text: body, media });
+  const left = text('{"a":1,"b":[1,2]}');
+  // One right reply that is not JSON leaves every reply text: wrong in every second capture is unsteady.
+  expect(
+    brief(
+      await compare([left, left], [text('{"a":1,"b":[1,2]}'), text("oops")]),
+      "read",
+    ),
+  ).toEqual(["unstable", "body/repeats-differ right "]);
+  // As text, another spacing is another reply, so no right capture agrees.
+  expect(
+    stepOf(
+      await compare([left, left], [text('{ "a": 1, "b": [1, 2] }'), text("x")]),
+      "read",
+    ).status,
+  ).toBe("changed");
+  // A scalar is never read as JSON: its text is compared.
+  expect(
+    brief(await compare([text("1.0"), text("1.0")], [text("1")]), "read"),
+  ).toEqual(["changed", "body/value - "]);
+  // A JSON string is not the text it spells.
+  expect(
+    stepOf(await compare([json("abc"), json("abc")], [text("abc")]), "read")
+      .status,
+  ).toBe("changed");
+  // The same values under a JSON media type and under a text one are equal: a media type is a header, which is not compared.
+  expect(
+    (await compare([json({ a: 1 }), json({ a: 1 })], [text('{ "a": 1 }')]))
+      .verdict,
+  ).toBe("unchanged");
+  expect(
+    brief(
+      await compare([json({ a: 1 }), json({ a: 1 })], [text('{ "a": 2 }')]),
+      "read",
+    ),
+  ).toEqual(["changed", "body/value - /a"]);
+});
+
+it("never lets a value one capture lacks hide a wrong value in another", async () => {
+  const sent = { send: { q: 1 } };
+  const act = (
+    call: Partial<Call> = sent,
+    text: string | null = "ready",
+  ): Step[] => [
+    list,
+    {
+      id: "act",
+      text,
+      calls: [
+        { line: "POST /api/thing", reply: { json: { a: 1 } }, ...call },
+      ],
+    },
+  ];
+  const good = act();
+  const lostReply = act({ ...sent, reply: { lost: "body-read-failed" } });
+  const of = async (right: Step[][]) =>
+    brief(await compare([good, good], right), "act");
+  // A reply body lost in one capture and wrong in the other.
+  expect(
+    await of([lostReply, act({ ...sent, reply: { json: { a: 2 } } })]),
+  ).toEqual(["changed", "body/value - /a"]);
+  // A request body lost in one capture and wrong in the other.
+  expect(await of([act({ sendLost: true }), act({ send: { q: 2 } })])).toEqual([
+    "changed",
+    "request/value - POST /api/thing#1",
+    "request/repeats-differ right POST /api/thing#1",
+  ]);
+  // No answer in one capture and a wrong status in the other.
+  expect(
+    await of([act({ ...sent, status: null }), act({ ...sent, status: 500 })]),
+  ).toEqual([
+    "changed",
+    "status/status - POST /api/thing#1",
+    "status/repeats-differ right POST /api/thing#1",
+  ]);
+  // On-screen text absent in one capture: wrong in the other, equal in the other, absent in both.
+  expect(await of([act(sent, null), act(sent, "WRONG")])).toEqual([
+    "changed",
+    "text/value - -",
+    "text/repeats-differ right -",
+  ]);
+  expect(await of([act(sent, null), good])).toEqual([
+    "unstable",
+    "text/repeats-differ right -",
+  ]);
+  expect(await of([act(sent, null), act(sent, null)])).toEqual([
+    "unknown",
+    "text/not-recorded right -",
+  ]);
+  // Only a reply body folds: the capture that recorded it speaks for the one that lost it.
+  expect(await of([lostReply, good])).toEqual(["unchanged"]);
+  expect(await of([lostReply, lostReply])).toEqual([
+    "unknown",
+    "body/not-recorded right POST /api/thing#1",
+  ]);
+});
+
 it("names a difference inside an empty container once, without a finding for the container", async () => {
   expect(
     brief(await compare([json({}), json({})], [json({ a: 1 })]), "read"),
