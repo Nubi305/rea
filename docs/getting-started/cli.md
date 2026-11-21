@@ -1592,8 +1592,12 @@ An authored replacement character and valid supplementary characters are not
 treated as malformed.
 
 `--format csv` and `--format tsv` export one selected row collection. Select an
-exact array path with `--filter-output` and provide comma-separated direct
-scalar columns with `--columns`; column order is the output column order:
+exact array path with `--filter-output` and provide comma-separated scalar
+columns with `--columns`; column order is the output column order. A column
+names a member of the row, or, when the row has no member of that exact name,
+a dotted path into its nested objects, such as
+`--columns ordinal,reported.request.method,reported.response.status` for a
+page of capture records:
 
 For an artifact inventory request that selects the `occurrences` collection
 and includes `logical_path` and `artifact_id` in its view fields:
@@ -1619,7 +1623,8 @@ also refused. JSON retains those values unchanged.
 Delimited output does not flatten nested Evidence or nested field values.
 It returns a structured error and a nonzero status if the filter does not
 select exactly one row array, a row is not an object, or a selected cell is
-nested or formula-leading. JSON remains the complete canonical output; use it
+nested or formula-leading; a nested cell's error lists the scalar columns of
+that row that can be selected. JSON remains the complete canonical output; use it
 to retain fields outside the selected columns or preserve exact formula-leading
 text. Token counting and token windows are not
 available for CSV/TSV because slicing would corrupt records or metadata.

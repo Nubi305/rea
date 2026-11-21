@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { expect } from "vitest";
 
 import { ARTIFACT_COMPARISON_EXAMPLE } from "../../../src/contracts/artifactComparisonExample.js";
+import { analysisViewCaptureEvidence } from "../../fixtures/analysisView.js";
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
 import { cliTest } from "../../support/cli/cliFixture.js";
 
@@ -81,5 +82,39 @@ cliTest(
         expect.stringMatching(/^art_[a-f0-9]{64}$/u),
       ]);
     }
+  },
+);
+
+cliTest(
+  "exports nested capture record fields as CSV columns by dotted path",
+  async ({ cli }) => {
+    const root = await createTestTempDirectory("rea-delimited-capture-cli-");
+    const request = join(root, "view.json");
+    await writeFile(
+      request,
+      JSON.stringify({
+        source: { kind: "inline", evidence: analysisViewCaptureEvidence() },
+        view: { kind: "capture", offset: 0, limit: 2 },
+      }),
+    );
+    const result = await cli.run({
+      arguments: [
+        "inspect-analysis-view",
+        request,
+        "--format",
+        "csv",
+        "--filter-output",
+        "normalized_result.items",
+        "--columns",
+        "ordinal,reported.request.method,reported.response.status",
+      ],
+    });
+    expect(result.exitCode, result.stdout).toBe(0);
+    const lines = result.stdout.split("\r\n");
+    expect(lines.slice(1, 4)).toEqual([
+      "ordinal,reported.request.method,reported.response.status",
+      "0,GET,200",
+      "1,GET,404",
+    ]);
   },
 );

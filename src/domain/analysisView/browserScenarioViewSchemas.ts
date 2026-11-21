@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { textualContentEventSchema } from "./textualBody.js";
 import { digestSchema } from "../digests.js";
 import { browserScenarioNetworkSummarySchema } from "./browserScenarioNetworkView.js";
 import { sanitizedBrowserUrlSchema } from "../browserObservation.js";
@@ -190,7 +191,8 @@ export const stepRowSchema = z.strictObject({
 });
 const eventRowSchema = z.strictObject({
   item_index: countSchema,
-  event: browserScenarioEventSchema,
+  /** A captured textual body is stated as text; other bodies stay base64. */
+  event: z.union([browserScenarioEventSchema, textualContentEventSchema]),
 });
 
 export const browserScenarioViewItemsSchema = z.discriminatedUnion(

@@ -223,3 +223,42 @@ it("refuses formula-leading column headers", () => {
     error: { _tag: "AnalysisInputError" },
   });
 });
+
+it("selects a nested scalar column by its dotted path", () => {
+  const rows = [
+    {
+      ordinal: 0,
+      "a.b": "own member",
+      reported: { request: { method: "GET" }, response: { status: 404 } },
+    },
+  ];
+  const prepared = prepareDelimitedOutput(rows, "csv", {
+    fields: [
+      "ordinal",
+      "reported.request.method",
+      "reported.response.status",
+      "a.b",
+    ],
+    metadata: {},
+  });
+  if (!prepared.ok) throw prepared.error;
+  // A member whose name holds a dot is still selected by that exact name.
+  expect(prepared.value.rows).toEqual([[0, "GET", 404, "own member"]]);
+});
+
+it("names the selectable scalar columns when a column is not scalar", () => {
+  const result = prepareDelimitedOutput(
+    [{ ordinal: 0, reported: { request: { method: "GET" }, tags: ["a"] } }],
+    "csv",
+    { fields: ["reported"], metadata: {} },
+  );
+  expect(result).toMatchObject({
+    ok: false,
+    error: {
+      _tag: "AnalysisInputError",
+      userMessage: expect.stringContaining(
+        "Selectable scalar columns of that row: ordinal, reported.request.method.",
+      ),
+    },
+  });
+});

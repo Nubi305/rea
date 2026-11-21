@@ -773,6 +773,13 @@ of that parent states only the sentences the summary did not, with one
 sentence giving the count and the summary that stated them; a
 `{"kind":"summary"}` view states them again. The stored parent Evidence is
 never changed.
+
+`browser-scenario` `events` and `transactions` pages state a captured request
+or response body whose media type is textual (`text/*`, JSON or `+json`, XML,
+JavaScript, form data) and whose bytes are valid UTF-8 as text:
+`encoding: "utf-8"` and `text`, with the recorded `bytes`, `sha256` and media
+type. Other bodies keep `encoding: "base64"` and `content`; the retained
+capture keeps every body as recorded.
 A view is never more certain than its parent: a summary or other view of
 `inferred` Evidence is `inferred`. Other views are `derived`, unless the
 view kind itself infers, as described below.
