@@ -175,6 +175,7 @@ export class SessionProviderRouter {
   unboundOperationError(
     operation: string,
     route: SessionProviderRoute,
+    target?: BinaryTarget,
   ): ProviderSelectionError | undefined {
     if (
       route.binding !== null ||
@@ -182,7 +183,11 @@ export class SessionProviderRouter {
       !this.registry.declaredOperations().includes(operation)
     )
       return undefined;
-    return this.registry.unboundOperationError(operation, route.selection);
+    return this.registry.unboundOperationError(
+      operation,
+      route.selection,
+      target,
+    );
   }
 }
 

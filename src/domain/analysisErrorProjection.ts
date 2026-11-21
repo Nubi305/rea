@@ -61,6 +61,16 @@ import {
 import { isRecord } from "../kernel/isRecord.js";
 import { reportedParseLimit } from "./parseFailure.js";
 
+/** Availability codes that mean the provider is not installed or not configured. */
+const NOT_INSTALLED_CODES: ReadonlySet<string> = new Set([
+  "not_configured",
+  "executable_missing",
+]);
+
+/** The first sentence of a repair, which names the setting or command. */
+const firstSentence = (text: string): string =>
+  /^.*?[.!?](?=\s+[A-Z]|$)/su.exec(text)?.[0] ?? text;
+
 /**
  * Inputs the recovery names, by contract field and operation name. Each
  * adapter renders them in its own spelling.
@@ -810,16 +820,34 @@ const providerErrorDetails = (
       selection_reason: error.reason,
       requested_provider_id: error.requestedProviderId,
       candidate_ids: [...error.candidateIds],
-      rejections: error.rejections.map((rejection) => ({
-        provider_id: rejection.providerId,
-        origin: rejection.origin,
-        code: rejection.code,
-        reason: rejection.reason,
-        ...(rejection.remediation === undefined
-          ? {}
-          : { remediation: rejection.remediation }),
-        diagnostics: rejection.diagnostics,
-      })),
+      rejections: error.rejections.map((rejection) =>
+        // Under automatic selection a provider that is not installed is one
+        // line: its fix. Naming it (--provider) or `rea doctor` shows its
+        // reason and diagnostics.
+        error.requestedProviderId === "auto" &&
+        error.withoutProvider.length > 0 &&
+        rejection.origin === "availability" &&
+        NOT_INSTALLED_CODES.has(rejection.code)
+          ? {
+              provider_id: rejection.providerId,
+              origin: rejection.origin,
+              code: rejection.code,
+              fix: firstSentence(rejection.remediation ?? rejection.reason),
+            }
+          : {
+              provider_id: rejection.providerId,
+              origin: rejection.origin,
+              code: rejection.code,
+              reason: rejection.reason,
+              ...(rejection.remediation === undefined
+                ? {}
+                : { remediation: rejection.remediation }),
+              diagnostics: rejection.diagnostics,
+            },
+      ),
+      ...(error.withoutProvider.length === 0
+        ? {}
+        : { without_provider: [...error.withoutProvider] }),
     };
   if (error instanceof ProviderAdapterError)
     return {

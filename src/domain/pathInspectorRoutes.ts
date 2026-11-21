@@ -599,3 +599,46 @@ export const sniffPathFormat = (
   const text = textOf(head);
   return text === undefined ? undefined : sniffText(text, name);
 };
+
+// ---------------------------------------------------------------------------
+// Reading a native file without a deep provider
+
+const NATIVE_FORMAT_ROUTES: Readonly<Record<string, readonly PathRoute[]>> = {
+  elf: elfRoutes({
+    type: "executable",
+    interpreter: true,
+    sections: [".dynamic"],
+  }),
+  "mach-o": MACHO_ROUTES,
+  "mach-o-universal": MACHO_ROUTES,
+  pe: PE_ROUTES,
+};
+
+/**
+ * Commands that read a native file when no analysis provider is ready: two
+ * of its format's path inspectors, objdump for symbols and one function's
+ * disassembly, and GDB for reading code or data without running it. The
+ * symbol and address are the caller's to fill in.
+ */
+export const providerFreeCommands = (
+  path: string,
+  format: string,
+): readonly string[] => {
+  const routes = NATIVE_FORMAT_ROUTES[format];
+  if (routes === undefined) return [];
+  const file = shellWord(path);
+  const inspectors = routes
+    .filter(
+      ({ authority, operation }) =>
+        authority !== "native-analysis-provider" &&
+        operation !== "inspect_with_objdump",
+    )
+    .slice(0, 2)
+    .map((route) => pathRouteCommand(route, path));
+  return [
+    ...inspectors,
+    `rea inspect-with-objdump ${file} symbols`,
+    `rea inspect-with-objdump ${file} disassemble --symbol SYMBOL`,
+    `rea debug-with-gdb 'x/s ADDRESS' --executable ${file}`,
+  ];
+};

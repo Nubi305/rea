@@ -1483,8 +1483,8 @@ export class BinarySession
       nativeSourceAdmitted: sessionBinding?.nativeSourceAdmitted === true,
       isOperationAvailable: (operation) => this.#currentlyAvailable(operation),
       isOperationAdvertised: options?.isOperationAdvertised,
-      unboundOperationError: (operation, route) =>
-        this.#providerRouter.unboundOperationError(operation, route),
+      unboundOperationError: (operation, route, target) =>
+        this.#providerRouter.unboundOperationError(operation, route, target),
       lookupSnapshot: (target, profile, operation, parameters) =>
         this.lookupSnapshot(target, profile, operation, parameters),
     });
