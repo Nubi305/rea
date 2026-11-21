@@ -1,0 +1,95 @@
+{
+  "id": "t09-har-failures",
+  "title": "Failed and slow requests in a recorded HAR",
+  "audit_request": "R11",
+  "question": "I recorded {input}/checkout.har on staging. Which requests got an error status (400 or above), and which single request took longest?",
+  "inputs": [
+    {
+      "kind": "node",
+      "script": "src/make-har.mjs",
+      "to": "checkout.har"
+    }
+  ],
+  "answer": {
+    "fields": {
+      "failed_requests": "array of strings: one per request with a status of 400 or above, each as \"METHOD PATH STATUS\" with the path without its query string, such as \"GET /api/example 404\"",
+      "slowest_request_path": "string: the path, without its query string, of the request that took longest",
+      "slowest_request_ms": "integer: how long that request took, in milliseconds"
+    }
+  },
+  "facts": [
+    {
+      "id": "failed-requests",
+      "field": "failed_requests",
+      "check": "set_equals",
+      "value": [
+        "GET /api/profile 401",
+        "POST /api/vouchers/redeem 422",
+        "POST /api/payments/intent 402",
+        "POST /api/orders 502"
+      ]
+    },
+    {
+      "id": "slowest-path",
+      "field": "slowest_request_path",
+      "check": "equals",
+      "value": "/api/shipping/quotes"
+    },
+    {
+      "id": "slowest-ms",
+      "field": "slowest_request_ms",
+      "check": "equals",
+      "value": 4812
+    }
+  ],
+  "reference_answer": {
+    "failed_requests": [
+      "GET /api/profile 401",
+      "POST /api/vouchers/redeem 422",
+      "POST /api/payments/intent 402",
+      "POST /api/orders 502"
+    ],
+    "slowest_request_path": "/api/shipping/quotes",
+    "slowest_request_ms": 4812
+  },
+  "first_command": {
+    "expected": "inspect-web-network-capture",
+    "also_accepted": [],
+    "economical_flags": [
+      "--detail summary",
+      "--detail=summary",
+      "--filter-output",
+      "--record"
+    ]
+  },
+  "flood": {
+    "args": [
+      "inspect-web-network-capture",
+      "{input}/checkout.har",
+      "har",
+      "--json"
+    ],
+    "why": "Every record of the capture in full, where four fields of each are wanted."
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": [
+          "inspect-web-network-capture",
+          "{input}/checkout.har",
+          "har",
+          "--json",
+          "--filter-output",
+          "normalized_result.records[0,32].reported.time,normalized_result.records[0,32].reported.request.method,normalized_result.records[0,32].reported.request.url,normalized_result.records[0,32].reported.response.status"
+        ],
+        "must_contain": [
+          "\"url\":\"https://staging.shop.example.test/api/profile\"},\"response\":{\"status\":401}",
+          "\"url\":\"https://staging.shop.example.test/api/vouchers/redeem\"},\"response\":{\"status\":422}",
+          "\"url\":\"https://staging.shop.example.test/api/payments/intent\"},\"response\":{\"status\":402}",
+          "\"url\":\"https://staging.shop.example.test/api/orders\"},\"response\":{\"status\":502}",
+          "\"url\":\"https://staging.shop.example.test/api/shipping/quotes?postcode=1017AB\"},\"response\":{\"status\":200},\"time\":4812"
+        ]
+      }
+    ]
+  }
+}

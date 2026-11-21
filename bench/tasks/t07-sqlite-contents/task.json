@@ -1,0 +1,101 @@
+{
+  "id": "t07-sqlite-contents",
+  "title": "What an application keeps in its SQLite database",
+  "audit_request": "R13",
+  "question": "What does the app keep in {input}/app.db? Which tables are there, how many rows does transfers hold, which schema version do its settings record, and where does it sync to?",
+  "requires": {
+    "rea_node": "24.15.0"
+  },
+  "inputs": [
+    {
+      "kind": "sqlite",
+      "from": "src/app.sql",
+      "to": "app.db"
+    }
+  ],
+  "answer": {
+    "fields": {
+      "tables": "array of strings: the names of the tables (not views, not indexes)",
+      "transfer_count": "integer: the number of rows in the table transfers",
+      "schema_version": "string: the schema version the settings record",
+      "sync_endpoint": "string: the address the settings give for syncing"
+    }
+  },
+  "facts": [
+    {
+      "id": "tables",
+      "field": "tables",
+      "check": "set_equals",
+      "value": ["accounts", "transfers", "settings"]
+    },
+    {
+      "id": "transfer-count",
+      "field": "transfer_count",
+      "check": "equals",
+      "value": 37
+    },
+    {
+      "id": "schema-version",
+      "field": "schema_version",
+      "check": "equals",
+      "value": "12"
+    },
+    {
+      "id": "sync-endpoint",
+      "field": "sync_endpoint",
+      "check": "equals",
+      "value": "https://sync.ledger.example.test/v3/push"
+    }
+  ],
+  "reference_answer": {
+    "tables": ["accounts", "transfers", "settings"],
+    "transfer_count": 37,
+    "schema_version": "12",
+    "sync_endpoint": "https://sync.ledger.example.test/v3/push"
+  },
+  "first_command": {
+    "expected": "inspect-sqlite-database",
+    "also_accepted": []
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": ["inspect-sqlite-database", "{input}/app.db", "--json"],
+        "must_contain": [
+          "\"name\":\"accounts\"",
+          "\"name\":\"transfers\"",
+          "\"name\":\"settings\""
+        ]
+      },
+      {
+        "args": [
+          "inspect-sqlite-database",
+          "{input}/app.db",
+          "--table",
+          "settings",
+          "--json"
+        ],
+        "must_contain": [
+          "\"value\":\"schema_version\"",
+          "\"value\":\"12\"",
+          "https://sync.ledger.example.test/v3/push"
+        ]
+      },
+      {
+        "args": [
+          "inspect-sqlite-database",
+          "{input}/app.db",
+          "--table",
+          "transfers",
+          "--column",
+          "id",
+          "--row-limit",
+          "100",
+          "--json"
+        ],
+        "must_contain": ["\"returned_rows\":37", "\"truncated\":false"]
+      }
+    ]
+  },
+  "notes": "REA reads SQLite only on Node 24.15 or newer; on an older Node the command answers capability_unavailable and says so. Prepare the cell with --node pointing at such a Node."
+}

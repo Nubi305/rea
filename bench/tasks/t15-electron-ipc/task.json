@@ -1,0 +1,111 @@
+{
+  "id": "t15-electron-ipc",
+  "title": "IPC surface of an unpacked Electron application",
+  "audit_request": "R3",
+  "question": "{input}/desk-app is our unpacked Electron app. Which IPC channels does the page use to reach the main process, what does the preload script expose to the page (the name of the global and its members), and are context isolation and the sandbox switched on for the window?",
+  "inputs": [
+    {
+      "kind": "copy",
+      "from": "src/desk-app",
+      "to": "desk-app"
+    }
+  ],
+  "answer": {
+    "fields": {
+      "ipc_channels": "array of strings: the distinct IPC channel names",
+      "exposed_global": "string: the name under which the preload script exposes an object to the page",
+      "exposed_members": "array of strings: the names of that object's members",
+      "context_isolation": "boolean: the window's contextIsolation setting",
+      "sandbox": "boolean: the window's sandbox setting"
+    }
+  },
+  "facts": [
+    {
+      "id": "ipc-channels",
+      "field": "ipc_channels",
+      "check": "set_equals",
+      "value": ["labels:print", "settings:read", "updates:check"]
+    },
+    {
+      "id": "exposed-global",
+      "field": "exposed_global",
+      "check": "equals",
+      "value": "desk"
+    },
+    {
+      "id": "exposed-members",
+      "field": "exposed_members",
+      "check": "set_equals",
+      "value": ["printLabel", "readSettings", "checkForUpdates"]
+    },
+    {
+      "id": "context-isolation",
+      "field": "context_isolation",
+      "check": "equals",
+      "value": true
+    },
+    {
+      "id": "sandbox",
+      "field": "sandbox",
+      "check": "equals",
+      "value": false
+    }
+  ],
+  "reference_answer": {
+    "ipc_channels": ["labels:print", "settings:read", "updates:check"],
+    "exposed_global": "desk",
+    "exposed_members": ["printLabel", "readSettings", "checkForUpdates"],
+    "context_isolation": true,
+    "sandbox": false
+  },
+  "first_command": {
+    "expected": "analyze-javascript-application",
+    "also_accepted": ["analyze", "inspect-artifact"],
+    "economical_flags": [
+      "--detail summary",
+      "--detail=summary",
+      "--filter-output"
+    ]
+  },
+  "flood": {
+    "args": ["analyze-javascript-application", "{input}/desk-app", "--json"],
+    "why": "The complete semantic graph of a five-file application, where its Electron facts are wanted."
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": [
+          "analyze-javascript-application",
+          "{input}/desk-app",
+          "--detail",
+          "summary",
+          "--evidence_output",
+          "{work}/desk-app.evidence.json",
+          "--json"
+        ],
+        "must_contain": ["\"literal_channels\":3", "\"exposed_api_members\":3"],
+        "capture": {
+          "parent": "\"parent_evidence_id\":\"(ev_[a-f0-9]{64})\""
+        }
+      },
+      {
+        "args": [
+          "inspect-analysis-view",
+          "{\"source\":{\"kind\":\"evidence-file\",\"path\":\"{work}/desk-app.evidence.json\",\"evidence_id\":\"{parent}\"},\"view\":{\"kind\":\"javascript-facts\",\"where\":{\"kinds\":[\"ipc-channel\",\"browser-window\",\"context-bridge-api\"]},\"property_keys\":[\"channel\",\"side\",\"web_preferences\",\"api_key\",\"members\"],\"limit\":32}}",
+          "--json",
+          "--filter-output",
+          "normalized_result.rows[0,32].properties"
+        ],
+        "must_contain": [
+          "\"channel\":\"labels:print\"",
+          "\"channel\":\"settings:read\"",
+          "\"channel\":\"updates:check\"",
+          "\"api_key\":\"desk\"",
+          "\"members\":[\"checkForUpdates\",\"printLabel\",\"readSettings\"]",
+          "{\"name\":\"contextIsolation\",\"value\":{\"expression\":null,\"status\":\"literal\",\"value\":true}}",
+          "{\"name\":\"sandbox\",\"value\":{\"expression\":null,\"status\":\"literal\",\"value\":false}}"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "t05-library-exports",
+  "title": "What a shared library exports",
+  "audit_request": null,
+  "question": "What does {input}/libtariff.so export for other programs to use: which functions and which variables?",
+  "inputs": [
+    {
+      "kind": "cc",
+      "from": "src",
+      "sources": ["tariff.c"],
+      "to": "libtariff.so",
+      "flags": [
+        "-O1",
+        "-shared",
+        "-fPIC",
+        "-fvisibility=hidden",
+        "-Wl,-soname,libtariff.so.3"
+      ]
+    }
+  ],
+  "answer": {
+    "fields": {
+      "functions": "array of strings: the names of the exported functions",
+      "variables": "array of strings: the names of the exported data objects"
+    }
+  },
+  "facts": [
+    {
+      "id": "functions",
+      "field": "functions",
+      "check": "set_equals",
+      "value": ["tariff_quote", "tariff_version"]
+    },
+    {
+      "id": "variables",
+      "field": "variables",
+      "check": "set_equals",
+      "value": ["tariff_limit_kg"]
+    }
+  ],
+  "reference_answer": {
+    "functions": ["tariff_quote", "tariff_version"],
+    "variables": ["tariff_limit_kg"]
+  },
+  "first_command": {
+    "expected": "inspect-native-exports",
+    "also_accepted": ["inspect-artifact"]
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": ["inspect-native-exports", "{input}/libtariff.so", "--json"],
+        "must_contain": [
+          "\"name\":\"tariff_quote\"",
+          "\"name\":\"tariff_version\"",
+          "\"name\":\"tariff_limit_kg\"",
+          "\"exports\":3"
+        ],
+        "must_not_contain": ["round_half_up", "started_kilograms"]
+      }
+    ]
+  }
+}

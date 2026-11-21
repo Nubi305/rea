@@ -1,0 +1,194 @@
+fp-varieties	GET /api/varieties
+  -> 200 {"items":[{"id":10,"uid":"var_6de4b210","sku":"PEA-1002","name":"Alderman Pea","kind":"vegetable","priceCents":345,"price":"3.45","stock":22,"status":"active","rev":1,"createdAt":"2026-02-06T09:40:00.000Z"},{"id":5,"uid":"var_7a19c6d0","sku":"DIL-0505","name":"Bouquet Dill","kind":"herb","priceCents":195,"price":"1.95","stock":0,"status":"active","rev":1,"createdAt":"2026-02-03T10:20:00.000Z"},{"id":1,"uid":"var_3fa1c207","sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","priceCents":345,"price":"3.45","stock":38,"status":"active","rev":1,"createdAt":"2026-02-02T09:00:00.000Z"},{"id":3,"uid":"var_0c7e9a13","sku":"CAL-0310","name":"calendula Pacific","kind":"flower","priceCents":210,"price":"2.10","stock":12,"status":"active","rev":1,"createdAt":"2026-02-02T09:10:00.000Z"}],"total":11,"page":1,"pages":3,"pageSize":4,"sort":"name","dir":"asc"}
+fp-varieties-page-2	GET /api/varieties?page=2
+  -> 200 {"items":[{"id":7,"uid":"var_c94d2e61","sku":"KAL-0720","name":"Cavolo Nero Kale","kind":"vegetable","priceCents":285,"price":"2.85","stock":30,"status":"active","rev":1,"createdAt":"2026-02-04T11:15:00.000Z"},{"id":4,"uid":"var_e2b54f88","sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","priceCents":210,"price":"2.10","stock":54,"status":"active","rev":1,"createdAt":"2026-02-03T10:00:00.000Z"},{"id":8,"uid":"var_2b6f8d34","sku":"CHV-0815","name":"Chives","kind":"herb","priceCents":195,"price":"1.95","stock":17,"status":"active","rev":1,"createdAt":"2026-02-05T07:30:00.000Z"},{"id":11,"uid":"var_a03c7f59","sku":"COR-1110","name":"Coriander Calypso","kind":"herb","priceCents":230,"price":"2.30","stock":14,"status":"active","rev":1,"createdAt":"2026-02-06T13:25:00.000Z"}],"total":11,"page":2,"pages":3,"pageSize":4,"sort":"name","dir":"asc"}
+fp-varieties-page-3	GET /api/varieties?page=3
+  -> 200 {"items":[{"id":2,"uid":"var_81d0b4e5","sku":"BAS-0204","name":"Genovese Basil","kind":"herb","priceCents":245,"price":"2.45","stock":22,"status":"active","rev":1,"createdAt":"2026-02-02T09:05:00.000Z"},{"id":12,"uid":"var_48b1e6c2","sku":"NAS-1212","name":"Nasturtium Empress","kind":"flower","priceCents":250,"price":"2.50","stock":9,"status":"active","rev":1,"createdAt":"2026-02-07T10:10:00.000Z"},{"id":6,"uid":"var_55e03b9c","sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","priceCents":395,"price":"3.95","stock":8,"status":"active","rev":1,"createdAt":"2026-02-04T08:45:00.000Z"}],"total":11,"page":3,"pages":3,"pageSize":4,"sort":"name","dir":"asc"}
+fp-orders	GET /api/orders
+  -> 200 {"items":[{"id":3,"uid":"ord_c6083e5a","number":"SL-1003","status":"placed","lines":[{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":6,"unitCents":210,"discountCents":126,"lineCents":1134}],"itemCount":6,"subtotalCents":1134,"promo":null,"shippingCents":350,"totalCents":1484,"createdAt":"2026-02-12T17:21:00.000Z"},{"id":2,"uid":"ord_15ab70f3","number":"SL-1002","status":"packed","lines":[{"varietyId":2,"sku":"BAS-0204","name":"Genovese Basil","kind":"herb","qty":3,"unitCents":245,"discountCents":0,"lineCents":735},{"varietyId":8,"sku":"CHV-0815","name":"Chives","kind":"herb","qty":1,"unitCents":195,"discountCents":0,"lineCents":195}],"itemCount":4,"subtotalCents":930,"promo":null,"shippingCents":350,"totalCents":1280,"createdAt":"2026-02-11T09:48:00.000Z"},{"id":1,"uid":"ord_9e2c41d7","number":"SL-1001","status":"shipped","lines":[{"varietyId":1,"sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","qty":2,"unitCents":345,"discountCents":0,"lineCents":690}],"itemCount":2,"subtotalCents":690,"promo":null,"shippingCents":350,"totalCents":1040,"createdAt":"2026-02-10T15:02:00.000Z"}],"total":3}
+fp-basket	GET /api/basket
+  -> 200 {"lines":[],"itemCount":0,"subtotalCents":0,"promo":null,"shippingCents":0,"totalCents":0}
+list-price-asc-tie	GET /api/varieties?sort=price
+  -> 200 {"items":[{"id":5,"uid":"var_7a19c6d0","sku":"DIL-0505","name":"Bouquet Dill","kind":"herb","priceCents":195,"price":"1.95","stock":0,"status":"active","rev":1,"createdAt":"2026-02-03T10:20:00.000Z"},{"id":8,"uid":"var_2b6f8d34","sku":"CHV-0815","name":"Chives","kind":"herb","priceCents":195,"price":"1.95","stock":17,"status":"active","rev":1,"createdAt":"2026-02-05T07:30:00.000Z"},{"id":3,"uid":"var_0c7e9a13","sku":"CAL-0310","name":"calendula Pacific","kind":"flower","priceCents":210,"price":"2.10","stock":12,"status":"active","rev":1,"createdAt":"2026-02-02T09:10:00.000Z"},{"id":4,"uid":"var_e2b54f88","sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","priceCents":210,"price":"2.10","stock":54,"status":"active","rev":1,"createdAt":"2026-02-03T10:00:00.000Z"}],"total":11,"page":1,"pages":3,"pageSize":4,"sort":"price","dir":"asc"}
+list-price-desc-tie	GET /api/varieties?sort=price&dir=desc
+  -> 200 {"items":[{"id":6,"uid":"var_55e03b9c","sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","priceCents":395,"price":"3.95","stock":8,"status":"active","rev":1,"createdAt":"2026-02-04T08:45:00.000Z"},{"id":10,"uid":"var_6de4b210","sku":"PEA-1002","name":"Alderman Pea","kind":"vegetable","priceCents":345,"price":"3.45","stock":22,"status":"active","rev":1,"createdAt":"2026-02-06T09:40:00.000Z"},{"id":1,"uid":"var_3fa1c207","sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","priceCents":345,"price":"3.45","stock":38,"status":"active","rev":1,"createdAt":"2026-02-02T09:00:00.000Z"},{"id":7,"uid":"var_c94d2e61","sku":"KAL-0720","name":"Cavolo Nero Kale","kind":"vegetable","priceCents":285,"price":"2.85","stock":30,"status":"active","rev":1,"createdAt":"2026-02-04T11:15:00.000Z"}],"total":11,"page":1,"pages":3,"pageSize":4,"sort":"price","dir":"desc"}
+list-price-desc-last-page	GET /api/varieties?sort=price&dir=desc&page=3
+  -> 200 {"items":[{"id":4,"uid":"var_e2b54f88","sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","priceCents":210,"price":"2.10","stock":54,"status":"active","rev":1,"createdAt":"2026-02-03T10:00:00.000Z"},{"id":5,"uid":"var_7a19c6d0","sku":"DIL-0505","name":"Bouquet Dill","kind":"herb","priceCents":195,"price":"1.95","stock":0,"status":"active","rev":1,"createdAt":"2026-02-03T10:20:00.000Z"},{"id":8,"uid":"var_2b6f8d34","sku":"CHV-0815","name":"Chives","kind":"herb","priceCents":195,"price":"1.95","stock":17,"status":"active","rev":1,"createdAt":"2026-02-05T07:30:00.000Z"}],"total":11,"page":3,"pages":3,"pageSize":4,"sort":"price","dir":"desc"}
+list-sku-desc	GET /api/varieties?sort=SKU&dir=DESC
+  -> 200 {"items":[{"id":1,"uid":"var_3fa1c207","sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","priceCents":345,"price":"3.45","stock":38,"status":"active","rev":1,"createdAt":"2026-02-02T09:00:00.000Z"},{"id":6,"uid":"var_55e03b9c","sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","priceCents":395,"price":"3.95","stock":8,"status":"active","rev":1,"createdAt":"2026-02-04T08:45:00.000Z"},{"id":10,"uid":"var_6de4b210","sku":"PEA-1002","name":"Alderman Pea","kind":"vegetable","priceCents":345,"price":"3.45","stock":22,"status":"active","rev":1,"createdAt":"2026-02-06T09:40:00.000Z"},{"id":12,"uid":"var_48b1e6c2","sku":"NAS-1212","name":"Nasturtium Empress","kind":"flower","priceCents":250,"price":"2.50","stock":9,"status":"active","rev":1,"createdAt":"2026-02-07T10:10:00.000Z"}],"total":11,"page":1,"pages":3,"pageSize":4,"sort":"sku","dir":"desc"}
+list-page-clamp-high	GET /api/varieties?page=99
+  -> 200 {"items":[{"id":2,"uid":"var_81d0b4e5","sku":"BAS-0204","name":"Genovese Basil","kind":"herb","priceCents":245,"price":"2.45","stock":22,"status":"active","rev":1,"createdAt":"2026-02-02T09:05:00.000Z"},{"id":12,"uid":"var_48b1e6c2","sku":"NAS-1212","name":"Nasturtium Empress","kind":"flower","priceCents":250,"price":"2.50","stock":9,"status":"active","rev":1,"createdAt":"2026-02-07T10:10:00.000Z"},{"id":6,"uid":"var_55e03b9c","sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","priceCents":395,"price":"3.95","stock":8,"status":"active","rev":1,"createdAt":"2026-02-04T08:45:00.000Z"}],"total":11,"page":3,"pages":3,"pageSize":4,"sort":"name","dir":"asc"}
+list-page-clamp-junk	GET /api/varieties?page=-2
+  -> 200 {"items":[{"id":10,"uid":"var_6de4b210","sku":"PEA-1002","name":"Alderman Pea","kind":"vegetable","priceCents":345,"price":"3.45","stock":22,"status":"active","rev":1,"createdAt":"2026-02-06T09:40:00.000Z"},{"id":5,"uid":"var_7a19c6d0","sku":"DIL-0505","name":"Bouquet Dill","kind":"herb","priceCents":195,"price":"1.95","stock":0,"status":"active","rev":1,"createdAt":"2026-02-03T10:20:00.000Z"},{"id":1,"uid":"var_3fa1c207","sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","priceCents":345,"price":"3.45","stock":38,"status":"active","rev":1,"createdAt":"2026-02-02T09:00:00.000Z"},{"id":3,"uid":"var_0c7e9a13","sku":"CAL-0310","name":"calendula Pacific","kind":"flower","priceCents":210,"price":"2.10","stock":12,"status":"active","rev":1,"createdAt":"2026-02-02T09:10:00.000Z"}],"total":11,"page":1,"pages":3,"pageSize":4,"sort":"name","dir":"asc"}
+list-sort-unknown	GET /api/varieties?sort=colour&dir=sideways
+  -> 200 {"items":[{"id":10,"uid":"var_6de4b210","sku":"PEA-1002","name":"Alderman Pea","kind":"vegetable","priceCents":345,"price":"3.45","stock":22,"status":"active","rev":1,"createdAt":"2026-02-06T09:40:00.000Z"},{"id":5,"uid":"var_7a19c6d0","sku":"DIL-0505","name":"Bouquet Dill","kind":"herb","priceCents":195,"price":"1.95","stock":0,"status":"active","rev":1,"createdAt":"2026-02-03T10:20:00.000Z"},{"id":1,"uid":"var_3fa1c207","sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","priceCents":345,"price":"3.45","stock":38,"status":"active","rev":1,"createdAt":"2026-02-02T09:00:00.000Z"},{"id":3,"uid":"var_0c7e9a13","sku":"CAL-0310","name":"calendula Pacific","kind":"flower","priceCents":210,"price":"2.10","stock":12,"status":"active","rev":1,"createdAt":"2026-02-02T09:10:00.000Z"}],"total":11,"page":1,"pages":3,"pageSize":4,"sort":"name","dir":"asc"}
+list-search-name	GET /api/varieties?q=%20PEA%20
+  -> 200 {"items":[{"id":10,"uid":"var_6de4b210","sku":"PEA-1002","name":"Alderman Pea","kind":"vegetable","priceCents":345,"price":"3.45","stock":22,"status":"active","rev":1,"createdAt":"2026-02-06T09:40:00.000Z"},{"id":6,"uid":"var_55e03b9c","sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","priceCents":395,"price":"3.95","stock":8,"status":"active","rev":1,"createdAt":"2026-02-04T08:45:00.000Z"}],"total":2,"page":1,"pages":1,"pageSize":4,"sort":"name","dir":"asc"}
+list-search-sku	GET /api/varieties?q=0815
+  -> 200 {"items":[{"id":8,"uid":"var_2b6f8d34","sku":"CHV-0815","name":"Chives","kind":"herb","priceCents":195,"price":"1.95","stock":17,"status":"active","rev":1,"createdAt":"2026-02-05T07:30:00.000Z"}],"total":1,"page":1,"pages":1,"pageSize":4,"sort":"name","dir":"asc"}
+list-search-retired-hidden	GET /api/varieties?q=zin
+  -> 200 {"items":[],"total":0,"page":1,"pages":1,"pageSize":4,"sort":"name","dir":"asc"}
+list-status-retired	GET /api/varieties?status=retired
+  -> 200 {"items":[{"id":9,"uid":"var_f1083a7b","sku":"ZIN-0909","name":"Zinnia Envy","kind":"flower","priceCents":320,"price":"3.20","stock":5,"status":"retired","rev":1,"createdAt":"2026-02-05T12:00:00.000Z"}],"total":1,"page":1,"pages":1,"pageSize":4,"sort":"name","dir":"asc"}
+list-kind-all-statuses	GET /api/varieties?kind=FLOWER&status=all
+  -> 200 {"items":[{"id":3,"uid":"var_0c7e9a13","sku":"CAL-0310","name":"calendula Pacific","kind":"flower","priceCents":210,"price":"2.10","stock":12,"status":"active","rev":1,"createdAt":"2026-02-02T09:10:00.000Z"},{"id":12,"uid":"var_48b1e6c2","sku":"NAS-1212","name":"Nasturtium Empress","kind":"flower","priceCents":250,"price":"2.50","stock":9,"status":"active","rev":1,"createdAt":"2026-02-07T10:10:00.000Z"},{"id":6,"uid":"var_55e03b9c","sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","priceCents":395,"price":"3.95","stock":8,"status":"active","rev":1,"createdAt":"2026-02-04T08:45:00.000Z"},{"id":9,"uid":"var_f1083a7b","sku":"ZIN-0909","name":"Zinnia Envy","kind":"flower","priceCents":320,"price":"3.20","stock":5,"status":"retired","rev":1,"createdAt":"2026-02-05T12:00:00.000Z"}],"total":4,"page":1,"pages":1,"pageSize":4,"sort":"name","dir":"asc"}
+list-kind-invalid	GET /api/varieties?kind=tree
+  -> 422 {"error":"kind_invalid","message":"Unknown kind.","allowed":["vegetable","herb","flower"]}
+list-status-invalid	GET /api/varieties?status=gone
+  -> 422 {"error":"status_invalid","message":"Unknown status.","allowed":["active","retired","all"]}
+variety-create-normalised	POST /api/varieties {"sku":"  bee-0042 ","name":"  Borage   Blue  ","kind":" HERB ","price":"2.425","stock":7}
+  -> 201 {"id":13,"uid":"var_509e84ce","sku":"BEE-0042","name":"Borage Blue","kind":"herb","priceCents":245,"price":"2.45","stock":7,"status":"active","rev":1,"createdAt":"2026-11-21T04:40:47.178Z"}
+variety-price-round-down	POST /api/varieties {"sku":"LEM-0001","name":"Lemon Balm","kind":"herb","price":2.42,"stock":3}
+  -> 201 {"id":14,"uid":"var_462f0204","sku":"LEM-0001","name":"Lemon Balm","kind":"herb","priceCents":240,"price":"2.40","stock":3,"status":"active","rev":1,"createdAt":"2026-11-21T04:40:47.180Z"}
+variety-price-below-range	POST /api/varieties {"sku":"MIN-0047","name":"Tiny Price","kind":"flower","price":"0.47"}
+  -> 422 {"error":"price_range","message":"A price is from 0.50 to 50.00 euros.","field":"price","min":"0.50","max":"50.00"}
+variety-price-range-edge-stock-default	POST /api/varieties {"sku":"MIN-0048","name":"Tiny Price","kind":"flower","price":"0.48"}
+  -> 201 {"id":15,"uid":"var_110400bc","sku":"MIN-0048","name":"Tiny Price","kind":"flower","priceCents":50,"price":"0.50","stock":0,"status":"active","rev":1,"createdAt":"2026-11-21T04:40:47.182Z"}
+variety-price-upper-edge	POST /api/varieties {"sku":"MAX-5002","name":"Gold Seed","kind":"flower","price":"50.024"}
+  -> 201 {"id":16,"uid":"var_164d9dea","sku":"MAX-5002","name":"Gold Seed","kind":"flower","priceCents":5000,"price":"50.00","stock":0,"status":"active","rev":1,"createdAt":"2026-11-21T04:40:47.184Z"}
+variety-price-above-range	POST /api/varieties {"sku":"MAX-5003","name":"Gold Seed","kind":"flower","price":"50.025"}
+  -> 422 {"error":"price_range","message":"A price is from 0.50 to 50.00 euros.","field":"price","min":"0.50","max":"50.00"}
+variety-price-format	POST /api/varieties {"sku":"COM-0001","name":"Comma Price","kind":"herb","price":"2,40"}
+  -> 422 {"error":"price_format","message":"A price is a number of euros with at most three decimals.","field":"price"}
+variety-sku-taken-case	POST /api/varieties {"sku":"tom-0101","name":"Another Tomato","kind":"vegetable","price":"3"}
+  -> 409 {"error":"sku_taken","message":"Another variety uses that SKU.","field":"sku","existingId":1}
+variety-sku-format	POST /api/varieties {"sku":"TO-101","name":"Short Sku","kind":"vegetable","price":"3"}
+  -> 422 {"error":"sku_format","message":"A SKU is three letters, a dash and four digits.","field":"sku","pattern":"AAA-0000"}
+variety-name-short	POST /api/varieties {"sku":"NAM-0001","name":"  Ab   ","kind":"herb","price":"3"}
+  -> 422 {"error":"name_length","message":"A name has 3 to 32 characters.","field":"name","min":3,"max":32}
+variety-name-long	POST /api/varieties {"sku":"NAM-0002","name":"Abcdefghij Abcdefghij Abcdefghijk","kind":"herb","price":"3"}
+  -> 422 {"error":"name_length","message":"A name has 3 to 32 characters.","field":"name","min":3,"max":32}
+variety-name-max	POST /api/varieties {"sku":"NAM-0003","name":"Abcdefghij   Abcdefghij Abcdefghij","kind":"herb","price":"3"}
+  -> 201 {"id":17,"uid":"var_d08252ff","sku":"NAM-0003","name":"Abcdefghij Abcdefghij Abcdefghij","kind":"herb","priceCents":300,"price":"3.00","stock":0,"status":"active","rev":1,"createdAt":"2026-11-21T04:40:47.192Z"}
+variety-kind-invalid	POST /api/varieties {"sku":"KIN-0001","name":"Box Hedge","kind":"shrub","price":"3"}
+  -> 422 {"error":"kind_invalid","message":"Choose a kind.","field":"kind","allowed":["vegetable","herb","flower"]}
+variety-stock-invalid	POST /api/varieties {"sku":"STK-0001","name":"Many Seeds","kind":"herb","price":"3","stock":1000}
+  -> 422 {"error":"stock_invalid","message":"Stock is a whole number from 0 to 999.","field":"stock","min":0,"max":999}
+variety-first-error-wins	POST /api/varieties {"sku":"x","name":"y","kind":"z","price":"0"}
+  -> 422 {"error":"sku_format","message":"A SKU is three letters, a dash and four digits.","field":"sku","pattern":"AAA-0000"}
+variety-read-created	GET /api/varieties/13
+  -> 200 {"id":13,"uid":"var_509e84ce","sku":"BEE-0042","name":"Borage Blue","kind":"herb","priceCents":245,"price":"2.45","stock":7,"status":"active","rev":1,"createdAt":"2026-11-21T04:40:47.178Z"}
+etag-not-modified	GET /api/varieties/1 If-None-Match: "v1.1"
+  -> 304 
+variety-edit-no-change	PUT /api/varieties/1 {"name":"  Brandywine   Tomato ","sku":"tom-0101"}
+  -> 200 {"id":1,"uid":"var_3fa1c207","sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","priceCents":345,"price":"3.45","stock":38,"status":"active","rev":1,"createdAt":"2026-02-02T09:00:00.000Z"}
+etag-unchanged-after-no-op	GET /api/varieties/1 If-None-Match: "v1.1"
+  -> 304 
+variety-edit-sku-taken	PUT /api/varieties/1 {"sku":"bas-0204"}
+  -> 409 {"error":"sku_taken","message":"Another variety uses that SKU.","field":"sku","existingId":2}
+variety-edit-price	PUT /api/varieties/1 {"price":"3.50"}
+  -> 200 {"id":1,"uid":"var_3fa1c207","sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","priceCents":350,"price":"3.50","stock":38,"status":"active","rev":2,"createdAt":"2026-02-02T09:00:00.000Z"}
+etag-changed-after-edit	GET /api/varieties/1 If-None-Match: "v1.1"
+  -> 200 {"id":1,"uid":"var_3fa1c207","sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","priceCents":350,"price":"3.50","stock":38,"status":"active","rev":2,"createdAt":"2026-02-02T09:00:00.000Z"}
+basket-add-retired	POST /api/basket/lines {"varietyId":9,"qty":1}
+  -> 409 {"error":"variety_retired","message":"This variety is no longer sold.","varietyId":9}
+basket-add-qty-zero	POST /api/basket/lines {"varietyId":2,"qty":0}
+  -> 422 {"error":"qty_invalid","message":"A quantity is a whole number from 1 to 12.","min":1,"max":12}
+basket-add-qty-over	POST /api/basket/lines {"varietyId":2,"qty":13}
+  -> 422 {"error":"qty_invalid","message":"A quantity is a whole number from 1 to 12.","min":1,"max":12}
+basket-add-sold-out	POST /api/basket/lines {"varietyId":5,"qty":1}
+  -> 409 {"error":"out_of_stock","message":"Not enough packets in stock.","varietyId":5,"available":0,"requested":1}
+basket-add-unknown	POST /api/basket/lines {"varietyId":99,"qty":1}
+  -> 404 {"error":"variety_not_found","message":"No such variety.","id":99}
+basket-add-basil	POST /api/basket/lines {"varietyId":2,"qty":4}
+  -> 200 {"lines":[{"varietyId":2,"sku":"BAS-0204","name":"Genovese Basil","kind":"herb","qty":4,"unitCents":245,"discountCents":0,"lineCents":980}],"itemCount":4,"subtotalCents":980,"promo":null,"shippingCents":350,"totalCents":1330}
+basket-merge-bulk-discount	POST /api/basket/lines {"varietyId":2,"qty":3}
+  -> 200 {"lines":[{"varietyId":2,"sku":"BAS-0204","name":"Genovese Basil","kind":"herb","qty":7,"unitCents":245,"discountCents":171,"lineCents":1544}],"itemCount":7,"subtotalCents":1544,"promo":null,"shippingCents":350,"totalCents":1894}
+basket-line-limit	POST /api/basket/lines {"varietyId":2,"qty":6}
+  -> 409 {"error":"line_limit","message":"At most 12 packets of one variety.","max":12,"inBasket":7}
+basket-over-stock	POST /api/basket/lines {"varietyId":6,"qty":9}
+  -> 409 {"error":"out_of_stock","message":"Not enough packets in stock.","varietyId":6,"available":8,"requested":9}
+basket-add-sweet-pea	POST /api/basket/lines {"varietyId":6,"qty":2}
+  -> 200 {"lines":[{"varietyId":2,"sku":"BAS-0204","name":"Genovese Basil","kind":"herb","qty":7,"unitCents":245,"discountCents":171,"lineCents":1544},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790}],"itemCount":9,"subtotalCents":2334,"promo":null,"shippingCents":350,"totalCents":2684}
+promo-unknown	POST /api/basket/promo {"code":"FREESEEDS"}
+  -> 422 {"error":"promo_unknown","message":"That code is not known."}
+promo-herbs	POST /api/basket/promo {"code":"  herbs20 "}
+  -> 200 {"lines":[{"varietyId":2,"sku":"BAS-0204","name":"Genovese Basil","kind":"herb","qty":7,"unitCents":245,"discountCents":171,"lineCents":1544},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790}],"itemCount":9,"subtotalCents":2334,"promo":{"code":"HERBS20","discountCents":309,"applied":true},"shippingCents":350,"totalCents":2375}
+basket-live-price-free-shipping	POST /api/basket/lines {"varietyId":1,"qty":3}
+  -> 200 {"lines":[{"varietyId":2,"sku":"BAS-0204","name":"Genovese Basil","kind":"herb","qty":7,"unitCents":245,"discountCents":171,"lineCents":1544},{"varietyId":1,"sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","qty":3,"unitCents":350,"discountCents":0,"lineCents":1050},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790}],"itemCount":12,"subtotalCents":3384,"promo":{"code":"HERBS20","discountCents":309,"applied":true},"shippingCents":0,"totalCents":3075}
+promo-spring-replaces	POST /api/basket/promo {"code":"spring5"}
+  -> 200 {"lines":[{"varietyId":2,"sku":"BAS-0204","name":"Genovese Basil","kind":"herb","qty":7,"unitCents":245,"discountCents":171,"lineCents":1544},{"varietyId":1,"sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","qty":3,"unitCents":350,"discountCents":0,"lineCents":1050},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790}],"itemCount":12,"subtotalCents":3384,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":0,"totalCents":2884}
+basket-add-carrot	POST /api/basket/lines {"varietyId":4,"qty":1}
+  -> 200 {"lines":[{"varietyId":2,"sku":"BAS-0204","name":"Genovese Basil","kind":"herb","qty":7,"unitCents":245,"discountCents":171,"lineCents":1544},{"varietyId":1,"sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","qty":3,"unitCents":350,"discountCents":0,"lineCents":1050},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":1,"unitCents":210,"discountCents":0,"lineCents":210}],"itemCount":13,"subtotalCents":3594,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":0,"totalCents":3094}
+basket-line-order-tie	POST /api/basket/lines {"varietyId":3,"qty":1}
+  -> 200 {"lines":[{"varietyId":2,"sku":"BAS-0204","name":"Genovese Basil","kind":"herb","qty":7,"unitCents":245,"discountCents":171,"lineCents":1544},{"varietyId":1,"sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","qty":3,"unitCents":350,"discountCents":0,"lineCents":1050},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":1,"unitCents":210,"discountCents":0,"lineCents":210},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":1,"unitCents":210,"discountCents":0,"lineCents":210}],"itemCount":14,"subtotalCents":3804,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":0,"totalCents":3304}
+basket-full	POST /api/basket/lines {"varietyId":8,"qty":1}
+  -> 409 {"error":"basket_full","message":"A basket holds at most 5 varieties.","maxLines":5}
+basket-merge-when-full	POST /api/basket/lines {"varietyId":4,"qty":1}
+  -> 200 {"lines":[{"varietyId":2,"sku":"BAS-0204","name":"Genovese Basil","kind":"herb","qty":7,"unitCents":245,"discountCents":171,"lineCents":1544},{"varietyId":1,"sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","qty":3,"unitCents":350,"discountCents":0,"lineCents":1050},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420},{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":1,"unitCents":210,"discountCents":0,"lineCents":210}],"itemCount":15,"subtotalCents":4014,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":0,"totalCents":3514}
+setup-remove-basil	DELETE /api/basket/lines/2
+  -> 200 {"lines":[{"varietyId":1,"sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","qty":3,"unitCents":350,"discountCents":0,"lineCents":1050},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420},{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":1,"unitCents":210,"discountCents":0,"lineCents":210}],"itemCount":8,"subtotalCents":2470,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":350,"totalCents":2320}
+promo-below-minimum-kept	DELETE /api/basket/lines/1
+  -> 200 {"lines":[{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420},{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":1,"unitCents":210,"discountCents":0,"lineCents":210}],"itemCount":5,"subtotalCents":1420,"promo":{"code":"SPRING5","discountCents":0,"applied":false},"shippingCents":350,"totalCents":1770}
+basket-remove-missing	DELETE /api/basket/lines/2
+  -> 404 {"error":"line_not_found","message":"That variety is not in the basket.","varietyId":2}
+basket-set-over-stock	PUT /api/basket/lines/6 {"qty":9}
+  -> 409 {"error":"out_of_stock","message":"Not enough packets in stock.","varietyId":6,"available":8,"requested":9}
+promo-minimum-again	PUT /api/basket/lines/3 {"qty":6}
+  -> 200 {"lines":[{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":6,"unitCents":210,"discountCents":126,"lineCents":1134},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420}],"itemCount":10,"subtotalCents":2344,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":350,"totalCents":2194}
+setup-add-borage	POST /api/basket/lines {"varietyId":13,"qty":2}
+  -> 200 {"lines":[{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":6,"unitCents":210,"discountCents":126,"lineCents":1134},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":13,"sku":"BEE-0042","name":"Borage Blue","kind":"herb","qty":2,"unitCents":245,"discountCents":0,"lineCents":490},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420}],"itemCount":12,"subtotalCents":2834,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":350,"totalCents":2684}
+variety-delete-cascades-basket	DELETE /api/varieties/13
+  -> 200 {"deleted":true,"id":13,"basketLinesRemoved":1}
+basket-after-cascade	GET /api/basket
+  -> 200 {"lines":[{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":6,"unitCents":210,"discountCents":126,"lineCents":1134},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420}],"itemCount":10,"subtotalCents":2344,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":350,"totalCents":2194}
+variety-delete-in-use	DELETE /api/varieties/1
+  -> 409 {"error":"variety_in_use","message":"A variety on an order cannot be deleted.","orders":1}
+variety-delete-in-use-placed	DELETE /api/varieties/4
+  -> 409 {"error":"variety_in_use","message":"A variety on an order cannot be deleted.","orders":1}
+setup-shrink-sweet-pea	PUT /api/varieties/6 {"stock":1}
+  -> 200 {"id":6,"uid":"var_55e03b9c","sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","priceCents":395,"price":"3.95","stock":1,"status":"active","rev":2,"createdAt":"2026-02-04T08:45:00.000Z"}
+checkout-stock-rechecked	POST /api/checkout
+  -> 409 {"error":"out_of_stock","message":"Not enough packets in stock.","varietyId":6,"available":1,"requested":2}
+setup-retire-calendula	PUT /api/varieties/3 {"status":" RETIRED "}
+  -> 200 {"id":3,"uid":"var_0c7e9a13","sku":"CAL-0310","name":"calendula Pacific","kind":"flower","priceCents":210,"price":"2.10","stock":12,"status":"retired","rev":2,"createdAt":"2026-02-02T09:10:00.000Z"}
+checkout-retired-first-line	POST /api/checkout
+  -> 409 {"error":"variety_retired","message":"This variety is no longer sold.","varietyId":3}
+setup-reactivate-calendula	PUT /api/varieties/3 {"status":"active"}
+  -> 200 {"id":3,"uid":"var_0c7e9a13","sku":"CAL-0310","name":"calendula Pacific","kind":"flower","priceCents":210,"price":"2.10","stock":12,"status":"active","rev":3,"createdAt":"2026-02-02T09:10:00.000Z"}
+setup-restore-sweet-pea	PUT /api/varieties/6 {"stock":8}
+  -> 200 {"id":6,"uid":"var_55e03b9c","sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","priceCents":395,"price":"3.95","stock":8,"status":"active","rev":3,"createdAt":"2026-02-04T08:45:00.000Z"}
+checkout-places-order	POST /api/checkout
+  -> 201 {"id":4,"uid":"ord_94ab2568","number":"SL-1004","status":"placed","lines":[{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":6,"unitCents":210,"discountCents":126,"lineCents":1134},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420}],"itemCount":10,"subtotalCents":2344,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":350,"totalCents":2194,"createdAt":"2026-11-21T04:40:47.239Z"}
+checkout-empties-basket	GET /api/basket
+  -> 200 {"lines":[],"itemCount":0,"subtotalCents":0,"promo":null,"shippingCents":0,"totalCents":0}
+checkout-empty-refused	POST /api/checkout
+  -> 409 {"error":"basket_empty","message":"The basket is empty."}
+stock-taken-at-checkout	GET /api/varieties/3
+  -> 200 {"id":3,"uid":"var_0c7e9a13","sku":"CAL-0310","name":"calendula Pacific","kind":"flower","priceCents":210,"price":"2.10","stock":6,"status":"active","rev":4,"createdAt":"2026-02-02T09:10:00.000Z"}
+setup-reprice-sweet-pea	PUT /api/varieties/6 {"price":"4.00"}
+  -> 200 {"id":6,"uid":"var_55e03b9c","sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","priceCents":400,"price":"4.00","stock":6,"status":"active","rev":5,"createdAt":"2026-02-04T08:45:00.000Z"}
+order-prices-snapshot	GET /api/orders/4
+  -> 200 {"id":4,"uid":"ord_94ab2568","number":"SL-1004","status":"placed","lines":[{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":6,"unitCents":210,"discountCents":126,"lineCents":1134},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420}],"itemCount":10,"subtotalCents":2344,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":350,"totalCents":2194,"createdAt":"2026-11-21T04:40:47.239Z"}
+order-skip-refused	PUT /api/orders/4/status {"status":"shipped"}
+  -> 409 {"error":"invalid_transition","message":"An order cannot go from placed to shipped.","from":"placed","to":"shipped","allowed":["packed","cancelled"]}
+order-status-unknown	PUT /api/orders/4/status {"status":"lost"}
+  -> 422 {"error":"status_invalid","message":"Unknown status.","allowed":["placed","packed","shipped","cancelled"]}
+order-pack	PUT /api/orders/4/status {"status":" PACKED "}
+  -> 200 {"id":4,"uid":"ord_94ab2568","number":"SL-1004","status":"packed","lines":[{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":6,"unitCents":210,"discountCents":126,"lineCents":1134},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420}],"itemCount":10,"subtotalCents":2344,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":350,"totalCents":2194,"createdAt":"2026-11-21T04:40:47.239Z"}
+order-back-refused	PUT /api/orders/4/status {"status":"placed"}
+  -> 409 {"error":"invalid_transition","message":"An order cannot go from packed to placed.","from":"packed","to":"placed","allowed":["shipped","cancelled"]}
+order-same-refused	PUT /api/orders/4/status {"status":"packed"}
+  -> 409 {"error":"invalid_transition","message":"An order cannot go from packed to packed.","from":"packed","to":"packed","allowed":["shipped","cancelled"]}
+order-cancel-packed	PUT /api/orders/4/status {"status":"cancelled"}
+  -> 200 {"id":4,"uid":"ord_94ab2568","number":"SL-1004","status":"cancelled","lines":[{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":6,"unitCents":210,"discountCents":126,"lineCents":1134},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420}],"itemCount":10,"subtotalCents":2344,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":350,"totalCents":2194,"createdAt":"2026-11-21T04:40:47.239Z"}
+cancel-restores-stock	GET /api/varieties/3
+  -> 200 {"id":3,"uid":"var_0c7e9a13","sku":"CAL-0310","name":"calendula Pacific","kind":"flower","priceCents":210,"price":"2.10","stock":12,"status":"active","rev":5,"createdAt":"2026-02-02T09:10:00.000Z"}
+order-cancelled-final	PUT /api/orders/4/status {"status":"packed"}
+  -> 409 {"error":"invalid_transition","message":"An order cannot go from cancelled to packed.","from":"cancelled","to":"packed","allowed":[]}
+order-shipped-final	PUT /api/orders/1/status {"status":"cancelled"}
+  -> 409 {"error":"invalid_transition","message":"An order cannot go from shipped to cancelled.","from":"shipped","to":"cancelled","allowed":[]}
+orders-newest-first	GET /api/orders
+  -> 200 {"items":[{"id":4,"uid":"ord_94ab2568","number":"SL-1004","status":"cancelled","lines":[{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":6,"unitCents":210,"discountCents":126,"lineCents":1134},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420}],"itemCount":10,"subtotalCents":2344,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":350,"totalCents":2194,"createdAt":"2026-11-21T04:40:47.239Z"},{"id":3,"uid":"ord_c6083e5a","number":"SL-1003","status":"placed","lines":[{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":6,"unitCents":210,"discountCents":126,"lineCents":1134}],"itemCount":6,"subtotalCents":1134,"promo":null,"shippingCents":350,"totalCents":1484,"createdAt":"2026-02-12T17:21:00.000Z"},{"id":2,"uid":"ord_15ab70f3","number":"SL-1002","status":"packed","lines":[{"varietyId":2,"sku":"BAS-0204","name":"Genovese Basil","kind":"herb","qty":3,"unitCents":245,"discountCents":0,"lineCents":735},{"varietyId":8,"sku":"CHV-0815","name":"Chives","kind":"herb","qty":1,"unitCents":195,"discountCents":0,"lineCents":195}],"itemCount":4,"subtotalCents":930,"promo":null,"shippingCents":350,"totalCents":1280,"createdAt":"2026-02-11T09:48:00.000Z"},{"id":1,"uid":"ord_9e2c41d7","number":"SL-1001","status":"shipped","lines":[{"varietyId":1,"sku":"TOM-0101","name":"Brandywine Tomato","kind":"vegetable","qty":2,"unitCents":345,"discountCents":0,"lineCents":690}],"itemCount":2,"subtotalCents":690,"promo":null,"shippingCents":350,"totalCents":1040,"createdAt":"2026-02-10T15:02:00.000Z"}],"total":4}
+orders-filter-status	GET /api/orders?status=CANCELLED
+  -> 200 {"items":[{"id":4,"uid":"ord_94ab2568","number":"SL-1004","status":"cancelled","lines":[{"varietyId":3,"sku":"CAL-0310","name":"calendula Pacific","kind":"flower","qty":6,"unitCents":210,"discountCents":126,"lineCents":1134},{"varietyId":6,"sku":"SWP-0611","name":"Sweet Pea Cupani","kind":"flower","qty":2,"unitCents":395,"discountCents":0,"lineCents":790},{"varietyId":4,"sku":"CAR-0402","name":"Chantenay Carrot","kind":"vegetable","qty":2,"unitCents":210,"discountCents":0,"lineCents":420}],"itemCount":10,"subtotalCents":2344,"promo":{"code":"SPRING5","discountCents":500,"applied":true},"shippingCents":350,"totalCents":2194,"createdAt":"2026-11-21T04:40:47.239Z"}],"total":1}
+orders-filter-invalid	GET /api/orders?status=lost
+  -> 422 {"error":"status_invalid","message":"Unknown status.","allowed":["placed","packed","shipped","cancelled"]}
+order-missing	GET /api/orders/99
+  -> 404 {"error":"order_not_found","message":"No such order.","id":99}
+route-unknown	GET /api/seeds
+  -> 404 {"error":"not_found","message":"No such endpoint."}
+method-not-allowed	PATCH /api/varieties/1 {"name":"x"}
+  -> 405 {"error":"method_not_allowed","message":"Method not allowed here.","allow":["GET","HEAD","PUT","DELETE"]}
+method-not-allowed-collection	DELETE /api/orders
+  -> 405 {"error":"method_not_allowed","message":"Method not allowed here.","allow":["GET","HEAD"]}

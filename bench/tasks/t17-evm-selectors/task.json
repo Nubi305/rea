@@ -1,0 +1,53 @@
+{
+  "id": "t17-evm-selectors",
+  "title": "Function selectors of contract bytecode",
+  "audit_request": null,
+  "question": "{input}/contract.hex is the runtime bytecode of a contract we call. Which function selectors does it answer to?",
+  "inputs": [
+    {
+      "kind": "copy",
+      "from": "src/contract.hex",
+      "to": "contract.hex"
+    }
+  ],
+  "answer": {
+    "fields": {
+      "selectors": "array of strings: every function selector, as 0x followed by eight lower-case hex digits"
+    }
+  },
+  "facts": [
+    {
+      "id": "selectors",
+      "field": "selectors",
+      "check": "set_equals",
+      "value": ["0x18160ddd", "0x3ccfd60b", "0x70a08231", "0xa9059cbb"],
+      "ignore_case": true
+    }
+  ],
+  "reference_answer": {
+    "selectors": ["0x18160ddd", "0x3ccfd60b", "0x70a08231", "0xa9059cbb"]
+  },
+  "first_command": {
+    "expected": "inspect-evm-interface",
+    "also_accepted": ["inspect-artifact"]
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": [
+          "inspect-evm-interface",
+          "{input}/contract.hex",
+          "hex",
+          "--json"
+        ],
+        "must_contain": [
+          "\"selector\":\"0x18160ddd\"",
+          "\"selector\":\"0x3ccfd60b\"",
+          "\"selector\":\"0x70a08231\"",
+          "\"selector\":\"0xa9059cbb\""
+        ]
+      }
+    ]
+  },
+  "notes": "origin/assemble.mjs wrote src/contract.hex; it is not given to the agent."
+}

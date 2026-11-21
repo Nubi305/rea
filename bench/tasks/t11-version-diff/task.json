@@ -1,0 +1,102 @@
+{
+  "id": "t11-version-diff",
+  "title": "What changed between two versions of a package",
+  "audit_request": "R7",
+  "question": "Here are 3.1 and 3.2 of the vendor's agent package: {input}/agent-3.1.zip and {input}/agent-3.2.zip. Which files were added, removed and changed in 3.2?",
+  "inputs": [
+    {
+      "kind": "zip",
+      "from": "src/v3.1",
+      "to": "agent-3.1.zip"
+    },
+    {
+      "kind": "zip",
+      "from": "src/v3.2",
+      "to": "agent-3.2.zip"
+    }
+  ],
+  "answer": {
+    "fields": {
+      "added": "array of strings: the paths of files that exist only in 3.2",
+      "removed": "array of strings: the paths of files that exist only in 3.1",
+      "changed": "array of strings: the paths of files that exist in both with different content"
+    }
+  },
+  "facts": [
+    {
+      "id": "added",
+      "field": "added",
+      "check": "set_equals",
+      "value": ["lib/signature.js"]
+    },
+    {
+      "id": "removed",
+      "field": "removed",
+      "check": "set_equals",
+      "value": ["lib/telemetry.js"]
+    },
+    {
+      "id": "changed",
+      "field": "changed",
+      "check": "set_equals",
+      "value": ["VERSION", "config/agent.ini", "lib/agent.js", "lib/update.js"]
+    }
+  ],
+  "reference_answer": {
+    "added": ["lib/signature.js"],
+    "removed": ["lib/telemetry.js"],
+    "changed": ["VERSION", "config/agent.ini", "lib/agent.js", "lib/update.js"]
+  },
+  "first_command": {
+    "expected": "inspect-artifact",
+    "also_accepted": ["compare-artifacts"]
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": [
+          "inspect-artifact",
+          "{input}/agent-3.1.zip",
+          "--detail",
+          "summary",
+          "--evidence_output",
+          "{work}/agent-3.1.evidence.json",
+          "--json"
+        ],
+        "capture": {
+          "left": "\"inventory_evidence_ids\":\\[\"(ev_[a-f0-9]{64})\""
+        }
+      },
+      {
+        "args": [
+          "inspect-artifact",
+          "{input}/agent-3.2.zip",
+          "--detail",
+          "summary",
+          "--evidence_output",
+          "{work}/agent-3.2.evidence.json",
+          "--json"
+        ],
+        "capture": {
+          "right": "\"inventory_evidence_ids\":\\[\"(ev_[a-f0-9]{64})\""
+        }
+      },
+      {
+        "args": [
+          "compare-artifacts",
+          "{\"left\":{\"kind\":\"evidence-file\",\"path\":\"{work}/agent-3.1.evidence.json\",\"evidence_id\":\"{left}\"},\"right\":{\"kind\":\"evidence-file\",\"path\":\"{work}/agent-3.2.evidence.json\",\"evidence_id\":\"{right}\"}}",
+          "--json"
+        ],
+        "must_contain": [
+          "\"classification\":\"added\",\"logical_path\":\"lib/signature.js\"",
+          "\"classification\":\"removed\",\"logical_path\":\"lib/telemetry.js\"",
+          "\"classification\":\"changed\",\"logical_path\":\"lib/update.js\"",
+          "\"classification\":\"changed\",\"logical_path\":\"lib/agent.js\"",
+          "\"classification\":\"changed\",\"logical_path\":\"config/agent.ini\"",
+          "\"classification\":\"changed\",\"logical_path\":\"VERSION\""
+        ]
+      }
+    ]
+  },
+  "notes": "The comparison also lists the archive itself (path \".\") as changed; that is not a file of the package."
+}

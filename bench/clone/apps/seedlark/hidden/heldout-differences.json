@@ -1,0 +1,161 @@
+{
+  "renames": [],
+  "volatile_fields": [
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-create-normalised",
+      "pointer": "/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-create-normalised",
+      "pointer": "/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-price-round-down",
+      "pointer": "/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-price-round-down",
+      "pointer": "/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-price-range-edge-stock-default",
+      "pointer": "/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-price-range-edge-stock-default",
+      "pointer": "/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-price-upper-edge",
+      "pointer": "/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-price-upper-edge",
+      "pointer": "/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-name-max",
+      "pointer": "/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-name-max",
+      "pointer": "/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-read-created",
+      "pointer": "/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "variety-read-created",
+      "pointer": "/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "checkout-places-order",
+      "pointer": "/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "checkout-places-order",
+      "pointer": "/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "order-prices-snapshot",
+      "pointer": "/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "order-prices-snapshot",
+      "pointer": "/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "order-pack",
+      "pointer": "/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "order-pack",
+      "pointer": "/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "order-cancel-packed",
+      "pointer": "/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "order-cancel-packed",
+      "pointer": "/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "orders-newest-first",
+      "pointer": "/items/*/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "orders-newest-first",
+      "pointer": "/items/*/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "orders-filter-status",
+      "pointer": "/items/*/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-api",
+      "step_id": "orders-filter-status",
+      "pointer": "/items/*/createdAt",
+      "reason": "server time when the record was created"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "api-orders-after-pages",
+      "pointer": "/items/*/uid",
+      "reason": "generated id of a record created during the run"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "api-orders-after-pages",
+      "pointer": "/items/*/createdAt",
+      "reason": "server time when the record was created"
+    }
+  ]
+}

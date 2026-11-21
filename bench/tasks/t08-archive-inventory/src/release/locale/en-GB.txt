@@ -1,0 +1,3 @@
+sync.started=Sync started
+sync.failed=Sync failed
+sync.done=Sync finished

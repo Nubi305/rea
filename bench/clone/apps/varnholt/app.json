@@ -1,0 +1,8 @@
+{
+  "schema": "rea.bench.clone-app/1",
+  "id": "varnholt",
+  "product_names": ["Varnholt"],
+  "public_description": "Varnholt is a small dispatch-desk web application for a courier: you keep manifests (van loads bound for a destination), book parcels onto them, move a manifest through its statuses and read totals on a summary page. It runs locally as one Node process on {address} with in-memory data; ctl.sh starts, stops, resets (back to the seed data) and health-checks it.",
+  "health_path": "/api/health",
+  "origin": "The application of the first blind trial (2026-11-20). original/ and hidden/ hold that trial's files byte for byte; app.json, hidden/rules.json and hidden/heldout-pages-portable.json were added for the benchmark."
+}

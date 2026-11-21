@@ -1,0 +1,98 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Fleet", "version": "2.3.0" },
+  "servers": [{ "url": "https://api.fleet.example.test/v2" }],
+  "security": [{ "bearer": [] }],
+  "paths": {
+    "/status": {
+      "get": {
+        "operationId": "getStatus",
+        "security": [],
+        "responses": { "200": { "description": "service status" } }
+      }
+    },
+    "/vehicles": {
+      "get": {
+        "operationId": "listVehicles",
+        "parameters": [
+          { "name": "depot", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "maximum": 200 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "vehicles",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Vehicle" } }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "registerVehicle",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Vehicle" } } }
+        },
+        "responses": { "201": { "description": "registered" }, "409": { "description": "plate in use" } }
+      }
+    },
+    "/vehicles/{plate}": {
+      "parameters": [{ "name": "plate", "in": "path", "required": true, "schema": { "type": "string" } }],
+      "get": {
+        "operationId": "getVehicle",
+        "responses": { "200": { "description": "one vehicle" }, "404": { "description": "unknown plate" } }
+      },
+      "delete": {
+        "operationId": "retireVehicle",
+        "security": [{ "bearer": ["fleet:admin"] }],
+        "responses": { "204": { "description": "retired" }, "409": { "description": "vehicle on a route" } }
+      }
+    },
+    "/vehicles/{plate}/positions": {
+      "parameters": [{ "name": "plate", "in": "path", "required": true, "schema": { "type": "string" } }],
+      "post": {
+        "operationId": "reportPosition",
+        "security": [{ "deviceKey": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Position" } } }
+        },
+        "responses": { "202": { "description": "accepted" } }
+      }
+    },
+    "/routes": {
+      "get": { "operationId": "listRoutes", "responses": { "200": { "description": "routes" } } }
+    },
+    "/webhooks/tachograph": {
+      "post": {
+        "operationId": "receiveTachograph",
+        "security": [],
+        "responses": { "204": { "description": "received" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": { "type": "http", "scheme": "bearer" },
+      "deviceKey": { "type": "apiKey", "in": "header", "name": "X-Device-Key" }
+    },
+    "schemas": {
+      "Vehicle": {
+        "type": "object",
+        "required": ["plate", "depot"],
+        "properties": {
+          "plate": { "type": "string" },
+          "depot": { "type": "string" },
+          "capacityKg": { "type": "integer" }
+        }
+      },
+      "Position": {
+        "type": "object",
+        "required": ["latitude", "longitude"],
+        "properties": { "latitude": { "type": "number" }, "longitude": { "type": "number" } }
+      }
+    }
+  }
+}

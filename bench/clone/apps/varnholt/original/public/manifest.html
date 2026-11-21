@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Manifest - Varnholt</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Varnholt</h1>
+      <nav aria-label="Sections">
+        <a href="/">Manifests</a>
+        <a href="/summary">Summary</a>
+        <a href="/about">About</a>
+      </nav>
+    </header>
+    <main>
+      <h2 id="heading">Manifest</h2>
+      <div id="notice" aria-live="polite"></div>
+      <section id="detail" hidden>
+        <dl>
+          <dt>Destination</dt><dd id="f-destination"></dd>
+          <dt>Status</dt><dd id="f-status"></dd>
+          <dt>Capacity</dt><dd id="f-capacity"></dd>
+          <dt>Loaded</dt><dd id="f-loaded"></dd>
+          <dt>Room left</dt><dd id="f-room"></dd>
+          <dt>Charges</dt><dd id="f-charges"></dd>
+        </dl>
+        <div id="actions" role="group" aria-label="Status actions"></div>
+        <h3>Parcels</h3>
+        <p id="parcel-count"></p>
+        <table>
+          <caption>Parcels on this manifest</caption>
+          <thead>
+            <tr><th>Recipient</th><th>Weight</th><th>Fragile</th><th>Charge</th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <h3>Add a parcel</h3>
+        <form id="add">
+          <label>Recipient <input id="p-recipient" name="recipient" type="text" /></label>
+          <label>Weight (kg) <input id="p-weight" name="weightKg" type="text" inputmode="decimal" /></label>
+          <label><input id="p-fragile" name="fragile" type="checkbox" /> Fragile</label>
+          <button type="submit">Add parcel</button>
+        </form>
+        <h3>Edit manifest</h3>
+        <form id="edit">
+          <label>New code <input id="e-code" name="code" type="text" /></label>
+          <label>New destination <input id="e-destination" name="destination" type="text" /></label>
+          <label>New capacity (kg) <input id="e-capacity" name="capacityKg" type="text" inputmode="numeric" /></label>
+          <button type="submit">Save manifest</button>
+        </form>
+        <p><button id="delete" type="button">Delete manifest</button></p>
+      </section>
+    </main>
+    <footer>Varnholt dispatch desk</footer>
+    <!--boot-->
+    <script src="/assets/common.js"></script>
+    <script src="/assets/manifest.js"></script>
+  </body>
+</html>

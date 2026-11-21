@@ -1,0 +1,185 @@
+{
+  "start_path": "/about",
+  "actions": [
+    {
+      "step_id": "fp-manifests",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/manifests",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "fp-parcels",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/parcels",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-board",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-summary",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/summary"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-manifest-open",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/manifest?id=1"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-manifest-missing",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/manifest?id=404"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-parcel",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/parcel?id=3"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-parcel-type-weight",
+      "action": "fill",
+      "locator": {
+        "kind": "role",
+        "role": "textbox",
+        "name": "New weight (kg)"
+      },
+      "value": {
+        "source": "literal",
+        "value": "12.25"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-parcel-save",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Save parcel"
+      },
+      "timeout_ms": 15000,
+      "save_response": {
+        "method": "PUT",
+        "path": "/api/parcels/{*}",
+        "save": [
+          {
+            "name": "saved_parcel",
+            "json_pointer": "/id"
+          }
+        ]
+      }
+    },
+    {
+      "step_id": "page-parcel-saved",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": "#notice p[role=status]"
+      },
+      "state": "visible",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "api-add-parcel",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 5,
+        "recipient": "  Nia   Oduya ",
+        "weightKg": 4.75,
+        "fragile": true
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-manifest-after-add",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/manifest?id=5"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "api-seal",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/5/status",
+      "json": {
+        "status": "sealed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-manifest-sealed",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/manifest?id=5"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-parcel-on-sealed",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/parcel?id=9"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-manifest-dispatched",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/manifest?id=3"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-summary-after",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/summary"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "page-board-after",
+      "action": "goto",
+      "destination": {
+        "url": "{origin}/"
+      },
+      "wait_until": "load",
+      "timeout_ms": 15000
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "id": "t02-elf-licence-check",
+  "title": "How a native program checks its licence key",
+  "audit_request": "R1",
+  "question": "Here is {input}/licensed, a Linux ELF. Explain how it validates the licence key: which function decides, how long must a key be, and which key does it accept?",
+  "inputs": [
+    {
+      "kind": "cc",
+      "from": "src",
+      "sources": ["licensed.c"],
+      "to": "licensed",
+      "flags": ["-O0", "-g"]
+    }
+  ],
+  "answer": {
+    "fields": {
+      "function": "string: the name of the function that decides whether a key is valid",
+      "key_length": "integer: the length a key must have",
+      "accepted_key": "string: the key the program accepts"
+    }
+  },
+  "facts": [
+    {
+      "id": "function",
+      "field": "function",
+      "check": "equals",
+      "value": "verify_key"
+    },
+    {
+      "id": "key-length",
+      "field": "key_length",
+      "check": "equals",
+      "value": 14
+    },
+    {
+      "id": "accepted-key",
+      "field": "accepted_key",
+      "check": "equals",
+      "value": "PARCEL-7Q4-ZED"
+    }
+  ],
+  "reference_answer": {
+    "function": "verify_key",
+    "key_length": 14,
+    "accepted_key": "PARCEL-7Q4-ZED"
+  },
+  "first_command": {
+    "expected": "inspect-with-objdump",
+    "also_accepted": ["inspect-artifact", "debug-with-gdb"]
+  },
+  "flood": {
+    "args": [
+      "inspect-with-objdump",
+      "{input}/licensed",
+      "disassemble_all",
+      "--json"
+    ],
+    "why": "The whole disassembly, twice (raw and normalized), where one symbol is wanted."
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": [
+          "inspect-with-objdump",
+          "{input}/licensed",
+          "symbols",
+          "--json"
+        ],
+        "must_contain": ["verify_key"]
+      },
+      {
+        "args": [
+          "inspect-with-objdump",
+          "{input}/licensed",
+          "disassemble",
+          "--symbol",
+          "verify_key",
+          "--json"
+        ],
+        "must_contain": ["strlen@plt", "cmp    $0xe,%rax", "strcmp@plt"],
+        "capture": {
+          "key_address": "lea\\s+0x[0-9a-f]+\\(%rip\\),%r[a-z0-9]+\\s+# ([0-9a-f]+) "
+        }
+      },
+      {
+        "args": [
+          "debug-with-gdb",
+          "x/s 0x{key_address}",
+          "--executable",
+          "{input}/licensed",
+          "--inferior-tty",
+          "/dev/null",
+          "--json"
+        ],
+        "must_contain": ["PARCEL-7Q4-ZED"]
+      }
+    ]
+  },
+  "notes": "No native analysis provider is installed, so the deep commands (analyze, decompile, function) answer provider_unavailable; the route is REA's objdump and gdb inspectors."
+}

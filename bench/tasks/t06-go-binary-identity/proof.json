@@ -1,0 +1,26 @@
+{
+  "task": "t06-go-binary-identity",
+  "measured_on": {
+    "commit": "0e089b3e",
+    "version": "6.9.0",
+    "node_version": "v24.22.3"
+  },
+  "route_stdout_bytes": 5260,
+  "route_ok": true,
+  "steps": [
+    {
+      "command": "rea inspect-go-binary {input}/agentd --json",
+      "exit": 0,
+      "stdout_bytes": 5260,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    }
+  ],
+  "naive_first_call": {
+    "command": "rea inspect-with-objdump {input}/agentd symbols --json",
+    "exit": 0,
+    "stdout_bytes": 351943,
+    "stderr_bytes": 0
+  }
+}

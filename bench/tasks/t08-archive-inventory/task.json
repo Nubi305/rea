@@ -1,0 +1,74 @@
+{
+  "id": "t08-archive-inventory",
+  "title": "Inventory of an archive",
+  "audit_request": null,
+  "question": "What is inside {input}/release.zip? How many files, which is the largest once unpacked, which two files have identical content, and what is the SHA-256 of config/defaults.env?",
+  "inputs": [
+    {
+      "kind": "zip",
+      "from": "src/release",
+      "to": "release.zip"
+    }
+  ],
+  "answer": {
+    "fields": {
+      "file_count": "integer: the number of files in the archive",
+      "largest_file": "string: the path of the file that is largest once unpacked",
+      "identical_files": "array of two strings: the paths of the two files with identical content",
+      "defaults_env_sha256": "string: the SHA-256 of config/defaults.env, as lower-case hex"
+    }
+  },
+  "facts": [
+    {
+      "id": "file-count",
+      "field": "file_count",
+      "check": "equals",
+      "value": 9
+    },
+    {
+      "id": "largest-file",
+      "field": "largest_file",
+      "check": "equals",
+      "value": "lib/postcodes.csv"
+    },
+    {
+      "id": "identical-files",
+      "field": "identical_files",
+      "check": "set_equals",
+      "value": ["locale/en.txt", "locale/en-GB.txt"]
+    },
+    {
+      "id": "defaults-env-sha256",
+      "field": "defaults_env_sha256",
+      "check": "equals",
+      "value": "63b6a24664651788a8ad7f805761194f198ab315bd0bd0066327c7eac4f4d060",
+      "ignore_case": true
+    }
+  ],
+  "reference_answer": {
+    "file_count": 9,
+    "largest_file": "lib/postcodes.csv",
+    "identical_files": ["locale/en-GB.txt", "locale/en.txt"],
+    "defaults_env_sha256": "63b6a24664651788a8ad7f805761194f198ab315bd0bd0066327c7eac4f4d060"
+  },
+  "first_command": {
+    "expected": "inspect-artifact",
+    "also_accepted": []
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": ["inspect-artifact", "{input}/release.zip", "--json"],
+        "must_contain": [
+          "\"logical_path\":\"lib/postcodes.csv\"",
+          "\"declared_size\":13358",
+          "\"logical_path\":\"locale/en-GB.txt\"",
+          "\"logical_path\":\"locale/en.txt\"",
+          "63b6a24664651788a8ad7f805761194f198ab315bd0bd0066327c7eac4f4d060",
+          "\"occurrence_count\":10"
+        ]
+      }
+    ]
+  },
+  "notes": "The inventory counts the archive itself as one occurrence: ten occurrences are nine files. Two paths that share one artifact id have identical content."
+}

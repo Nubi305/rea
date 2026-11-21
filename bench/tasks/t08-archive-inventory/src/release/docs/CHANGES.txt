@@ -1,0 +1,9 @@
+4.2.0
+- Retry a failed push up to three times.
+- Read the batch size from SYNC_BATCH.
+
+4.1.3
+- Send batches as JSON.
+
+4.1.0
+- First packaged release.

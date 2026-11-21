@@ -1,0 +1,68 @@
+{
+  "id": "t06-go-binary-identity",
+  "title": "Which module a Go binary was built from",
+  "audit_request": null,
+  "question": "Our vendor shipped {input}/agentd, a Go program. Which module is it built from, which other modules are linked in and at which versions, and was cgo enabled?",
+  "inputs": [
+    {
+      "kind": "go",
+      "from": "src/agentd",
+      "to": "agentd",
+      "env": {
+        "CGO_ENABLED": "0"
+      }
+    }
+  ],
+  "answer": {
+    "fields": {
+      "module": "string: the path of the main module",
+      "dependencies": "array of strings: every other module linked in, each as \"path@version\"",
+      "cgo_enabled": "boolean: true when the binary was built with cgo"
+    }
+  },
+  "facts": [
+    {
+      "id": "module",
+      "field": "module",
+      "check": "equals",
+      "value": "example.test/fleet/agentd"
+    },
+    {
+      "id": "dependencies",
+      "field": "dependencies",
+      "check": "set_equals",
+      "value": ["example.test/fleet/wire@v0.4.2"]
+    },
+    {
+      "id": "cgo",
+      "field": "cgo_enabled",
+      "check": "equals",
+      "value": false
+    }
+  ],
+  "reference_answer": {
+    "module": "example.test/fleet/agentd",
+    "dependencies": ["example.test/fleet/wire@v0.4.2"],
+    "cgo_enabled": false
+  },
+  "first_command": {
+    "expected": "inspect-go-binary",
+    "also_accepted": ["inspect-artifact"]
+  },
+  "flood": {
+    "args": ["inspect-with-objdump", "{input}/agentd", "symbols", "--json"],
+    "why": "The symbol table of a Go binary, twice, where the embedded build information is wanted."
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": ["inspect-go-binary", "{input}/agentd", "--json"],
+        "must_contain": [
+          "\"path\":\"example.test/fleet/agentd\"",
+          "\"path\":\"example.test/fleet/wire\",\"version\":\"v0.4.2\"",
+          "\"key\":\"CGO_ENABLED\",\"value\":\"0\""
+        ]
+      }
+    ]
+  }
+}

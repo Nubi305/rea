@@ -1,0 +1,71 @@
+{
+  "id": "t10-openapi-operations",
+  "title": "Operations of an OpenAPI description",
+  "audit_request": null,
+  "question": "According to {input}/fleet-api.json, how many operations does the API define, which paths accept POST, and what is the operationId of the call that deletes a vehicle?",
+  "inputs": [
+    {
+      "kind": "copy",
+      "from": "src/fleet-api.json",
+      "to": "fleet-api.json"
+    }
+  ],
+  "answer": {
+    "fields": {
+      "operation_count": "integer: the number of operations (method and path pairs)",
+      "post_paths": "array of strings: every path that accepts POST, as written in the description",
+      "delete_vehicle_operation_id": "string: the operationId of the operation that deletes a vehicle"
+    }
+  },
+  "facts": [
+    {
+      "id": "operation-count",
+      "field": "operation_count",
+      "check": "equals",
+      "value": 8
+    },
+    {
+      "id": "post-paths",
+      "field": "post_paths",
+      "check": "set_equals",
+      "value": [
+        "/vehicles",
+        "/vehicles/{plate}/positions",
+        "/webhooks/tachograph"
+      ]
+    },
+    {
+      "id": "delete-operation",
+      "field": "delete_vehicle_operation_id",
+      "check": "equals",
+      "value": "retireVehicle"
+    }
+  ],
+  "reference_answer": {
+    "operation_count": 8,
+    "post_paths": [
+      "/vehicles",
+      "/vehicles/{plate}/positions",
+      "/webhooks/tachograph"
+    ],
+    "delete_vehicle_operation_id": "retireVehicle"
+  },
+  "first_command": {
+    "expected": "inspect-api-contract",
+    "also_accepted": []
+  },
+  "proof": {
+    "steps": [
+      {
+        "args": ["inspect-api-contract", "{input}/fleet-api.json", "--json"],
+        "must_contain": [
+          "\"operation_slots\":8",
+          "\"method\":\"DELETE\",\"path\":\"/vehicles/{plate}\",\"declared_id\":\"retireVehicle\"",
+          "\"method\":\"POST\",\"path\":\"/vehicles\",\"declared_id\":\"registerVehicle\"",
+          "\"method\":\"POST\",\"path\":\"/vehicles/{plate}/positions\"",
+          "\"method\":\"POST\",\"path\":\"/webhooks/tachograph\""
+        ]
+      }
+    ]
+  }
+}

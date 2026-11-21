@@ -1,0 +1,8 @@
+{
+  "schema": "rea.bench.clone-app/1",
+  "id": "brassnook",
+  "product_names": ["Brassnook"],
+  "public_description": "Brassnook is a small web app a rehearsal studio uses to book its rooms: bands request a room for a date and time, staff confirm, check in or cancel the bookings, and there's a day sheet per room plus a studio activity page. It runs locally as one Node process on {address} with in-memory data. Please rebuild it as new code that behaves the same as the running original.",
+  "health_path": "/api/health",
+  "origin": "The second blind-trial application (2026-11-21), written for the benchmark. original/ is its author's copy byte for byte; hidden/ is its author's with the changes bench/clone/README.md lists."
+}

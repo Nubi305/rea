@@ -1,0 +1,20 @@
+{
+  "task": "t18-process-run",
+  "measured_on": {
+    "commit": "0e089b3e",
+    "version": "6.9.0",
+    "node_version": "v24.22.3"
+  },
+  "route_stdout_bytes": 10023,
+  "route_ok": true,
+  "steps": [
+    {
+      "command": "rea capture-process {work}/scenario.json --json",
+      "exit": 0,
+      "stdout_bytes": 10023,
+      "stderr_bytes": 524,
+      "ok": true,
+      "problem": "none"
+    }
+  ]
+}

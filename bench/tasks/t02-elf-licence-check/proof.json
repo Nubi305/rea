@@ -1,0 +1,42 @@
+{
+  "task": "t02-elf-licence-check",
+  "measured_on": {
+    "commit": "0e089b3e",
+    "version": "6.9.0",
+    "node_version": "v24.22.3"
+  },
+  "route_stdout_bytes": 17422,
+  "route_ok": true,
+  "steps": [
+    {
+      "command": "rea inspect-with-objdump {input}/licensed symbols --json",
+      "exit": 0,
+      "stdout_bytes": 9639,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    },
+    {
+      "command": "rea inspect-with-objdump {input}/licensed disassemble --symbol verify_key --json",
+      "exit": 0,
+      "stdout_bytes": 5839,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    },
+    {
+      "command": "rea debug-with-gdb x/s 0x{key_address} --executable {input}/licensed --inferior-tty /dev/null --json",
+      "exit": 0,
+      "stdout_bytes": 1944,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    }
+  ],
+  "naive_first_call": {
+    "command": "rea inspect-with-objdump {input}/licensed disassemble_all --json",
+    "exit": 0,
+    "stdout_bytes": 262937,
+    "stderr_bytes": 0
+  }
+}

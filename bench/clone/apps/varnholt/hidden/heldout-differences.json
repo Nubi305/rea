@@ -1,0 +1,245 @@
+{
+  "renames": [],
+  "volatile_fields": [
+    {
+      "scenario": "heldout-rules",
+      "step_id": "manifest-create-normalised",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "manifest-create-normalised",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-round-half-up-fragile",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-round-half-up-fragile",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-round-then-bill",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-round-then-bill",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-recipient-other-manifest",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-recipient-other-manifest",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-weight-limit-edge",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-weight-limit-edge",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-fills-capacity",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-fills-capacity",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "manifest-derived-totals",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "manifest-derived-totals",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-shrink-own-weight",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-shrink-own-weight",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "setup-fill-4",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "setup-fill-4",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "setup-fill-5",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "setup-fill-5",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "setup-fill-6",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "setup-fill-6",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "status-seal",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "status-seal",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "status-reopen",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "status-reopen",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "setup-seal-again",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "setup-seal-again",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "status-dispatch",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "status-dispatch",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "status-deliver",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "status-deliver",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "manifest-code-free-again",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "manifest-code-free-again",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-id-not-reused",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "parcel-id-not-reused",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "list-manifests-final",
+      "pointer": "/items/*/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-rules",
+      "step_id": "list-manifests-final",
+      "pointer": "/items/*/createdAt",
+      "reason": "creation time"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "api-add-parcel",
+      "pointer": "/uid",
+      "reason": "generated reference"
+    },
+    {
+      "scenario": "heldout-pages",
+      "step_id": "api-add-parcel",
+      "pointer": "/createdAt",
+      "reason": "creation time"
+    }
+  ]
+}

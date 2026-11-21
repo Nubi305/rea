@@ -1,0 +1,34 @@
+{
+  "task": "t15-electron-ipc",
+  "measured_on": {
+    "commit": "0e089b3e",
+    "version": "6.9.0",
+    "node_version": "v24.22.3"
+  },
+  "route_stdout_bytes": 13200,
+  "route_ok": true,
+  "steps": [
+    {
+      "command": "rea analyze-javascript-application {input}/desk-app --detail summary --evidence_output {work}/desk-app.evidence.json --json",
+      "exit": 0,
+      "stdout_bytes": 12343,
+      "stderr_bytes": 5067,
+      "ok": true,
+      "problem": "none"
+    },
+    {
+      "command": "rea inspect-analysis-view {\"source\":{\"kind\":\"evidence-file\",\"path\":\"{work}/desk-app.evidence.json\",\"evidence_id\":\"{parent}\"},\"view\":{\"kind\":\"javascript-facts\",\"where\":{\"kinds\":[\"ipc-channel\",\"browser-window\",\"context-bridge-api\"]},\"property_keys\":[\"channel\",\"side\",\"web_preferences\",\"api_key\",\"members\"],\"limit\":32}} --json --filter-output normalized_result.rows[0,32].properties",
+      "exit": 0,
+      "stdout_bytes": 857,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    }
+  ],
+  "naive_first_call": {
+    "command": "rea analyze-javascript-application {input}/desk-app --json",
+    "exit": 0,
+    "stdout_bytes": 644152,
+    "stderr_bytes": 5067
+  }
+}

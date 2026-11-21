@@ -1,0 +1,935 @@
+{
+  "start_path": "/",
+  "actions": [
+    {
+      "step_id": "fp-varieties",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "fp-varieties-page-2",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?page=2",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "fp-varieties-page-3",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?page=3",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "fp-orders",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/orders",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "fp-basket",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/basket",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-price-asc-tie",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?sort=price",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-price-desc-tie",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?sort=price&dir=desc",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-price-desc-last-page",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?sort=price&dir=desc&page=3",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-sku-desc",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?sort=SKU&dir=DESC",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-page-clamp-high",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?page=99",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-page-clamp-junk",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?page=-2",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-sort-unknown",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?sort=colour&dir=sideways",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-search-name",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?q=%20PEA%20",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-search-sku",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?q=0815",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-search-retired-hidden",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?q=zin",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-status-retired",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?status=retired",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-kind-all-statuses",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?kind=FLOWER&status=all",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-kind-invalid",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?kind=tree",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-status-invalid",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties?status=gone",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-create-normalised",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "  bee-0042 ",
+        "name": "  Borage   Blue  ",
+        "kind": " HERB ",
+        "price": "2.425",
+        "stock": 7
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-price-round-down",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "LEM-0001",
+        "name": "Lemon Balm",
+        "kind": "herb",
+        "price": 2.42,
+        "stock": 3
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-price-below-range",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "MIN-0047",
+        "name": "Tiny Price",
+        "kind": "flower",
+        "price": "0.47"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-price-range-edge-stock-default",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "MIN-0048",
+        "name": "Tiny Price",
+        "kind": "flower",
+        "price": "0.48"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-price-upper-edge",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "MAX-5002",
+        "name": "Gold Seed",
+        "kind": "flower",
+        "price": "50.024"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-price-above-range",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "MAX-5003",
+        "name": "Gold Seed",
+        "kind": "flower",
+        "price": "50.025"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-price-format",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "COM-0001",
+        "name": "Comma Price",
+        "kind": "herb",
+        "price": "2,40"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-sku-taken-case",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "tom-0101",
+        "name": "Another Tomato",
+        "kind": "vegetable",
+        "price": "3"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-sku-format",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "TO-101",
+        "name": "Short Sku",
+        "kind": "vegetable",
+        "price": "3"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-name-short",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "NAM-0001",
+        "name": "  Ab   ",
+        "kind": "herb",
+        "price": "3"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-name-long",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "NAM-0002",
+        "name": "Abcdefghij Abcdefghij Abcdefghijk",
+        "kind": "herb",
+        "price": "3"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-name-max",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "NAM-0003",
+        "name": "Abcdefghij   Abcdefghij Abcdefghij",
+        "kind": "herb",
+        "price": "3"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-kind-invalid",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "KIN-0001",
+        "name": "Box Hedge",
+        "kind": "shrub",
+        "price": "3"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-stock-invalid",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "STK-0001",
+        "name": "Many Seeds",
+        "kind": "herb",
+        "price": "3",
+        "stock": 1000
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-first-error-wins",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/varieties",
+      "json": {
+        "sku": "x",
+        "name": "y",
+        "kind": "z",
+        "price": "0"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-read-created",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties/13",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "etag-not-modified",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties/1",
+      "headers": [
+        {
+          "name": "If-None-Match",
+          "value": {
+            "source": "literal",
+            "value": "\"v1.1\""
+          }
+        }
+      ],
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-edit-no-change",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/varieties/1",
+      "json": {
+        "name": "  Brandywine   Tomato ",
+        "sku": "tom-0101"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "etag-unchanged-after-no-op",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties/1",
+      "headers": [
+        {
+          "name": "If-None-Match",
+          "value": {
+            "source": "literal",
+            "value": "\"v1.1\""
+          }
+        }
+      ],
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-edit-sku-taken",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/varieties/1",
+      "json": {
+        "sku": "bas-0204"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-edit-price",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/varieties/1",
+      "json": {
+        "price": "3.50"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "etag-changed-after-edit",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties/1",
+      "headers": [
+        {
+          "name": "If-None-Match",
+          "value": {
+            "source": "literal",
+            "value": "\"v1.1\""
+          }
+        }
+      ],
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-add-retired",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 9,
+        "qty": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-add-qty-zero",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 2,
+        "qty": 0
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-add-qty-over",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 2,
+        "qty": 13
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-add-sold-out",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 5,
+        "qty": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-add-unknown",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 99,
+        "qty": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-add-basil",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 2,
+        "qty": 4
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-merge-bulk-discount",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 2,
+        "qty": 3
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-line-limit",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 2,
+        "qty": 6
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-over-stock",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 6,
+        "qty": 9
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-add-sweet-pea",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 6,
+        "qty": 2
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "promo-unknown",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/promo",
+      "json": {
+        "code": "FREESEEDS"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "promo-herbs",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/promo",
+      "json": {
+        "code": "  herbs20 "
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-live-price-free-shipping",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 1,
+        "qty": 3
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "promo-spring-replaces",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/promo",
+      "json": {
+        "code": "spring5"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-add-carrot",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 4,
+        "qty": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-line-order-tie",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 3,
+        "qty": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-full",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 8,
+        "qty": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-merge-when-full",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 4,
+        "qty": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-remove-basil",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/basket/lines/2",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "promo-below-minimum-kept",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/basket/lines/1",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-remove-missing",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/basket/lines/2",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-set-over-stock",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/basket/lines/6",
+      "json": {
+        "qty": 9
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "promo-minimum-again",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/basket/lines/3",
+      "json": {
+        "qty": 6
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-add-borage",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/basket/lines",
+      "json": {
+        "varietyId": 13,
+        "qty": 2
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-delete-cascades-basket",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/varieties/13",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "basket-after-cascade",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/basket",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-delete-in-use",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/varieties/1",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "variety-delete-in-use-placed",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/varieties/4",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-shrink-sweet-pea",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/varieties/6",
+      "json": {
+        "stock": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "checkout-stock-rechecked",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/checkout",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-retire-calendula",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/varieties/3",
+      "json": {
+        "status": " RETIRED "
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "checkout-retired-first-line",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/checkout",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-reactivate-calendula",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/varieties/3",
+      "json": {
+        "status": "active"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-restore-sweet-pea",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/varieties/6",
+      "json": {
+        "stock": 8
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "checkout-places-order",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/checkout",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "checkout-empties-basket",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/basket",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "checkout-empty-refused",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/checkout",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "stock-taken-at-checkout",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties/3",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-reprice-sweet-pea",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/varieties/6",
+      "json": {
+        "price": "4.00"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "order-prices-snapshot",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/orders/4",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "order-skip-refused",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/orders/4/status",
+      "json": {
+        "status": "shipped"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "order-status-unknown",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/orders/4/status",
+      "json": {
+        "status": "lost"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "order-pack",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/orders/4/status",
+      "json": {
+        "status": " PACKED "
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "order-back-refused",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/orders/4/status",
+      "json": {
+        "status": "placed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "order-same-refused",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/orders/4/status",
+      "json": {
+        "status": "packed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "order-cancel-packed",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/orders/4/status",
+      "json": {
+        "status": "cancelled"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "cancel-restores-stock",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/varieties/3",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "order-cancelled-final",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/orders/4/status",
+      "json": {
+        "status": "packed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "order-shipped-final",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/orders/1/status",
+      "json": {
+        "status": "cancelled"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "orders-newest-first",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/orders",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "orders-filter-status",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/orders?status=CANCELLED",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "orders-filter-invalid",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/orders?status=lost",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "order-missing",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/orders/99",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "route-unknown",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/seeds",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "method-not-allowed",
+      "action": "request",
+      "method": "PATCH",
+      "path": "/api/varieties/1",
+      "json": {
+        "name": "x"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "method-not-allowed-collection",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/orders",
+      "timeout_ms": 15000
+    }
+  ]
+}

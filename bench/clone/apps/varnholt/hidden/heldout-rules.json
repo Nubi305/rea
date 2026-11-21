@@ -1,0 +1,597 @@
+{
+  "start_path": "/about",
+  "actions": [
+    {
+      "step_id": "fp-manifests",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/manifests",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "fp-parcels",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/parcels",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "fp-summary",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/summary",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-parcels-tie-break",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/parcels?manifestId=1",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-manifests-open",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/manifests?status=open",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-manifests-search",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/manifests?q=LOCK",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-manifests-bad-status",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/manifests?status=lost",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "seal-empty-refused",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/5/status",
+      "json": {
+        "status": "sealed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-create-normalised",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/manifests",
+      "json": {
+        "code": "  kd-412 ",
+        "destination": "  Kestrel   Dock  "
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-code-taken",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/manifests",
+      "json": {
+        "code": "nr-101",
+        "destination": "Elsewhere"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-code-format",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/manifests",
+      "json": {
+        "code": "N-1010",
+        "destination": "Elsewhere"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-capacity-over",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/manifests",
+      "json": {
+        "code": "ZZ-900",
+        "destination": "Elsewhere",
+        "capacityKg": 201
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-capacity-fraction",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/manifests",
+      "json": {
+        "code": "ZZ-900",
+        "destination": "Elsewhere",
+        "capacityKg": 12.5
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-destination-short",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/manifests",
+      "json": {
+        "code": "ZZ-900",
+        "destination": " x "
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-round-half-up-fragile",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 6,
+        "recipient": "  Ada   Okafor ",
+        "weightKg": 2.25,
+        "fragile": true
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-round-then-bill",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 6,
+        "recipient": "Ben Achterberg",
+        "weightKg": 2.04
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-recipient-duplicate-case",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 6,
+        "recipient": "ADA  okafor",
+        "weightKg": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-recipient-other-manifest",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 5,
+        "recipient": "ada okafor",
+        "weightKg": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-weight-rounds-to-zero",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 6,
+        "recipient": "Cy Dane",
+        "weightKg": 0.04
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-weight-string",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 6,
+        "recipient": "Cy Dane",
+        "weightKg": "4.5"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-weight-limit-edge",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 6,
+        "recipient": "Cy Dane",
+        "weightKg": 30.04
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-weight-over-limit",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 6,
+        "recipient": "Di Emre",
+        "weightKg": 30.25
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-recipient-short",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 6,
+        "recipient": " D ",
+        "weightKg": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-manifest-missing",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 99,
+        "recipient": "Di Emre",
+        "weightKg": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-fills-capacity",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 6,
+        "recipient": "Di Emre",
+        "weightKg": 15.7
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-over-capacity",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 6,
+        "recipient": "Eli Fount",
+        "weightKg": 0.1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-derived-totals",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/manifests/6",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-grow-over-capacity",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/parcels/9",
+      "json": {
+        "weightKg": 2.4
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-shrink-own-weight",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/parcels/13",
+      "json": {
+        "weightKg": 15.25,
+        "fragile": true
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-move-refused",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/parcels/13",
+      "json": {
+        "manifestId": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-capacity-below-load",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6",
+      "json": {
+        "capacityKg": 49
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-fill-4",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 1,
+        "recipient": "Fay Gull",
+        "weightKg": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-fill-5",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 1,
+        "recipient": "Gus Hale",
+        "weightKg": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-fill-6",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 1,
+        "recipient": "Hal Ibsen",
+        "weightKg": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-seventh-refused",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 1,
+        "recipient": "Ivy Jost",
+        "weightKg": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-full-before-duplicate",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 1,
+        "recipient": "ines marlow",
+        "weightKg": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-skip-refused",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6/status",
+      "json": {
+        "status": "dispatched"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-seal",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6/status",
+      "json": {
+        "status": "sealed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-add-locked",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 6,
+        "recipient": "Jo Kemp",
+        "weightKg": 1
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-edit-locked",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/parcels/9",
+      "json": {
+        "fragile": false
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-delete-locked",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/parcels/9",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-edit-locked",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6",
+      "json": {
+        "destination": "Kestrel Yard"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-reopen",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6/status",
+      "json": {
+        "status": "open"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-same-refused",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6/status",
+      "json": {
+        "status": "open"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-unknown",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6/status",
+      "json": {
+        "status": "lost"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-delete-open",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/parcels/10",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "setup-seal-again",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6/status",
+      "json": {
+        "status": "sealed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-dispatch",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6/status",
+      "json": {
+        "status": "dispatched"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-back-refused",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6/status",
+      "json": {
+        "status": "sealed"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-delete-dispatched-refused",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/manifests/6",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "summary-while-dispatched",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/summary",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-deliver",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6/status",
+      "json": {
+        "status": "delivered"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "status-delivered-final",
+      "action": "request",
+      "method": "PUT",
+      "path": "/api/manifests/6/status",
+      "json": {
+        "status": "open"
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-delete-cascades",
+      "action": "request",
+      "method": "DELETE",
+      "path": "/api/manifests/6",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-gone-after-cascade",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/parcels/9",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "manifest-code-free-again",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/manifests",
+      "json": {
+        "code": "kd-412",
+        "destination": "Kestrel Dock",
+        "capacityKg": 20
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "parcel-id-not-reused",
+      "action": "request",
+      "method": "POST",
+      "path": "/api/parcels",
+      "json": {
+        "manifestId": 7,
+        "recipient": "Lu Marsh",
+        "weightKg": 0.25
+      },
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "summary-final",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/summary",
+      "timeout_ms": 15000
+    },
+    {
+      "step_id": "list-manifests-final",
+      "action": "request",
+      "method": "GET",
+      "path": "/api/manifests",
+      "timeout_ms": 15000
+    }
+  ]
+}

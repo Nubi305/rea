@@ -1,0 +1,26 @@
+{
+  "task": "t09-har-failures",
+  "measured_on": {
+    "commit": "0e089b3e",
+    "version": "6.9.0",
+    "node_version": "v24.22.3"
+  },
+  "route_stdout_bytes": 4485,
+  "route_ok": true,
+  "steps": [
+    {
+      "command": "rea inspect-web-network-capture {input}/checkout.har har --json --filter-output normalized_result.records[0,32].reported.time,normalized_result.records[0,32].reported.request.method,normalized_result.records[0,32].reported.request.url,normalized_result.records[0,32].reported.response.status",
+      "exit": 0,
+      "stdout_bytes": 4485,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    }
+  ],
+  "naive_first_call": {
+    "command": "rea inspect-web-network-capture {input}/checkout.har har --json",
+    "exit": 0,
+    "stdout_bytes": 69823,
+    "stderr_bytes": 0
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "task": "t11-version-diff",
+  "measured_on": {
+    "commit": "0e089b3e",
+    "version": "6.9.0",
+    "node_version": "v24.22.3"
+  },
+  "route_stdout_bytes": 14157,
+  "route_ok": true,
+  "steps": [
+    {
+      "command": "rea inspect-artifact {input}/agent-3.1.zip --detail summary --evidence_output {work}/agent-3.1.evidence.json --json",
+      "exit": 0,
+      "stdout_bytes": 3892,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    },
+    {
+      "command": "rea inspect-artifact {input}/agent-3.2.zip --detail summary --evidence_output {work}/agent-3.2.evidence.json --json",
+      "exit": 0,
+      "stdout_bytes": 3892,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    },
+    {
+      "command": "rea compare-artifacts {\"left\":{\"kind\":\"evidence-file\",\"path\":\"{work}/agent-3.1.evidence.json\",\"evidence_id\":\"{left}\"},\"right\":{\"kind\":\"evidence-file\",\"path\":\"{work}/agent-3.2.evidence.json\",\"evidence_id\":\"{right}\"}} --json",
+      "exit": 0,
+      "stdout_bytes": 6373,
+      "stderr_bytes": 0,
+      "ok": true,
+      "problem": "none"
+    }
+  ]
+}

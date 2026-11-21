@@ -1,0 +1,6 @@
+{
+  "name": "courier-sync",
+  "version": "4.2.0",
+  "entry": "bin/run.sh",
+  "files": ["lib/core.js", "lib/retry.js", "config/defaults.env"]
+}
