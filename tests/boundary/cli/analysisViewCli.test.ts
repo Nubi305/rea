@@ -503,6 +503,99 @@ const shellWords = (command: string): string[] => {
 };
 
 cliTest(
+  "refuses a bundle read through the wrong source with the input that works",
+  async ({ cli }) => {
+    const root = await createTestTempDirectory("rea-bundle-source-cli-");
+    const archive = join(root, "fixture.zip");
+    const writer = new ZipWriter(new Uint8ArrayWriter());
+    await writer.add("main.js", new TextReader("console.log('bundle');\n"));
+    await writeFile(archive, await writer.close());
+    const bundlePath = join(root, "bundle.json");
+    const summary = await cli.run({
+      arguments: [
+        "inspect-artifact",
+        archive,
+        "--detail",
+        "summary",
+        "--evidence_output",
+        bundlePath,
+        "--json",
+      ],
+    });
+    expect(summary.exitCode).toBe(0);
+    const parentId = (
+      summary.json as {
+        summary: { normalized_result: { parent_evidence_id: string } };
+      }
+    ).summary.normalized_result.parent_evidence_id;
+    const view = { kind: "inventory", collection: "occurrences", limit: 5 };
+    const message = (json: unknown): string =>
+      (json as { details: { issues: { message: string }[] } }).details
+        .issues[0]!.message;
+
+    // An evidence-file source with --evidence-bundle names the retained form.
+    const wrong = await cli.run({
+      arguments: [
+        "inspect-analysis-view",
+        JSON.stringify({
+          source: { kind: "evidence-file", path: bundlePath },
+          view,
+        }),
+        "--evidence-bundle",
+        bundlePath,
+        "--json",
+      ],
+    });
+    expect(wrong.exitCode).toBe(1);
+    const shown = /use (\{.*\})\.$/u.exec(message(wrong.json))?.[1];
+    if (shown === undefined) throw new Error(message(wrong.json));
+    expect(JSON.parse(shown)).toMatchObject({
+      source: { kind: "retained-evidence", evidence_id: parentId },
+    });
+    const works = await cli.run({
+      arguments: [
+        "inspect-analysis-view",
+        shown,
+        "--evidence-bundle",
+        bundlePath,
+        "--json",
+      ],
+    });
+    expect(works.exitCode).toBe(0);
+
+    // An evidence-file source without a record names the one to select.
+    const unselected = await cli.run({
+      arguments: [
+        "inspect-analysis-view",
+        JSON.stringify({
+          source: { kind: "evidence-file", path: bundlePath },
+          view,
+        }),
+        "--json",
+      ],
+    });
+    expect(unselected.exitCode).toBe(1);
+    const suggested = /such as (\{.*?\}) for the record/u.exec(
+      message(unselected.json),
+    )?.[1];
+    if (suggested === undefined) throw new Error(message(unselected.json));
+    expect(JSON.parse(suggested)).toEqual({
+      kind: "evidence-file",
+      path: bundlePath,
+      evidence_id: parentId,
+    });
+    const selected = await cli.run({
+      arguments: [
+        "inspect-analysis-view",
+        JSON.stringify({ source: JSON.parse(suggested), view }),
+        "--json",
+      ],
+    });
+    expect(selected.exitCode).toBe(0);
+  },
+);
+
+cliTest(
   "states a JavaScript application's endpoints in its summary",
   async ({ cli }) => {
     const root = await createTestTempDirectory("rea-summary-endpoints-cli-");

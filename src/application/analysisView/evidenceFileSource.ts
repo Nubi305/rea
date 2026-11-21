@@ -88,14 +88,37 @@ const selectBundleRecord = (
     return err(
       selectionError(site, `Evidence bundle ${path} holds no records.`),
     );
-  if (records.length > 1)
+  if (records.length > 1) {
+    const [parent] = evidenceBundleParentIds(records);
     return err(
       selectionError(
         site,
-        `Evidence bundle ${path} holds ${String(records.length)} records; select one with ${[...site.path, "evidence_id"].join(".")}. It holds ${listRecordIds(records)}.`,
+        `Evidence bundle ${path} holds ${String(records.length)} records; select one with ${[...site.path, "evidence_id"].join(".")}${
+          parent === undefined
+            ? ""
+            : `, such as ${JSON.stringify({ kind: "evidence-file", path, evidence_id: parent })} for the record no other record in it cites`
+        }. It holds ${listRecordIds(records)}.`,
       ),
     );
+  }
   return ok(only);
+};
+
+/**
+ * The records of a bundle that no other record in it cites, in bundle order:
+ * the analyses a caller saved, ahead of the sources they cite.
+ */
+export const evidenceBundleParentIds = (
+  records: readonly Evidence[],
+): string[] => {
+  // Views cite the record they project; they do not make it a source.
+  const analyses = records.filter(
+    (record) => record.operation !== INSPECT_ANALYSIS_VIEW_OPERATION,
+  );
+  const cited = new Set(analyses.flatMap((record) => record.evidence_links));
+  return analyses
+    .filter((record) => !cited.has(record.evidence_id))
+    .map((record) => record.evidence_id);
 };
 
 const listRecordIds = (records: readonly Evidence[]): string => {

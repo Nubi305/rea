@@ -50,6 +50,7 @@ import {
 } from "../../domain/immutableJson.js";
 import { err, ok, type Result } from "../../domain/result.js";
 import {
+  evidenceBundleParentIds,
   readEvidenceFileSource,
   type EvidenceFileReadOptions,
 } from "./evidenceFileSource.js";
@@ -135,7 +136,7 @@ const inspectBundleView = async (
   bundlePath: string,
   { resources, signal }: EvidenceFileReadOptions,
 ): Promise<Result<Evidence, AnalysisError>> => {
-  if (input.source.kind !== "retained-evidence")
+  if (input.source.kind === "inline")
     return err(
       new AnalysisInputError("inspect_analysis_view", undefined, [
         {
@@ -156,6 +157,10 @@ const inspectBundleView = async (
   await dispatchQueuedInterrupts();
   // Preserve an already-produced bundle failure before considering a later abort.
   if (!loaded.ok) return loaded;
+  if (input.source.kind !== "retained-evidence")
+    return err(
+      bundleSourceError(input.source, input.view, loaded.value.records),
+    );
   const parentId = input.source.evidence_id;
   const admitted = cancelledFileViewResult(
     loaded,
@@ -172,6 +177,54 @@ const inspectBundleView = async (
   await dispatchQueuedInterrupts();
   if (!projected.ok) return projected;
   return cancelledFileViewResult(projected, signal, projected.value);
+};
+
+/**
+ * A bundle is read with a retained-evidence source: show that input, with the
+ * caller's view and the parent ID taken from the bundle, so it runs as shown.
+ */
+const bundleSourceError = (
+  source: Extract<
+    InspectAnalysisViewInput["source"],
+    { kind: "evidence-file" }
+  >,
+  view: AnalysisViewRequest,
+  records: readonly Evidence[],
+): AnalysisInputError => {
+  const named =
+    source.evidence_id !== undefined &&
+    records.some((record) => record.evidence_id === source.evidence_id)
+      ? [source.evidence_id]
+      : evidenceBundleParentIds(records);
+  const [first, ...others] = named;
+  const working =
+    first === undefined
+      ? undefined
+      : JSON.stringify({
+          source: { kind: "retained-evidence", evidence_id: first },
+          view,
+        });
+  return new AnalysisInputError("inspect_analysis_view", undefined, [
+    {
+      path: ["source", "kind"],
+      reason: "invalid_value",
+      message:
+        working === undefined
+          ? "An Evidence bundle needs a retained-evidence source with the exact parent evidence_id; this bundle holds no record to name."
+          : `An Evidence bundle needs a retained-evidence source with the exact parent evidence_id. With this bundle, use ${working}${
+              others.length === 0
+                ? ""
+                : `; other parents it holds: ${others.slice(0, 4).join(", ")}${others.length > 4 ? ` and ${String(others.length - 4)} more` : ""}`
+            }.`,
+      ...(first === undefined
+        ? {}
+        : {
+            expected: {
+              source: { kind: "retained-evidence", evidence_id: first },
+            },
+          }),
+    },
+  ]);
 };
 
 /** Retain completed work and pending cleanup when this stage accepts cancellation.
