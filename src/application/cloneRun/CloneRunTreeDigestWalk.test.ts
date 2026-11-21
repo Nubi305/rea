@@ -7,10 +7,6 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { readWithoutFifoWriter } from "../../../tests/fixtures/fifoInput.js";
 import { createTestTempDirectory } from "../../../tests/fixtures/temporaryDirectory.js";
-import {
-  digestCloneTree,
-  digestOriginalMaterial,
-} from "./CloneRunTreeDigest.js";
 
 /**
  * What the tree walk does with an entry that changes or cannot be read while
@@ -24,6 +20,10 @@ vi.mock("node:fs/promises", async (importOriginal) => {
 
 const actualFs =
   await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+// Another test file of the same worker may have loaded the walk with the real `open`: load it again behind the stand-in.
+vi.resetModules();
+const { digestCloneTree, digestOriginalMaterial } =
+  await import("./CloneRunTreeDigest.js");
 
 afterEach(() => {
   vi.mocked(fs.open).mockReset();
