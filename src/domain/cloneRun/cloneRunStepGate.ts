@@ -64,10 +64,11 @@ import {
  *    omitted). Nothing was observed to differ and no capture can observe it:
  *    this is the stated exit for data a capture cannot record. The step then
  *    proves nothing, as a deleted step would.
- * 9. One side's own captures disagree. For the clone the comparer emits it
- *    only when one capture of the clone agrees with the original, so no
- *    steady difference is shown; a steadily wrong clone reads `value`. On an
- *    `fp-` step the clean-start check blocks it as `start_state_dirty`.
+ * 9. One side's own captures disagree. For the clone it stands alone only
+ *    when one capture of the clone agrees with the original, so no steady
+ *    difference is shown; where none agrees the comparer reports the
+ *    difference as well, which blocks. On an `fp-` step the clean-start
+ *    check blocks it as `start_state_dirty`.
  * 10. The original's own replies disagree at the field and no declaration
  *    names it: there is no steady value for the clone to differ from.
  *

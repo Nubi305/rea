@@ -644,63 +644,91 @@ type DeclarationEffect =
 
 /**
  * The volatile declarations of one scenario that had an effect on a step of
- * its comparison: honoured (a value was not compared) or not honoured where
- * the clone differs from a steady original (the difference reads `unknown`
- * instead of `changed`). Both are listed, so no declaration changes what a
- * step reads without the gate naming it.
+ * its comparison, by declared pointer: honoured (a value was not compared) or
+ * not honoured where the clone differs from a steady original (the difference
+ * reads `unknown` instead of `changed`). Both are listed, so no declaration
+ * changes what a step reads without the gate naming it. One entry per pointer
+ * keeps the gate small however many steps the pointer is declared for.
  */
 const declarationEffects = (
   scenario: string,
   declared: CloneRunIntendedDifferences["volatile_fields"],
   comparison: ScenarioBehaviorComparison,
-): DeclarationEffect[] =>
-  declared
-    .filter((field) => field.scenario === scenario)
-    .flatMap((field): DeclarationEffect[] => {
-      let honoured = 0;
-      let notShown = 0;
-      const steps: string[] = [];
-      for (const step of comparison.steps) {
-        if (field.step_id !== step.step_id && field.step_id !== EVERY_STEP)
-          continue;
-        const listed = comparison.volatile_fields.filter(
-          (entry) => entry.step_id === step.step_id,
-        );
-        const honouredHere =
-          listed.some(
-            (entry) =>
-              entry.honoured &&
-              volatileDeclarationCovers(field.pointer, entry.pointer),
-          ) ||
-          // A full list may have left the entry out: the declaration is then counted, never dropped. Declarations do not apply to fp- steps.
-          (listed.length >= STEP_VOLATILE_FIELD_LIMIT &&
-            scenarioStepKind(step.step_id) !== "fingerprint");
-        const notShownHere = step.findings.some(
-          (finding) =>
-            isDeclarationNotShown(finding) &&
-            finding.pointer !== null &&
-            volatileDeclarationCovers(field.pointer, finding.pointer),
-        );
-        if (honouredHere) honoured += 1;
-        if (notShownHere) notShown += 1;
-        if (honouredHere || notShownHere) steps.push(step.step_id);
+): DeclarationEffect[] => {
+  // What each step shows of declarations: the patterns honoured, and those held back as a difference not yet shown.
+  const steps = comparison.steps.map((step) => {
+    const listed = comparison.volatile_fields.filter(
+      (entry) => entry.step_id === step.step_id,
+    );
+    return {
+      id: step.step_id,
+      honoured: listed
+        .filter((entry) => entry.honoured)
+        .map((entry) => entry.pointer),
+      // A full list may have left an entry out: every declaration that names the step is then counted, never dropped. Declarations do not apply to fp- steps.
+      full:
+        listed.length >= STEP_VOLATILE_FIELD_LIMIT &&
+        scenarioStepKind(step.step_id) !== "fingerprint",
+      notShown: step.findings.flatMap((finding) =>
+        isDeclarationNotShown(finding) && finding.pointer !== null
+          ? [finding.pointer]
+          : [],
+      ),
+    };
+  });
+  const byPointer = new Map<
+    string,
+    {
+      declarations: number;
+      readonly honoured: Set<string>;
+      readonly notShown: Set<string>;
+    }
+  >();
+  for (const field of declared) {
+    if (field.scenario !== scenario) continue;
+    const group = byPointer.get(field.pointer) ?? {
+      declarations: 0,
+      honoured: new Set<string>(),
+      notShown: new Set<string>(),
+    };
+    let effective = false;
+    const covers = (pattern: string): boolean =>
+      volatileDeclarationCovers(field.pointer, pattern);
+    for (const step of steps) {
+      if (field.step_id !== step.id && field.step_id !== EVERY_STEP) continue;
+      if (step.full || step.honoured.some(covers)) {
+        group.honoured.add(step.id);
+        effective = true;
       }
-      return steps.length === 0
-        ? []
-        : [
-            {
-              scenario,
-              step_id: field.step_id,
-              pointer: field.pointer,
-              honoured_steps: honoured,
-              not_shown_steps: notShown,
-              // The two counts cover every step; the names are a sample.
-              steps: [
-                ...boundedList(steps, CLONE_RUN_DECLARATION_STEP_LIMIT).items,
-              ],
-            },
-          ];
-    });
+      if (step.notShown.some(covers)) {
+        group.notShown.add(step.id);
+        effective = true;
+      }
+    }
+    if (!effective) continue;
+    group.declarations += 1;
+    byPointer.set(field.pointer, group);
+  }
+  return [...byPointer].map(([pointer, group]) => ({
+    scenario,
+    pointer,
+    declarations: group.declarations,
+    honoured_steps: group.honoured.size,
+    not_shown_steps: group.notShown.size,
+    // The counts cover every step; the names are a sample, the steps that block first.
+    steps: [
+      ...boundedList(
+        [
+          ...steps.filter(({ id }) => group.notShown.has(id)),
+          ...steps.filter(
+            ({ id }) => group.honoured.has(id) && !group.notShown.has(id),
+          ),
+        ].map(({ id }) => id),
+        CLONE_RUN_DECLARATION_STEP_LIMIT,
+      ).items,
+    ],
+  }));
+};
 
 /** What `parityFinding` is told about the steps it writes one item for. */
 interface ParityGroup {

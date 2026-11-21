@@ -758,8 +758,8 @@ it("blocks on a changed, unknown or unstable step and says who does what", async
     volatile_declarations: [
       {
         scenario: "notes",
-        step_id: "*",
         pointer: "/slug",
+        declarations: 1,
         honoured_steps: 1,
         not_shown_steps: 0,
         steps: ["open"],
@@ -865,14 +865,50 @@ it("does not let a setup- prefix with a volatile declaration silence a steady di
     volatile_declarations: [
       {
         scenario: "notes",
-        step_id: "setup-seed",
         pointer: "/slug",
+        declarations: 1,
         honoured_steps: 0,
         not_shown_steps: 1,
         steps: ["setup-seed"],
       },
     ],
   });
+  // One entry per pointer however many steps declare it: the step that blocks is named first.
+  await editJson(join(run, "intended-differences.json"), (file) => {
+    (file.volatile_fields as object[]).push(
+      { scenario: "notes", step_id: "*", pointer: "/slug", reason: "any" },
+      { scenario: "notes", step_id: "open", pointer: "/other", reason: "no" },
+    );
+  });
+  await evaluateScripted(run, {});
+  for (const name of ["run-1", "run-2"])
+    await editJson(
+      join(run, "evidence", "original", "notes", `${name}.json`),
+      (file) => {
+        (file as { observed: object }).observed = { create: name };
+      },
+    );
+  await editJson(
+    join(run, "evidence", "clone", "notes", "run-1.json"),
+    (file) => {
+      (file as { scripted: object }).scripted = {
+        "setup-seed": {
+          status: "unknown",
+          finding: { category: "declared-not-shown", ...HELD_LEAF },
+        },
+      };
+    },
+  );
+  expect((await evaluate(run)).declared.volatile_declarations).toEqual([
+    {
+      scenario: "notes",
+      pointer: "/slug",
+      declarations: 2,
+      honoured_steps: 1,
+      not_shown_steps: 1,
+      steps: ["setup-seed", "create"],
+    },
+  ]);
   // A declaration that names the step and had no effect there is not listed.
   const idle = await scriptAlone(run, {});
   expect(idle.verdict).toBe("done");
