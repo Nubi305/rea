@@ -1,0 +1,3988 @@
+{
+ "schema": "rea.bench.task-scores/1",
+ "scored_at": "2026-11-21T07:39:30.934Z",
+ "agents": [
+  "b1"
+ ],
+ "root": "/home/user/rea-bench-runs/r2-after/tasks",
+ "transcripts": "<transcripts>",
+ "rea_under_test": {
+  "commit": "3eb71f14",
+  "version": "6.10.1",
+  "node_version": "v24.22.3"
+ },
+ "notes": [],
+ "floor": {
+  "turns": 3,
+  "peak_context_tokens": 69840,
+  "first_turn_prompt_tokens": 65203,
+  "prompt_tokens_all_turns": 204689,
+  "uncached_prompt_tokens": 20243,
+  "output_tokens": 503,
+  "tool_calls": 3,
+  "wall_minutes": 0.1
+ },
+ "summary": {
+  "cells": 19,
+  "not_scored": [],
+  "tasks_scored": 18,
+  "tasks_right": 16,
+  "facts_right": 59,
+  "facts_total": 61,
+  "first_command_expected": 17,
+  "first_command_accepted": 0,
+  "first_command_other": 1,
+  "first_command_none": 0,
+  "peak_context_tokens_max": 133098,
+  "prompt_tokens_all_turns": 19161077,
+  "output_tokens": 92926,
+  "rea_result_bytes": 800397,
+  "skill_bytes": 136488,
+  "rule_breaks": 0,
+  "other_tool_uses": 0
+ },
+ "rows": [
+  {
+   "cell": "t00-floor.c2",
+   "label": "bench:task:t00-floor.c2",
+   "agent": "b1",
+   "task": "t00-floor",
+   "title": "The floor: an agent that only writes a trivial answer",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "ready",
+     "field": "ready",
+     "right": true,
+     "expected": true,
+     "answered": true
+    }
+   ],
+   "facts_right": 1,
+   "facts_total": 1,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:23:16.054Z",
+    "ended_at": "2026-11-21T07:23:20.117Z"
+   },
+   "first_command": {
+    "expected": "(none)",
+    "also_accepted": [],
+    "first_invocation": null,
+    "first_working_command": null,
+    "first_working_text": null,
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 0
+   },
+   "cost": {
+    "turns": 3,
+    "peak_context_tokens": 69840,
+    "first_turn_prompt_tokens": 65203,
+    "prompt_tokens_all_turns": 204689,
+    "uncached_prompt_tokens": 20243,
+    "output_tokens": 503,
+    "tool_calls": 3,
+    "wall_minutes": 0.1,
+    "net_of_floor": null
+   },
+   "context": {
+    "prompt_bytes": 720,
+    "tool_input_bytes": 675,
+    "tool_result_bytes": 567,
+    "rea": {
+     "bytes": 0,
+     "tool_calls": 0,
+     "by_command": {}
+    },
+    "skill": {
+     "bytes": 0,
+     "tool_calls": 0,
+     "by_file": {}
+    },
+    "other": {
+     "bytes": 567,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "other",
+      "bytes": 368,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t00-floor.c2.md"
+     },
+     {
+      "bucket": "other",
+      "bytes": 160,
+      "tool": "Write",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t00-floor/answer.json"
+     },
+     {
+      "bucket": "other",
+      "bytes": 39,
+      "tool": "StructuredOutput",
+      "what": ""
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 0,
+     "by_command": {},
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 0,
+     "by_command": {},
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t01-elf-hardening.c2",
+   "label": "bench:task:t01-elf-hardening.c2",
+   "agent": "b1",
+   "task": "t01-elf-hardening",
+   "title": "Hardening of an ELF binary",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "pie",
+     "field": "pie",
+     "right": true,
+     "expected": false,
+     "answered": false
+    },
+    {
+     "id": "relro",
+     "field": "relro",
+     "right": true,
+     "expected": "partial",
+     "answered": "partial"
+    },
+    {
+     "id": "stack-canary",
+     "field": "stack_canary",
+     "right": true,
+     "expected": true,
+     "answered": true
+    },
+    {
+     "id": "runpath",
+     "field": "runpath",
+     "right": true,
+     "expected": "/opt/keyd/lib",
+     "answered": "/opt/keyd/lib"
+    }
+   ],
+   "facts_right": 4,
+   "facts_total": 4,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:23:20.364Z",
+    "ended_at": "2026-11-21T07:23:40.545Z"
+   },
+   "first_command": {
+    "expected": "inspect-binary-hardening",
+    "also_accepted": [
+     "inspect-artifact"
+    ],
+    "first_invocation": "inspect-binary-hardening --help",
+    "first_working_command": "inspect-binary-hardening",
+    "first_working_text": "rea inspect-binary-hardening /home/user/rea-bench-runs/r2-after/tasks/t01-elf-hardening/input/keyd --json",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 2
+   },
+   "cost": {
+    "turns": 6,
+    "peak_context_tokens": 79876,
+    "first_turn_prompt_tokens": 65207,
+    "prompt_tokens_all_turns": 444190,
+    "uncached_prompt_tokens": 30285,
+    "output_tokens": 2102,
+    "tool_calls": 6,
+    "wall_minutes": 0.3,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 14673,
+     "prompt_tokens_all_turns": 52972,
+     "uncached_prompt_tokens": 10042,
+     "output_tokens": 1599,
+     "turns": 3,
+     "tool_calls": 3
+    }
+   },
+   "context": {
+    "prompt_bytes": 728,
+    "tool_input_bytes": 3191,
+    "tool_result_bytes": 22954,
+    "rea": {
+     "bytes": 12235,
+     "tool_calls": 2,
+     "by_command": {
+      "inspect-binary-hardening": {
+       "calls": 1,
+       "bytes": 4593
+      },
+      "inspect-elf-dependencies": {
+       "calls": 1,
+       "bytes": 4593
+      },
+      "inspect-binary-hardening --help": {
+       "calls": 1,
+       "bytes": 1525
+      },
+      "inspect-elf-dependencies --help": {
+       "calls": 1,
+       "bytes": 1525
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3498,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 9185,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t01-elf-hardening/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t01-elf-hardening && timeout 120 r"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "other",
+      "bytes": 3291,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t01-elf-hardening.c2.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 3050,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t01-elf-hardening/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t01-elf-hardening && timeout 60 re"
+     },
+     {
+      "bucket": "other",
+      "bytes": 168,
+      "tool": "Write",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t01-elf-hardening/answer.json"
+     },
+     {
+      "bucket": "other",
+      "bytes": 39,
+      "tool": "StructuredOutput",
+      "what": ""
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 4,
+     "by_command": {
+      "inspect-binary-hardening --help": 1,
+      "inspect-elf-dependencies --help": 1,
+      "inspect-binary-hardening": 1,
+      "inspect-elf-dependencies": 1
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 4,
+     "by_command": {
+      "inspect-binary-hardening --help": 1,
+      "inspect-elf-dependencies --help": 1,
+      "inspect-binary-hardening": 1,
+      "inspect-elf-dependencies": 1
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t02-elf-licence-check.c2",
+   "label": "bench:task:t02-elf-licence-check.c2",
+   "agent": "b1",
+   "task": "t02-elf-licence-check",
+   "title": "How a native program checks its licence key",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "function",
+     "field": "function",
+     "right": true,
+     "expected": "verify_key",
+     "answered": "verify_key"
+    },
+    {
+     "id": "key-length",
+     "field": "key_length",
+     "right": true,
+     "expected": 14,
+     "answered": 14
+    },
+    {
+     "id": "accepted-key",
+     "field": "accepted_key",
+     "right": false,
+     "expected": "PARCEL-7Q4-ZED",
+     "answered": null
+    }
+   ],
+   "facts_right": 2,
+   "facts_total": 3,
+   "right": false,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:23:52.675Z",
+    "ended_at": "2026-11-21T07:25:11.470Z"
+   },
+   "first_command": {
+    "expected": "inspect-with-objdump",
+    "also_accepted": [
+     "inspect-artifact",
+     "debug-with-gdb"
+    ],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "search",
+    "first_working_text": "rea search /home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check/input/licensed licen",
+    "result": "other",
+    "economical": null,
+    "rea_calls_before_it": 2
+   },
+   "cost": {
+    "turns": 15,
+    "peak_context_tokens": 110971,
+    "first_turn_prompt_tokens": 65208,
+    "prompt_tokens_all_turns": 1400376,
+    "uncached_prompt_tokens": 61398,
+    "output_tokens": 7838,
+    "tool_calls": 15,
+    "wall_minutes": 1.3,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 45768,
+     "prompt_tokens_all_turns": 422331,
+     "uncached_prompt_tokens": 41155,
+     "output_tokens": 7335,
+     "turns": 12,
+     "tool_calls": 12
+    }
+   },
+   "context": {
+    "prompt_bytes": 732,
+    "tool_input_bytes": 9164,
+    "tool_result_bytes": 89736,
+    "rea": {
+     "bytes": 79037,
+     "tool_calls": 11,
+     "by_command": {
+      "(no command) --help": {
+       "calls": 1,
+       "bytes": 21327
+      },
+      "inspect-with-objdump": {
+       "calls": 3,
+       "bytes": 16550
+      },
+      "guidance": {
+       "calls": 4,
+       "bytes": 8734
+      },
+      "doctor": {
+       "calls": 1,
+       "bytes": 6999
+      },
+      "inspect-artifact": {
+       "calls": 1,
+       "bytes": 6672
+      },
+      "$c": {
+       "calls": 1,
+       "bytes": 5594
+      },
+      "search --help": {
+       "calls": 1,
+       "bytes": 3055
+      },
+      "search": {
+       "calls": 1,
+       "bytes": 3055
+      },
+      "inspect-native-instruction --help": {
+       "calls": 1,
+       "bytes": 2423
+      },
+      "inspect-native-instruction": {
+       "calls": 1,
+       "bytes": 2423
+      },
+      "inspect-with-objdump --help": {
+       "calls": 1,
+       "bytes": 1437
+      },
+      "function": {
+       "calls": 1,
+       "bytes": 770
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3478,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 21327,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check/bin:$PATH; timeout 60 rea --help 2>&1 | head -150; echo ---; ls -la /home/user/rea-be"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 13997,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check && timeo"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 9681,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check && L=/ho"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 6672,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check && L=/ho"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 6110,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check && timeo"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 6099,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check && L=/ho"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 5594,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t02-elf-licence-check && L=/ho"
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 17,
+     "by_command": {
+      "(no command) --help": 1,
+      "search --help": 1,
+      "search": 1,
+      "doctor": 1,
+      "guidance": 4,
+      "inspect-artifact": 1,
+      "$c": 1,
+      "inspect-with-objdump --help": 1,
+      "inspect-with-objdump": 3,
+      "inspect-native-instruction --help": 1,
+      "inspect-native-instruction": 1,
+      "function": 1
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 19,
+     "by_command": {
+      "(no command) --help": 1,
+      "search --help": 1,
+      "search": 1,
+      "doctor": 1,
+      "guidance": 4,
+      "inspect-artifact": 1,
+      "inspect-native-exports": 1,
+      "inspect-elf-dependencies": 1,
+      "inspect-binary-layout": 1,
+      "inspect-with-objdump --help": 1,
+      "inspect-with-objdump": 3,
+      "inspect-native-instruction --help": 1,
+      "inspect-native-instruction": 1,
+      "function": 1
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t03-elf-dependencies.c2",
+   "label": "bench:task:t03-elf-dependencies.c2",
+   "agent": "b1",
+   "task": "t03-elf-dependencies",
+   "title": "Run-time dependencies of an ELF binary",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "needed",
+     "field": "needed_libraries",
+     "right": true,
+     "expected": [
+      "libm.so.6",
+      "libc.so.6"
+     ],
+     "answered": [
+      "libm.so.6",
+      "libc.so.6"
+     ]
+    },
+    {
+     "id": "interpreter",
+     "field": "interpreter",
+     "right": true,
+     "expected": "/lib64/ld-linux-x86-64.so.2",
+     "answered": "/lib64/ld-linux-x86-64.so.2"
+    },
+    {
+     "id": "imports-system",
+     "field": "imports_system",
+     "right": true,
+     "expected": false,
+     "answered": false
+    },
+    {
+     "id": "imports-popen",
+     "field": "imports_popen",
+     "right": true,
+     "expected": true,
+     "answered": true
+    }
+   ],
+   "facts_right": 4,
+   "facts_total": 4,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:25:29.792Z",
+    "ended_at": "2026-11-21T07:25:54.185Z"
+   },
+   "first_command": {
+    "expected": "inspect-elf-dependencies",
+    "also_accepted": [
+     "inspect-artifact"
+    ],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "inspect-elf-dependencies",
+    "first_working_text": "rea inspect-elf-dependencies $B",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 2
+   },
+   "cost": {
+    "turns": 6,
+    "peak_context_tokens": 81114,
+    "first_turn_prompt_tokens": 65208,
+    "prompt_tokens_all_turns": 454992,
+    "uncached_prompt_tokens": 31523,
+    "output_tokens": 2447,
+    "tool_calls": 6,
+    "wall_minutes": 0.4,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 15911,
+     "prompt_tokens_all_turns": 63774,
+     "uncached_prompt_tokens": 11280,
+     "output_tokens": 1944,
+     "turns": 3,
+     "tool_calls": 3
+    }
+   },
+   "context": {
+    "prompt_bytes": 731,
+    "tool_input_bytes": 3676,
+    "tool_result_bytes": 29138,
+    "rea": {
+     "bytes": 25537,
+     "tool_calls": 3,
+     "by_command": {
+      "(no command) --help": {
+       "calls": 1,
+       "bytes": 19599
+      },
+      "inspect-elf-dependencies": {
+       "calls": 2,
+       "bytes": 3237
+      },
+      "inspect-elf-dependencies --help": {
+       "calls": 1,
+       "bytes": 2701
+      }
+     }
+    },
+    "skill": {
+     "bytes": 0,
+     "tool_calls": 0,
+     "by_file": {}
+    },
+    "other": {
+     "bytes": 3601,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 19599,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t03-elf-dependencies/bin:$PATH; rea --help 2>&1 | head -80; echo ---; cat /home/user/rea-bench-runs/r2-afte"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 5402,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t03-elf-dependencies/bin:$PATH; B=/home/user/rea-bench-runs/r2-after/tasks/t03-elf-dependencies/input/meter"
+     },
+     {
+      "bucket": "other",
+      "bytes": 3391,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t03-elf-dependencies.c2.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 536,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t03-elf-dependencies/bin:$PATH; B=/home/user/rea-bench-runs/r2-after/tasks/t03-elf-dependencies/input/meter"
+     },
+     {
+      "bucket": "other",
+      "bytes": 171,
+      "tool": "Write",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t03-elf-dependencies/answer.json"
+     },
+     {
+      "bucket": "other",
+      "bytes": 39,
+      "tool": "StructuredOutput",
+      "what": ""
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 4,
+     "by_command": {
+      "(no command) --help": 1,
+      "inspect-elf-dependencies --help": 1,
+      "inspect-elf-dependencies": 2
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 4,
+     "by_command": {
+      "(no command) --help": 1,
+      "inspect-elf-dependencies --help": 1,
+      "inspect-elf-dependencies": 2
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t04-elf-debug-sources.c2",
+   "label": "bench:task:t04-elf-debug-sources.c2",
+   "agent": "b1",
+   "task": "t04-elf-debug-sources",
+   "title": "Source files and optimisation level from debug information",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "source-files",
+     "field": "source_files",
+     "right": true,
+     "expected": [
+      "main.c",
+      "tariff.c",
+      "ledger.c"
+     ],
+     "answered": [
+      "main.c",
+      "tariff.c",
+      "ledger.c"
+     ]
+    },
+    {
+     "id": "optimisation",
+     "field": "optimisation",
+     "right": true,
+     "expected": [
+      "-O2",
+      "O2"
+     ],
+     "answered": "-O2"
+    }
+   ],
+   "facts_right": 2,
+   "facts_total": 2,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:25:54.324Z",
+    "ended_at": "2026-11-21T07:26:21.880Z"
+   },
+   "first_command": {
+    "expected": "inspect-dwarf-units",
+    "also_accepted": [
+     "inspect-artifact"
+    ],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "inspect-dwarf-units",
+    "first_working_text": "rea inspect-dwarf-units /home/user/rea-bench-runs/r2-after/tasks/t04-elf-debug-sources/input/tallyd --json --evidence_output /home/user/rea-bench-runs/r2-after/tasks/t04-elf-debug-sources/dwarf.json",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 3
+   },
+   "cost": {
+    "turns": 8,
+    "peak_context_tokens": 84500,
+    "first_turn_prompt_tokens": 65209,
+    "prompt_tokens_all_turns": 622206,
+    "uncached_prompt_tokens": 34913,
+    "output_tokens": 2488,
+    "tool_calls": 8,
+    "wall_minutes": 0.5,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 19297,
+     "prompt_tokens_all_turns": 100582,
+     "uncached_prompt_tokens": 14670,
+     "output_tokens": 1985,
+     "turns": 5,
+     "tool_calls": 5
+    }
+   },
+   "context": {
+    "prompt_bytes": 732,
+    "tool_input_bytes": 3148,
+    "tool_result_bytes": 38038,
+    "rea": {
+     "bytes": 27419,
+     "tool_calls": 4,
+     "by_command": {
+      "(no command) --help": {
+       "calls": 1,
+       "bytes": 21174
+      },
+      "inspect-dwarf-units": {
+       "calls": 2,
+       "bytes": 4449
+      },
+      "inspect-dwarf-units --help": {
+       "calls": 1,
+       "bytes": 898
+      },
+      "guidance": {
+       "calls": 1,
+       "bytes": 898
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3398,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 21174,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t04-elf-debug-sources/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t04-elf-debug-sources && timeo"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 4387,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t04-elf-debug-sources/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t04-elf-debug-sources && timeo"
+     },
+     {
+      "bucket": "other",
+      "bytes": 3187,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t04-elf-debug-sources.c2.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 1796,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t04-elf-debug-sources/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t04-elf-debug-sources && timeo"
+     },
+     {
+      "bucket": "other",
+      "bytes": 172,
+      "tool": "Write",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t04-elf-debug-sources/answer.json"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 62,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t04-elf-debug-sources/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t04-elf-debug-sources && timeo"
+     },
+     {
+      "bucket": "other",
+      "bytes": 39,
+      "tool": "StructuredOutput",
+      "what": ""
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 5,
+     "by_command": {
+      "(no command) --help": 1,
+      "inspect-dwarf-units --help": 1,
+      "guidance": 1,
+      "inspect-dwarf-units": 2
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 5,
+     "by_command": {
+      "(no command) --help": 1,
+      "inspect-dwarf-units --help": 1,
+      "guidance": 1,
+      "inspect-dwarf-units": 2
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t05-library-exports.c2",
+   "label": "bench:task:t05-library-exports.c2",
+   "agent": "b1",
+   "task": "t05-library-exports",
+   "title": "What a shared library exports",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "functions",
+     "field": "functions",
+     "right": true,
+     "expected": [
+      "tariff_quote",
+      "tariff_version"
+     ],
+     "answered": [
+      "tariff_version",
+      "tariff_quote"
+     ]
+    },
+    {
+     "id": "variables",
+     "field": "variables",
+     "right": true,
+     "expected": [
+      "tariff_limit_kg"
+     ],
+     "answered": [
+      "tariff_limit_kg"
+     ]
+    }
+   ],
+   "facts_right": 2,
+   "facts_total": 2,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:26:15.886Z",
+    "ended_at": "2026-11-21T07:26:36.902Z"
+   },
+   "first_command": {
+    "expected": "inspect-native-exports",
+    "also_accepted": [
+     "inspect-artifact"
+    ],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "inspect-native-exports",
+    "first_working_text": "rea inspect-native-exports input/libtariff.so --json",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 2
+   },
+   "cost": {
+    "turns": 7,
+    "peak_context_tokens": 82940,
+    "first_turn_prompt_tokens": 65205,
+    "prompt_tokens_all_turns": 536739,
+    "uncached_prompt_tokens": 33351,
+    "output_tokens": 1832,
+    "tool_calls": 7,
+    "wall_minutes": 0.4,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 17737,
+     "prompt_tokens_all_turns": 80318,
+     "uncached_prompt_tokens": 13108,
+     "output_tokens": 1329,
+     "turns": 4,
+     "tool_calls": 4
+    }
+   },
+   "context": {
+    "prompt_bytes": 730,
+    "tool_input_bytes": 2964,
+    "tool_result_bytes": 36010,
+    "rea": {
+     "bytes": 25435,
+     "tool_calls": 3,
+     "by_command": {
+      "(no command) --help": {
+       "calls": 1,
+       "bytes": 21327
+      },
+      "inspect-native-exports": {
+       "calls": 1,
+       "bytes": 2728
+      },
+      "inspect-native-exports --help": {
+       "calls": 1,
+       "bytes": 1380
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3354,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 21327,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t05-library-exports/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t05-library-exports && timeout 6"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "other",
+      "bytes": 3145,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t05-library-exports.c2.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 2728,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t05-library-exports/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t05-library-exports && timeout 1"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 1380,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t05-library-exports/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t05-library-exports && timeout 6"
+     },
+     {
+      "bucket": "other",
+      "bytes": 170,
+      "tool": "Write",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t05-library-exports/answer.json"
+     },
+     {
+      "bucket": "other",
+      "bytes": 39,
+      "tool": "StructuredOutput",
+      "what": ""
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 3,
+     "by_command": {
+      "(no command) --help": 1,
+      "inspect-native-exports --help": 1,
+      "inspect-native-exports": 1
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 3,
+     "by_command": {
+      "(no command) --help": 1,
+      "inspect-native-exports --help": 1,
+      "inspect-native-exports": 1
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t06-go-binary-identity.c2",
+   "label": "bench:task:t06-go-binary-identity.c2",
+   "agent": "b1",
+   "task": "t06-go-binary-identity",
+   "title": "Which module a Go binary was built from",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "module",
+     "field": "module",
+     "right": true,
+     "expected": "example.test/fleet/agentd",
+     "answered": "example.test/fleet/agentd"
+    },
+    {
+     "id": "dependencies",
+     "field": "dependencies",
+     "right": true,
+     "expected": [
+      "example.test/fleet/wire@v0.4.2"
+     ],
+     "answered": [
+      "example.test/fleet/wire@v0.4.2"
+     ]
+    },
+    {
+     "id": "cgo",
+     "field": "cgo_enabled",
+     "right": true,
+     "expected": false,
+     "answered": false
+    }
+   ],
+   "facts_right": 3,
+   "facts_total": 3,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:26:37.013Z",
+    "ended_at": "2026-11-21T07:26:59.694Z"
+   },
+   "first_command": {
+    "expected": "inspect-go-binary",
+    "also_accepted": [
+     "inspect-artifact"
+    ],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "inspect-go-binary",
+    "first_working_text": "rea inspect-go-binary /home/user/rea-bench-runs/r2-after/tasks/t06-go-binary-identity/input/agentd --format json --json",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 2
+   },
+   "cost": {
+    "turns": 7,
+    "peak_context_tokens": 86181,
+    "first_turn_prompt_tokens": 65208,
+    "prompt_tokens_all_turns": 544647,
+    "uncached_prompt_tokens": 36592,
+    "output_tokens": 2149,
+    "tool_calls": 7,
+    "wall_minutes": 0.4,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 20978,
+     "prompt_tokens_all_turns": 88226,
+     "uncached_prompt_tokens": 16349,
+     "output_tokens": 1646,
+     "turns": 4,
+     "tool_calls": 4
+    }
+   },
+   "context": {
+    "prompt_bytes": 733,
+    "tool_input_bytes": 3172,
+    "tool_result_bytes": 42185,
+    "rea": {
+     "bytes": 31465,
+     "tool_calls": 3,
+     "by_command": {
+      "(no command) --help": {
+       "calls": 1,
+       "bytes": 21174
+      },
+      "inspect-go-binary": {
+       "calls": 1,
+       "bytes": 5324
+      },
+      "inspect-go-binary --help": {
+       "calls": 1,
+       "bytes": 4967
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3499,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 21174,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t06-go-binary-identity/bin:$PATH; timeout 60 rea --help 2>&1 | head -150"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 5324,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t06-go-binary-identity/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t06-go-binary-identity && tim"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 4967,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t06-go-binary-identity/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t06-go-binary-identity && tim"
+     },
+     {
+      "bucket": "other",
+      "bytes": 3287,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t06-go-binary-identity.c2.md"
+     },
+     {
+      "bucket": "other",
+      "bytes": 173,
+      "tool": "Write",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t06-go-binary-identity/answer.json"
+     },
+     {
+      "bucket": "other",
+      "bytes": 39,
+      "tool": "StructuredOutput",
+      "what": ""
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 3,
+     "by_command": {
+      "(no command) --help": 1,
+      "inspect-go-binary --help": 1,
+      "inspect-go-binary": 1
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 3,
+     "by_command": {
+      "(no command) --help": 1,
+      "inspect-go-binary --help": 1,
+      "inspect-go-binary": 1
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t07-sqlite-contents.c2",
+   "label": "bench:task:t07-sqlite-contents.c2",
+   "agent": "b1",
+   "task": "t07-sqlite-contents",
+   "title": "What an application keeps in its SQLite database",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "tables",
+     "field": "tables",
+     "right": true,
+     "expected": [
+      "accounts",
+      "transfers",
+      "settings"
+     ],
+     "answered": [
+      "accounts",
+      "transfers",
+      "settings"
+     ]
+    },
+    {
+     "id": "transfer-count",
+     "field": "transfer_count",
+     "right": true,
+     "expected": 37,
+     "answered": 37
+    },
+    {
+     "id": "schema-version",
+     "field": "schema_version",
+     "right": true,
+     "expected": "12",
+     "answered": "12"
+    },
+    {
+     "id": "sync-endpoint",
+     "field": "sync_endpoint",
+     "right": true,
+     "expected": "https://sync.ledger.example.test/v3/push",
+     "answered": "https://sync.ledger.example.test/v3/push"
+    }
+   ],
+   "facts_right": 4,
+   "facts_total": 4,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:26:59.833Z",
+    "ended_at": "2026-11-21T07:27:28.384Z"
+   },
+   "first_command": {
+    "expected": "inspect-sqlite-database",
+    "also_accepted": [],
+    "first_invocation": "inspect-sqlite-database --help",
+    "first_working_command": "inspect-sqlite-database",
+    "first_working_text": "rea inspect-sqlite-database /home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents/input/app.db --schema-scope database --json",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 1
+   },
+   "cost": {
+    "turns": 9,
+    "peak_context_tokens": 79986,
+    "first_turn_prompt_tokens": 65208,
+    "prompt_tokens_all_turns": 679050,
+    "uncached_prompt_tokens": 30401,
+    "output_tokens": 2800,
+    "tool_calls": 9,
+    "wall_minutes": 0.5,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 14783,
+     "prompt_tokens_all_turns": 92223,
+     "uncached_prompt_tokens": 10158,
+     "output_tokens": 2297,
+     "turns": 6,
+     "tool_calls": 6
+    }
+   },
+   "context": {
+    "prompt_bytes": 730,
+    "tool_input_bytes": 4598,
+    "tool_result_bytes": 21653,
+    "rea": {
+     "bytes": 10856,
+     "tool_calls": 5,
+     "by_command": {
+      "inspect-sqlite-database": {
+       "calls": 4,
+       "bytes": 8858
+      },
+      "inspect-sqlite-database --help": {
+       "calls": 1,
+       "bytes": 1998
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3576,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 7507,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents && timeout 1"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "other",
+      "bytes": 3367,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t07-sqlite-contents.c2.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 1998,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents && timeout 6"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 1046,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents && timeout 1"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 213,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents && timeout 1"
+     },
+     {
+      "bucket": "other",
+      "bytes": 170,
+      "tool": "Write",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents/answer.json"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 92,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t07-sqlite-contents && timeout 1"
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 5,
+     "by_command": {
+      "inspect-sqlite-database --help": 1,
+      "inspect-sqlite-database": 4
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 5,
+     "by_command": {
+      "inspect-sqlite-database --help": 1,
+      "inspect-sqlite-database": 4
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t08-archive-inventory.c2",
+   "label": "bench:task:t08-archive-inventory.c2",
+   "agent": "b1",
+   "task": "t08-archive-inventory",
+   "title": "Inventory of an archive",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "file-count",
+     "field": "file_count",
+     "right": true,
+     "expected": 9,
+     "answered": 9
+    },
+    {
+     "id": "largest-file",
+     "field": "largest_file",
+     "right": true,
+     "expected": "lib/postcodes.csv",
+     "answered": "lib/postcodes.csv"
+    },
+    {
+     "id": "identical-files",
+     "field": "identical_files",
+     "right": true,
+     "expected": [
+      "locale/en.txt",
+      "locale/en-GB.txt"
+     ],
+     "answered": [
+      "locale/en-GB.txt",
+      "locale/en.txt"
+     ]
+    },
+    {
+     "id": "defaults-env-sha256",
+     "field": "defaults_env_sha256",
+     "right": true,
+     "expected": "63b6a24664651788a8ad7f805761194f198ab315bd0bd0066327c7eac4f4d060",
+     "answered": "63b6a24664651788a8ad7f805761194f198ab315bd0bd0066327c7eac4f4d060"
+    }
+   ],
+   "facts_right": 4,
+   "facts_total": 4,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:27:28.501Z",
+    "ended_at": "2026-11-21T07:28:24.744Z"
+   },
+   "first_command": {
+    "expected": "inspect-artifact",
+    "also_accepted": [],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "inspect-artifact",
+    "first_working_text": "rea inspect-artifact /home/user/rea-bench-runs/r2-after/tasks/t08-archive-inventory/input/release.zip --json --evidence_output /home/user/rea-bench-runs/r2-after/tasks/t08-archive-inventory/work/inspect-ev --detail summary",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 3
+   },
+   "cost": {
+    "turns": 13,
+    "peak_context_tokens": 103072,
+    "first_turn_prompt_tokens": 65207,
+    "prompt_tokens_all_turns": 1158841,
+    "uncached_prompt_tokens": 53495,
+    "output_tokens": 6140,
+    "tool_calls": 14,
+    "wall_minutes": 0.9,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 37869,
+     "prompt_tokens_all_turns": 311202,
+     "uncached_prompt_tokens": 33252,
+     "output_tokens": 5637,
+     "turns": 10,
+     "tool_calls": 11
+    }
+   },
+   "context": {
+    "prompt_bytes": 732,
+    "tool_input_bytes": 8400,
+    "tool_result_bytes": 78704,
+    "rea": {
+     "bytes": 56297,
+     "tool_calls": 8,
+     "by_command": {
+      "(no command) --help": {
+       "calls": 1,
+       "bytes": 29658
+      },
+      "inspect-analysis-view": {
+       "calls": 3,
+       "bytes": 11913
+      },
+      "inspect-artifact": {
+       "calls": 1,
+       "bytes": 3968
+      },
+      "inspect-analysis-view --schema": {
+       "calls": 1,
+       "bytes": 2172
+      },
+      "inspect-artifact --help": {
+       "calls": 1,
+       "bytes": 2154
+      },
+      "extract-artifact --help": {
+       "calls": 1,
+       "bytes": 2154
+      },
+      "inspect-analysis-view --help": {
+       "calls": 1,
+       "bytes": 2140
+      },
+      "guidance": {
+       "calls": 1,
+       "bytes": 2140
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 15186,
+     "tool_calls": 5
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 29658,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t08-archive-inventory/bin:$PATH; timeout 30 rea --help; echo \"EXIT $?\""
+     },
+     {
+      "bucket": "rea",
+      "bytes": 8769,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t08-archive-inventory/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t08-archive-inventory && timeo"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "other",
+      "bytes": 6536,
+      "tool": "Bash",
+      "what": "cd /root/.claude/projects/-home-user/54db18d0-c8e4-5ba5-98b3-8082c6c439a0/tool-results/ && grep -n -i -E \"const: |enum|view\" bo83s0o01.txt | head -80"
+     },
+     {
+      "bucket": "other",
+      "bytes": 5024,
+      "tool": "Bash",
+      "what": "cd /root/.claude/projects/-home-user/54db18d0-c8e4-5ba5-98b3-8082c6c439a0/tool-results/ && grep -n -i -E \"summary|inventory|items|sort|kind: |size\" bo83s0o01.tx"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 4307,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t08-archive-inventory/bin:$PATH; timeout 60 rea inspect-artifact --help; echo \"EXIT $?\"; timeout 60 rea ext"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 4279,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t08-archive-inventory/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t08-archive-inventory && timeo"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 3968,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t08-archive-inventory/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t08-archive-inventory && mkdir"
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 10,
+     "by_command": {
+      "(no command) --help": 1,
+      "inspect-artifact --help": 1,
+      "extract-artifact --help": 1,
+      "inspect-artifact": 1,
+      "inspect-analysis-view --help": 1,
+      "guidance": 1,
+      "inspect-analysis-view --schema": 1,
+      "inspect-analysis-view": 3
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 10,
+     "by_command": {
+      "(no command) --help": 1,
+      "inspect-artifact --help": 1,
+      "extract-artifact --help": 1,
+      "inspect-artifact": 1,
+      "inspect-analysis-view --help": 1,
+      "guidance": 1,
+      "inspect-analysis-view --schema": 1,
+      "inspect-analysis-view": 3
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t09-har-failures.c2",
+   "label": "bench:task:t09-har-failures.c2",
+   "agent": "b1",
+   "task": "t09-har-failures",
+   "title": "Failed and slow requests in a recorded HAR",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "failed-requests",
+     "field": "failed_requests",
+     "right": true,
+     "expected": [
+      "GET /api/profile 401",
+      "POST /api/vouchers/redeem 422",
+      "POST /api/payments/intent 402",
+      "POST /api/orders 502"
+     ],
+     "answered": [
+      "GET /api/profile 401",
+      "POST /api/vouchers/redeem 422",
+      "POST /api/payments/intent 402",
+      "POST /api/orders 502"
+     ]
+    },
+    {
+     "id": "slowest-path",
+     "field": "slowest_request_path",
+     "right": true,
+     "expected": "/api/shipping/quotes",
+     "answered": "/api/shipping/quotes"
+    },
+    {
+     "id": "slowest-ms",
+     "field": "slowest_request_ms",
+     "right": true,
+     "expected": 4812,
+     "answered": 4812
+    }
+   ],
+   "facts_right": 3,
+   "facts_total": 3,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:28:25.072Z",
+    "ended_at": "2026-11-21T07:30:06.075Z"
+   },
+   "first_command": {
+    "expected": "inspect-web-network-capture",
+    "also_accepted": [],
+    "first_invocation": "inspect-web-network-capture --help",
+    "first_working_command": "inspect-web-network-capture",
+    "first_working_text": "rea inspect-web-network-capture /home/user/rea-bench-runs/r2-after/tasks/t09-har-failures/input/checkout.har har --json",
+    "result": "expected",
+    "economical": false,
+    "rea_calls_before_it": 1
+   },
+   "cost": {
+    "turns": 24,
+    "peak_context_tokens": 133098,
+    "first_turn_prompt_tokens": 65205,
+    "prompt_tokens_all_turns": 2332751,
+    "uncached_prompt_tokens": 83543,
+    "output_tokens": 10017,
+    "tool_calls": 24,
+    "wall_minutes": 1.7,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 67895,
+     "prompt_tokens_all_turns": 767879,
+     "uncached_prompt_tokens": 63300,
+     "output_tokens": 9514,
+     "turns": 21,
+     "tool_calls": 21
+    }
+   },
+   "context": {
+    "prompt_bytes": 727,
+    "tool_input_bytes": 13861,
+    "tool_result_bytes": 138697,
+    "rea": {
+     "bytes": 62881,
+     "tool_calls": 17,
+     "by_command": {
+      "inspect-web-network-capture": {
+       "calls": 2,
+       "bytes": 25866
+      },
+      "inspect-analysis-view --schema": {
+       "calls": 6,
+       "bytes": 23456
+      },
+      "inspect-analysis-view": {
+       "calls": 8,
+       "bytes": 4751
+      },
+      "guidance": {
+       "calls": 1,
+       "bytes": 4001
+      },
+      "inspect-web-network-capture --help": {
+       "calls": 1,
+       "bytes": 3375
+      },
+      "inspect-analysis-view --help": {
+       "calls": 1,
+       "bytes": 1433
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 68595,
+     "tool_calls": 6
+    },
+    "largest_results": [
+     {
+      "bucket": "other",
+      "bytes": 50447,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t09-har-failures/work/items.json"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 20000,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t09-har-failures/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t09-har-failures && timeout 180 rea"
+     },
+     {
+      "bucket": "other",
+      "bytes": 14158,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t09-har-failures/work/items-tail.json"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 8536,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t09-har-failures/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t09-har-failures && timeout 60 rea "
+     },
+     {
+      "bucket": "rea",
+      "bytes": 8001,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t09-har-failures/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t09-har-failures && timeout 60 rea "
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 5866,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t09-har-failures/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t09-har-failures && mkdir -p /home/"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 4131,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t09-har-failures/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t09-har-failures && timeout 60 rea "
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 19,
+     "by_command": {
+      "inspect-web-network-capture --help": 1,
+      "inspect-web-network-capture": 2,
+      "inspect-analysis-view --help": 1,
+      "inspect-analysis-view --schema": 6,
+      "guidance": 1,
+      "inspect-analysis-view": 8
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 19,
+     "by_command": {
+      "inspect-web-network-capture --help": 1,
+      "inspect-web-network-capture": 2,
+      "inspect-analysis-view --help": 1,
+      "inspect-analysis-view --schema": 6,
+      "guidance": 1,
+      "inspect-analysis-view": 8
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t10-openapi-operations.c2",
+   "label": "bench:task:t10-openapi-operations.c2",
+   "agent": "b1",
+   "task": "t10-openapi-operations",
+   "title": "Operations of an OpenAPI description",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "operation-count",
+     "field": "operation_count",
+     "right": true,
+     "expected": 8,
+     "answered": 8
+    },
+    {
+     "id": "post-paths",
+     "field": "post_paths",
+     "right": true,
+     "expected": [
+      "/vehicles",
+      "/vehicles/{plate}/positions",
+      "/webhooks/tachograph"
+     ],
+     "answered": [
+      "/vehicles",
+      "/vehicles/{plate}/positions",
+      "/webhooks/tachograph"
+     ]
+    },
+    {
+     "id": "delete-operation",
+     "field": "delete_vehicle_operation_id",
+     "right": true,
+     "expected": "retireVehicle",
+     "answered": "retireVehicle"
+    }
+   ],
+   "facts_right": 3,
+   "facts_total": 3,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:30:05.456Z",
+    "ended_at": "2026-11-21T07:30:31.056Z"
+   },
+   "first_command": {
+    "expected": "inspect-api-contract",
+    "also_accepted": [],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "inspect-api-contract",
+    "first_working_text": "rea inspect-api-contract /home/user/rea-bench-runs/r2-after/tasks/t10-openapi-operations/input/fleet-api.json --json",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 4
+   },
+   "cost": {
+    "turns": 6,
+    "peak_context_tokens": 88591,
+    "first_turn_prompt_tokens": 65207,
+    "prompt_tokens_all_turns": 480051,
+    "uncached_prompt_tokens": 39000,
+    "output_tokens": 2315,
+    "tool_calls": 7,
+    "wall_minutes": 0.4,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 23388,
+     "prompt_tokens_all_turns": 88833,
+     "uncached_prompt_tokens": 18757,
+     "output_tokens": 1812,
+     "turns": 3,
+     "tool_calls": 4
+    }
+   },
+   "context": {
+    "prompt_bytes": 733,
+    "tool_input_bytes": 3478,
+    "tool_result_bytes": 51540,
+    "rea": {
+     "bytes": 40744,
+     "tool_calls": 3,
+     "by_command": {
+      "(no command) --help": {
+       "calls": 1,
+       "bytes": 14963
+      },
+      "guidance": {
+       "calls": 1,
+       "bytes": 14963
+      },
+      "inspect-api-contract": {
+       "calls": 1,
+       "bytes": 6965
+      },
+      "inspect-api-contract --help": {
+       "calls": 1,
+       "bytes": 1927
+      },
+      "inspect-api-contract --schema": {
+       "calls": 1,
+       "bytes": 1927
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3575,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 29925,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t10-openapi-operations/bin:$PATH; timeout 30 rea --help; echo \"---\"; timeout 30 rea guidance 2>&1 | head -2"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 6965,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t10-openapi-operations/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t10-openapi-operations && tim"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 3854,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t10-openapi-operations/bin:$PATH; timeout 30 rea inspect-api-contract --help 2>&1; echo \"---\"; timeout 30 r"
+     },
+     {
+      "bucket": "other",
+      "bytes": 3363,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t10-openapi-operations.c2.md"
+     },
+     {
+      "bucket": "other",
+      "bytes": 173,
+      "tool": "Write",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t10-openapi-operations/answer.json"
+     },
+     {
+      "bucket": "other",
+      "bytes": 39,
+      "tool": "StructuredOutput",
+      "what": ""
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 5,
+     "by_command": {
+      "(no command) --help": 1,
+      "guidance": 1,
+      "inspect-api-contract --help": 1,
+      "inspect-api-contract --schema": 1,
+      "inspect-api-contract": 1
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 5,
+     "by_command": {
+      "(no command) --help": 1,
+      "guidance": 1,
+      "inspect-api-contract --help": 1,
+      "inspect-api-contract --schema": 1,
+      "inspect-api-contract": 1
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t11-version-diff.c2",
+   "label": "bench:task:t11-version-diff.c2",
+   "agent": "b1",
+   "task": "t11-version-diff",
+   "title": "What changed between two versions of a package",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "added",
+     "field": "added",
+     "right": true,
+     "expected": [
+      "lib/signature.js"
+     ],
+     "answered": [
+      "lib/signature.js"
+     ]
+    },
+    {
+     "id": "removed",
+     "field": "removed",
+     "right": true,
+     "expected": [
+      "lib/telemetry.js"
+     ],
+     "answered": [
+      "lib/telemetry.js"
+     ]
+    },
+    {
+     "id": "changed",
+     "field": "changed",
+     "right": true,
+     "expected": [
+      "VERSION",
+      "config/agent.ini",
+      "lib/agent.js",
+      "lib/update.js"
+     ],
+     "answered": [
+      "VERSION",
+      "config/agent.ini",
+      "lib/agent.js",
+      "lib/update.js"
+     ]
+    }
+   ],
+   "facts_right": 3,
+   "facts_total": 3,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:30:31.352Z",
+    "ended_at": "2026-11-21T07:31:02.553Z"
+   },
+   "first_command": {
+    "expected": "inspect-artifact",
+    "also_accepted": [
+     "compare-artifacts"
+    ],
+    "first_invocation": "compare-artifacts --help",
+    "first_working_command": "inspect-artifact",
+    "first_working_text": "rea inspect-artifact /home/user/rea-bench-runs/r2-after/tasks/t11-version-diff/input/agent-3.1.zip --detail summary --evidence_output /home/user/rea-bench-runs/r2-after/tasks/t11-version-diff/work/ev31 --json",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 2
+   },
+   "cost": {
+    "turns": 8,
+    "peak_context_tokens": 84724,
+    "first_turn_prompt_tokens": 65205,
+    "prompt_tokens_all_turns": 612931,
+    "uncached_prompt_tokens": 35137,
+    "output_tokens": 3356,
+    "tool_calls": 8,
+    "wall_minutes": 0.5,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 19521,
+     "prompt_tokens_all_turns": 91307,
+     "uncached_prompt_tokens": 14894,
+     "output_tokens": 2853,
+     "turns": 5,
+     "tool_calls": 5
+    }
+   },
+   "context": {
+    "prompt_bytes": 727,
+    "tool_input_bytes": 5161,
+    "tool_result_bytes": 29533,
+    "rea": {
+     "bytes": 18777,
+     "tool_calls": 4,
+     "by_command": {
+      "inspect-artifact": {
+       "calls": 2,
+       "bytes": 7880
+      },
+      "compare-artifacts": {
+       "calls": 2,
+       "bytes": 7565
+      },
+      "compare-artifacts --help": {
+       "calls": 1,
+       "bytes": 1666
+      },
+      "inspect-artifact --help": {
+       "calls": 1,
+       "bytes": 1666
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3535,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 7880,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t11-version-diff/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t11-version-diff && mkdir -p work &"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 6372,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t11-version-diff/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t11-version-diff && timeout 120 rea"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 3332,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t11-version-diff/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t11-version-diff && timeout 60 rea "
+     },
+     {
+      "bucket": "other",
+      "bytes": 3329,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t11-version-diff.c2.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 1193,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t11-version-diff/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t11-version-diff && timeout 120 rea"
+     },
+     {
+      "bucket": "other",
+      "bytes": 167,
+      "tool": "Write",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t11-version-diff/answer.json"
+     },
+     {
+      "bucket": "other",
+      "bytes": 39,
+      "tool": "StructuredOutput",
+      "what": ""
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 6,
+     "by_command": {
+      "compare-artifacts --help": 1,
+      "inspect-artifact --help": 1,
+      "inspect-artifact": 2,
+      "compare-artifacts": 2
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 6,
+     "by_command": {
+      "compare-artifacts --help": 1,
+      "inspect-artifact --help": 1,
+      "inspect-artifact": 2,
+      "compare-artifacts": 2
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t12-page-click-request.c2",
+   "label": "bench:task:t12-page-click-request.c2",
+   "agent": "b1",
+   "task": "t12-page-click-request",
+   "title": "The request a page sends when a button is clicked",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "method",
+     "field": "method",
+     "right": true,
+     "expected": "POST",
+     "answered": "POST"
+    },
+    {
+     "id": "path",
+     "field": "path",
+     "right": true,
+     "expected": "/api/reservations",
+     "answered": "/api/reservations"
+    },
+    {
+     "id": "request-fields",
+     "field": "request_fields",
+     "right": false,
+     "expected": [
+      "slot",
+      "party",
+      "channel",
+      "token"
+     ],
+     "answered": null
+    },
+    {
+     "id": "status",
+     "field": "status",
+     "right": true,
+     "expected": 201,
+     "answered": 201
+    },
+    {
+     "id": "reference",
+     "field": "reference",
+     "right": true,
+     "expected": "HT-04-2015",
+     "answered": "HT-04-2015"
+    }
+   ],
+   "facts_right": 4,
+   "facts_total": 5,
+   "right": false,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:31:12.140Z",
+    "ended_at": "2026-11-21T07:34:20.575Z"
+   },
+   "first_command": {
+    "expected": "capture-browser-scenario",
+    "also_accepted": [
+     "validate-browser-scenario"
+    ],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "capture-browser-scenario",
+    "first_working_text": "rea capture-browser-scenario $W/work/scenario.json --json --evidence_output $W/work/reserve.evidence.json",
+    "result": "expected",
+    "economical": false,
+    "rea_calls_before_it": 10
+   },
+   "cost": {
+    "turns": 33,
+    "peak_context_tokens": 129028,
+    "first_turn_prompt_tokens": 65206,
+    "prompt_tokens_all_turns": 3400209,
+    "uncached_prompt_tokens": 79491,
+    "output_tokens": 17157,
+    "tool_calls": 34,
+    "wall_minutes": 3.1,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 63825,
+     "prompt_tokens_all_turns": 1248510,
+     "uncached_prompt_tokens": 59248,
+     "output_tokens": 16654,
+     "turns": 30,
+     "tool_calls": 31
+    }
+   },
+   "context": {
+    "prompt_bytes": 733,
+    "tool_input_bytes": 19383,
+    "tool_result_bytes": 113832,
+    "rea": {
+     "bytes": 103302,
+     "tool_calls": 29,
+     "by_command": {
+      "inspect-analysis-view --schema": {
+       "calls": 11,
+       "bytes": 27388
+      },
+      "inspect-analysis-view": {
+       "calls": 7,
+       "bytes": 14697
+      },
+      "guidance": {
+       "calls": 5,
+       "bytes": 13250
+      },
+      "capture-browser-scenario": {
+       "calls": 2,
+       "bytes": 6813
+      },
+      "capture-browser-scenario --schema": {
+       "calls": 2,
+       "bytes": 5911
+      },
+      "(no command) --help": {
+       "calls": 2,
+       "bytes": 5668
+      },
+      "analyze-web-bundle --help": {
+       "calls": 2,
+       "bytes": 5087
+      },
+      "analyze-javascript-application": {
+       "calls": 3,
+       "bytes": 4653
+      },
+      "list-browser-targets --help": {
+       "calls": 1,
+       "bytes": 4577
+      },
+      "inspect-analysis-view --help": {
+       "calls": 1,
+       "bytes": 3719
+      },
+      "capture-browser-scenario --help": {
+       "calls": 2,
+       "bytes": 2420
+      },
+      "export-web-scripts": {
+       "calls": 1,
+       "bytes": 2006
+      },
+      "compare-static-and-observed-endpoints --schema": {
+       "calls": 1,
+       "bytes": 1612
+      },
+      "guidance --help": {
+       "calls": 1,
+       "bytes": 1349
+      },
+      "compare-static-and-observed-endpoints --help": {
+       "calls": 1,
+       "bytes": 1231
+      },
+      "export-web-scripts --help": {
+       "calls": 1,
+       "bytes": 1087
+      },
+      "analyze-javascript-application --help": {
+       "calls": 1,
+       "bytes": 1087
+      },
+      "compare-static-and-observed-endpoints": {
+       "calls": 1,
+       "bytes": 535
+      },
+      "inspect-evidence-bundle --help": {
+       "calls": 1,
+       "bytes": 215
+      }
+     }
+    },
+    "skill": {
+     "bytes": 6868,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 6868
+      }
+     }
+    },
+    "other": {
+     "bytes": 3662,
+     "tool_calls": 4
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 9694,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t12-page-click-request/bin:$PATH; timeout 60 rea capture-browser-scenario --schema 2>&1 | head -c 6000; ech"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 9564,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t12-page-click-request/bin:$PATH; W=/home/user/rea-bench-runs/r2-after/tasks/t12-page-click-request; timeou"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 9153,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t12-page-click-request/bin:$PATH; timeout 60 rea --help 2>/dev/null | grep -i -E 'browser|web|javascript|en"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 7438,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t12-page-click-request/bin:$PATH; W=/home/user/rea-bench-runs/r2-after/tasks/t12-page-click-request; timeou"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 7247,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t12-page-click-request/bin:$PATH; timeout 60 rea inspect-analysis-view --schema 2>&1 | grep -n -i -E 'colle"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 6868,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t12-page-click-request/bin:$PATH; export REA_BROWSER_EXECUTABLE=/opt/pw-browsers/chromium REA_BROWSER_NO_SA"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 6351,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t12-page-click-request/bin:$PATH; timeout 60 rea inspect-analysis-view --schema 2>&1 | sed -n '4740,4800p;4"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 5968,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t12-page-click-request/bin:$PATH; timeout 60 rea guidance --action read --locator \"rea-guide-v1.eyJ2IjoxLCJ"
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 46,
+     "by_command": {
+      "(no command) --help": 2,
+      "capture-browser-scenario --help": 2,
+      "capture-browser-scenario --schema": 2,
+      "guidance": 5,
+      "guidance --help": 1,
+      "capture-browser-scenario": 2,
+      "inspect-analysis-view --help": 1,
+      "inspect-analysis-view": 7,
+      "analyze-web-bundle --help": 2,
+      "inspect-analysis-view --schema": 11,
+      "list-browser-targets --help": 1,
+      "export-web-scripts --help": 1,
+      "analyze-javascript-application --help": 1,
+      "export-web-scripts": 1,
+      "analyze-javascript-application": 3,
+      "compare-static-and-observed-endpoints --help": 1,
+      "compare-static-and-observed-endpoints --schema": 1,
+      "compare-static-and-observed-endpoints": 1,
+      "inspect-evidence-bundle --help": 1
+     },
+     "captures": 2
+    },
+    "from_shim_log": {
+     "total": 46,
+     "by_command": {
+      "(no command) --help": 2,
+      "capture-browser-scenario --help": 2,
+      "capture-browser-scenario --schema": 2,
+      "guidance": 5,
+      "guidance --help": 1,
+      "capture-browser-scenario": 2,
+      "inspect-analysis-view --help": 1,
+      "inspect-analysis-view": 7,
+      "analyze-web-bundle --help": 2,
+      "inspect-analysis-view --schema": 11,
+      "list-browser-targets --help": 1,
+      "export-web-scripts --help": 1,
+      "analyze-javascript-application --help": 1,
+      "export-web-scripts": 1,
+      "analyze-javascript-application": 3,
+      "compare-static-and-observed-endpoints --help": 1,
+      "compare-static-and-observed-endpoints --schema": 1,
+      "compare-static-and-observed-endpoints": 1,
+      "inspect-evidence-bundle --help": 1
+     },
+     "captures": 2
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t13-python-bytecode.c2",
+   "label": "bench:task:t13-python-bytecode.c2",
+   "agent": "b1",
+   "task": "t13-python-bytecode",
+   "title": "What a compiled Python module defines",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "functions",
+     "field": "functions",
+     "right": true,
+     "expected": [
+      "sign",
+      "post_batch"
+     ],
+     "answered": [
+      "sign",
+      "post_batch"
+     ]
+    },
+    {
+     "id": "classes",
+     "field": "classes",
+     "right": true,
+     "expected": [
+      "Batch"
+     ],
+     "answered": [
+      "Batch"
+     ]
+    },
+    {
+     "id": "url",
+     "field": "url",
+     "right": true,
+     "expected": "https://ledger.example.test/v2/post",
+     "answered": "https://ledger.example.test/v2/post"
+    },
+    {
+     "id": "header",
+     "field": "header",
+     "right": true,
+     "expected": "X-Ledger-Signature",
+     "answered": "X-Ledger-Signature"
+    }
+   ],
+   "facts_right": 4,
+   "facts_total": 4,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:32:44.506Z",
+    "ended_at": "2026-11-21T07:33:28.936Z"
+   },
+   "first_command": {
+    "expected": "inspect-python-pyc",
+    "also_accepted": [
+     "inspect-artifact"
+    ],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "inspect-python-pyc",
+    "first_working_text": "rea inspect-python-pyc input/ledger.pyc --detail summary --evidence_output /home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode/pyc-evidence.json --format json",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 4
+   },
+   "cost": {
+    "turns": 10,
+    "peak_context_tokens": 91419,
+    "first_turn_prompt_tokens": 65207,
+    "prompt_tokens_all_turns": 807414,
+    "uncached_prompt_tokens": 41836,
+    "output_tokens": 4397,
+    "tool_calls": 10,
+    "wall_minutes": 0.7,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 26216,
+     "prompt_tokens_all_turns": 155384,
+     "uncached_prompt_tokens": 21593,
+     "output_tokens": 3894,
+     "turns": 7,
+     "tool_calls": 7
+    }
+   },
+   "context": {
+    "prompt_bytes": 730,
+    "tool_input_bytes": 6481,
+    "tool_result_bytes": 45935,
+    "rea": {
+     "bytes": 35171,
+     "tool_calls": 6,
+     "by_command": {
+      "guidance": {
+       "calls": 3,
+       "bytes": 11113
+      },
+      "inspect-python-pyc": {
+       "calls": 2,
+       "bytes": 8770
+      },
+      "(no command) --help": {
+       "calls": 1,
+       "bytes": 7340
+      },
+      "guidance --help": {
+       "calls": 1,
+       "bytes": 2088
+      },
+      "inspect-python-pyc --schema": {
+       "calls": 1,
+       "bytes": 2088
+      },
+      "inspect-python-pyc --help": {
+       "calls": 1,
+       "bytes": 1996
+      },
+      "inspect-analysis-view --help": {
+       "calls": 1,
+       "bytes": 1778
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3543,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 14679,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode && timeout 6"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 5469,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode && timeout 1"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 4175,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode && timeout 6"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 3991,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode && timeout 6"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 3556,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode && timeout 6"
+     },
+     {
+      "bucket": "other",
+      "bytes": 3334,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t13-python-bytecode.c2.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 3301,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t13-python-bytecode && ls -la in"
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 10,
+     "by_command": {
+      "(no command) --help": 1,
+      "guidance": 3,
+      "inspect-python-pyc --help": 1,
+      "inspect-python-pyc": 2,
+      "inspect-analysis-view --help": 1,
+      "guidance --help": 1,
+      "inspect-python-pyc --schema": 1
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 10,
+     "by_command": {
+      "(no command) --help": 1,
+      "guidance": 3,
+      "inspect-python-pyc --help": 1,
+      "inspect-python-pyc": 2,
+      "inspect-analysis-view --help": 1,
+      "guidance --help": 1,
+      "inspect-python-pyc --schema": 1
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t14-js-bundle-endpoints.c2",
+   "label": "bench:task:t14-js-bundle-endpoints.c2",
+   "agent": "b1",
+   "task": "t14-js-bundle-endpoints",
+   "title": "Endpoints a minified web bundle calls",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "fetch-paths",
+     "field": "fetch_paths",
+     "right": true,
+     "expected": [
+      "/api/v3/depots",
+      "/api/v3/parcels",
+      "/api/v3/parcels/status",
+      "/api/v3/session",
+      "/api/v3/health"
+     ],
+     "answered": [
+      "/api/v3/depots",
+      "/api/v3/parcels",
+      "/api/v3/parcels/status",
+      "/api/v3/health",
+      "/api/v3/session"
+     ]
+    },
+    {
+     "id": "websocket",
+     "field": "websocket_url",
+     "right": true,
+     "expected": "wss://live.courier.example.test/board",
+     "answered": "wss://live.courier.example.test/board"
+    }
+   ],
+   "facts_right": 2,
+   "facts_total": 2,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:34:20.709Z",
+    "ended_at": "2026-11-21T07:35:35.104Z"
+   },
+   "first_command": {
+    "expected": "analyze-javascript-application",
+    "also_accepted": [
+     "analyze",
+     "inspect-artifact"
+    ],
+    "first_invocation": "analyze-javascript-application --help",
+    "first_working_command": "analyze-javascript-application",
+    "first_working_text": "rea analyze-javascript-application /home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/input/webapp --detail summary --evidence_output $W/js-evidence.json --json",
+    "result": "expected",
+    "economical": true,
+    "rea_calls_before_it": 1
+   },
+   "cost": {
+    "turns": 15,
+    "peak_context_tokens": 102982,
+    "first_turn_prompt_tokens": 65211,
+    "prompt_tokens_all_turns": 1293758,
+    "uncached_prompt_tokens": 53409,
+    "output_tokens": 7585,
+    "tool_calls": 15,
+    "wall_minutes": 1.2,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 37779,
+     "prompt_tokens_all_turns": 315713,
+     "uncached_prompt_tokens": 33166,
+     "output_tokens": 7082,
+     "turns": 12,
+     "tool_calls": 12
+    }
+   },
+   "context": {
+    "prompt_bytes": 734,
+    "tool_input_bytes": 9959,
+    "tool_result_bytes": 68683,
+    "rea": {
+     "bytes": 57976,
+     "tool_calls": 11,
+     "by_command": {
+      "inspect-analysis-view --schema": {
+       "calls": 4,
+       "bytes": 18150
+      },
+      "inspect-analysis-view": {
+       "calls": 3,
+       "bytes": 14152
+      },
+      "guidance": {
+       "calls": 4,
+       "bytes": 12878
+      },
+      "analyze-javascript-application": {
+       "calls": 1,
+       "bytes": 8007
+      },
+      "analyze-javascript-application --help": {
+       "calls": 1,
+       "bytes": 3941
+      },
+      "inspect-analysis-view --help": {
+       "calls": 1,
+       "bytes": 848
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3486,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 8835,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/work"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 8007,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/bin:$PATH; W=/home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/work;"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 7468,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/work"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 6844,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/work"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 6000,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/work"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 5844,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/work"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 5021,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t14-js-bundle-endpoints/work"
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 14,
+     "by_command": {
+      "analyze-javascript-application --help": 1,
+      "analyze-javascript-application": 1,
+      "inspect-analysis-view --help": 1,
+      "guidance": 4,
+      "inspect-analysis-view --schema": 4,
+      "inspect-analysis-view": 3
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 14,
+     "by_command": {
+      "analyze-javascript-application --help": 1,
+      "analyze-javascript-application": 1,
+      "inspect-analysis-view --help": 1,
+      "guidance": 4,
+      "inspect-analysis-view --schema": 4,
+      "inspect-analysis-view": 3
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t15-electron-ipc.c2",
+   "label": "bench:task:t15-electron-ipc.c2",
+   "agent": "b1",
+   "task": "t15-electron-ipc",
+   "title": "IPC surface of an unpacked Electron application",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "ipc-channels",
+     "field": "ipc_channels",
+     "right": true,
+     "expected": [
+      "labels:print",
+      "settings:read",
+      "updates:check"
+     ],
+     "answered": [
+      "labels:print",
+      "settings:read",
+      "updates:check"
+     ]
+    },
+    {
+     "id": "exposed-global",
+     "field": "exposed_global",
+     "right": true,
+     "expected": "desk",
+     "answered": "desk"
+    },
+    {
+     "id": "exposed-members",
+     "field": "exposed_members",
+     "right": true,
+     "expected": [
+      "printLabel",
+      "readSettings",
+      "checkForUpdates"
+     ],
+     "answered": [
+      "checkForUpdates",
+      "printLabel",
+      "readSettings"
+     ]
+    },
+    {
+     "id": "context-isolation",
+     "field": "context_isolation",
+     "right": true,
+     "expected": true,
+     "answered": true
+    },
+    {
+     "id": "sandbox",
+     "field": "sandbox",
+     "right": true,
+     "expected": false,
+     "answered": false
+    }
+   ],
+   "facts_right": 5,
+   "facts_total": 5,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:36:10.051Z",
+    "ended_at": "2026-11-21T07:37:33.101Z"
+   },
+   "first_command": {
+    "expected": "analyze-javascript-application",
+    "also_accepted": [
+     "analyze",
+     "inspect-artifact"
+    ],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "analyze-javascript-application",
+    "first_working_text": "rea analyze-javascript-application /home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc/input/desk-app --detail summary --evidence_output /home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc/js-evidence.json --format json",
+    "result": "expected",
+    "economical": true,
+    "rea_calls_before_it": 3
+   },
+   "cost": {
+    "turns": 20,
+    "peak_context_tokens": 119567,
+    "first_turn_prompt_tokens": 65207,
+    "prompt_tokens_all_turns": 2004186,
+    "uncached_prompt_tokens": 70004,
+    "output_tokens": 9031,
+    "tool_calls": 21,
+    "wall_minutes": 1.4,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 54364,
+     "prompt_tokens_all_turns": 700126,
+     "uncached_prompt_tokens": 49761,
+     "output_tokens": 8528,
+     "turns": 17,
+     "tool_calls": 18
+    }
+   },
+   "context": {
+    "prompt_bytes": 727,
+    "tool_input_bytes": 12673,
+    "tool_result_bytes": 111111,
+    "rea": {
+     "bytes": 82061,
+     "tool_calls": 12,
+     "by_command": {
+      "(no command) --help": {
+       "calls": 1,
+       "bytes": 29658
+      },
+      "analyze-javascript-application": {
+       "calls": 1,
+       "bytes": 17470
+      },
+      "inspect-analysis-view": {
+       "calls": 4,
+       "bytes": 10384
+      },
+      "guidance": {
+       "calls": 5,
+       "bytes": 9314
+      },
+      "inspect-analysis-view --schema": {
+       "calls": 2,
+       "bytes": 9071
+      },
+      "inspect-analysis-view --help": {
+       "calls": 1,
+       "bytes": 4150
+      },
+      "analyze-javascript-application --help": {
+       "calls": 1,
+       "bytes": 2015
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 21829,
+     "tool_calls": 8
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 29658,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc/bin:$PATH; timeout 60 rea --help; echo \"EXIT $?\""
+     },
+     {
+      "bucket": "rea",
+      "bytes": 17470,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc && timeout 300 rea"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 8299,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc && timeout 60 rea "
+     },
+     {
+      "bucket": "other",
+      "bytes": 7325,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc && python3 -I -c \""
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 5007,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc && timeout 60 rea "
+     },
+     {
+      "bucket": "rea",
+      "bytes": 4432,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc && cat > view3.jso"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 4064,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t15-electron-ipc && timeout 60 rea "
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 15,
+     "by_command": {
+      "(no command) --help": 1,
+      "analyze-javascript-application --help": 1,
+      "guidance": 5,
+      "analyze-javascript-application": 1,
+      "inspect-analysis-view --help": 1,
+      "inspect-analysis-view --schema": 2,
+      "inspect-analysis-view": 4
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 15,
+     "by_command": {
+      "(no command) --help": 1,
+      "analyze-javascript-application --help": 1,
+      "guidance": 5,
+      "analyze-javascript-application": 1,
+      "inspect-analysis-view --help": 1,
+      "inspect-analysis-view --schema": 2,
+      "inspect-analysis-view": 4
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t16-model-tensors.c2",
+   "label": "bench:task:t16-model-tensors.c2",
+   "agent": "b1",
+   "task": "t16-model-tensors",
+   "title": "What a model file holds",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "tensor-count",
+     "field": "tensor_count",
+     "right": true,
+     "expected": 6,
+     "answered": 6
+    },
+    {
+     "id": "embed-shape",
+     "field": "embed_shape",
+     "right": true,
+     "expected": [
+      512,
+      64
+     ],
+     "answered": [
+      512,
+      64
+     ]
+    },
+    {
+     "id": "embed-dtype",
+     "field": "embed_dtype",
+     "right": true,
+     "expected": "F16",
+     "answered": "F16"
+    },
+    {
+     "id": "parameter-count",
+     "field": "parameter_count",
+     "right": true,
+     "expected": 37896,
+     "answered": 37896
+    },
+    {
+     "id": "task",
+     "field": "task",
+     "right": true,
+     "expected": "parcel-intent",
+     "answered": "parcel-intent"
+    }
+   ],
+   "facts_right": 5,
+   "facts_total": 5,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:37:03.365Z",
+    "ended_at": "2026-11-21T07:37:33.282Z"
+   },
+   "first_command": {
+    "expected": "inspect-model-artifact",
+    "also_accepted": [
+     "inspect-artifact"
+    ],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "inspect-model-artifact",
+    "first_working_text": "rea inspect-model-artifact /home/user/rea-bench-runs/r2-after/tasks/t16-model-tensors/input/model.safetensors --json",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 5
+   },
+   "cost": {
+    "turns": 7,
+    "peak_context_tokens": 86083,
+    "first_turn_prompt_tokens": 65206,
+    "prompt_tokens_all_turns": 549227,
+    "uncached_prompt_tokens": 36494,
+    "output_tokens": 2532,
+    "tool_calls": 8,
+    "wall_minutes": 0.5,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 20880,
+     "prompt_tokens_all_turns": 92806,
+     "uncached_prompt_tokens": 16251,
+     "output_tokens": 2029,
+     "turns": 4,
+     "tool_calls": 5
+    }
+   },
+   "context": {
+    "prompt_bytes": 728,
+    "tool_input_bytes": 3785,
+    "tool_result_bytes": 38745,
+    "rea": {
+     "bytes": 27918,
+     "tool_calls": 4,
+     "by_command": {
+      "(no command) --help": {
+       "calls": 2,
+       "bytes": 15972
+      },
+      "inspect-model-artifact": {
+       "calls": 1,
+       "bytes": 5103
+      },
+      "guidance": {
+       "calls": 2,
+       "bytes": 3870
+      },
+      "inspect-model-artifact --help": {
+       "calls": 1,
+       "bytes": 2974
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3606,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 15076,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t16-model-tensors/bin:$PATH; timeout 60 rea --help 2>&1 | head -100"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 5948,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t16-model-tensors/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t16-model-tensors && timeout 60 re"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 5103,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t16-model-tensors/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t16-model-tensors && timeout 120 r"
+     },
+     {
+      "bucket": "other",
+      "bytes": 3399,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t16-model-tensors.c2.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 1791,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t16-model-tensors/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t16-model-tensors && timeout 60 re"
+     },
+     {
+      "bucket": "other",
+      "bytes": 168,
+      "tool": "Write",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t16-model-tensors/answer.json"
+     },
+     {
+      "bucket": "other",
+      "bytes": 39,
+      "tool": "StructuredOutput",
+      "what": ""
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 6,
+     "by_command": {
+      "(no command) --help": 2,
+      "guidance": 2,
+      "inspect-model-artifact --help": 1,
+      "inspect-model-artifact": 1
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 6,
+     "by_command": {
+      "(no command) --help": 2,
+      "guidance": 2,
+      "inspect-model-artifact --help": 1,
+      "inspect-model-artifact": 1
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t17-evm-selectors.c2",
+   "label": "bench:task:t17-evm-selectors.c2",
+   "agent": "b1",
+   "task": "t17-evm-selectors",
+   "title": "Function selectors of contract bytecode",
+   "known_gap": null,
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "selectors",
+     "field": "selectors",
+     "right": true,
+     "expected": [
+      "0x18160ddd",
+      "0x3ccfd60b",
+      "0x70a08231",
+      "0xa9059cbb"
+     ],
+     "answered": [
+      "0x18160ddd",
+      "0x3ccfd60b",
+      "0x70a08231",
+      "0xa9059cbb"
+     ]
+    }
+   ],
+   "facts_right": 1,
+   "facts_total": 1,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:37:33.600Z",
+    "ended_at": "2026-11-21T07:38:05.446Z"
+   },
+   "first_command": {
+    "expected": "inspect-evm-interface",
+    "also_accepted": [
+     "inspect-artifact"
+    ],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "inspect-evm-interface",
+    "first_working_text": "rea inspect-evm-interface /home/user/rea-bench-runs/r2-after/tasks/t17-evm-selectors/input/contract.hex hex --json --evidence_output /home/user/rea-bench-runs/r2-after/tasks/t17-evm-selectors/evm-evidence.json",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 4
+   },
+   "cost": {
+    "turns": 8,
+    "peak_context_tokens": 86471,
+    "first_turn_prompt_tokens": 65207,
+    "prompt_tokens_all_turns": 629149,
+    "uncached_prompt_tokens": 36884,
+    "output_tokens": 2924,
+    "tool_calls": 8,
+    "wall_minutes": 0.5,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 21268,
+     "prompt_tokens_all_turns": 107525,
+     "uncached_prompt_tokens": 16641,
+     "output_tokens": 2421,
+     "turns": 5,
+     "tool_calls": 5
+    }
+   },
+   "context": {
+    "prompt_bytes": 728,
+    "tool_input_bytes": 4726,
+    "tool_result_bytes": 42189,
+    "rea": {
+     "bytes": 31660,
+     "tool_calls": 4,
+     "by_command": {
+      "guidance": {
+       "calls": 2,
+       "bytes": 12529
+      },
+      "(no command) --help": {
+       "calls": 1,
+       "bytes": 11147
+      },
+      "inspect-evm-interface": {
+       "calls": 2,
+       "bytes": 6603
+      },
+      "inspect-evm-interface --help": {
+       "calls": 1,
+       "bytes": 1382
+      }
+     }
+    },
+    "skill": {
+     "bytes": 7221,
+     "tool_calls": 1,
+     "by_file": {
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3308,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 22294,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t17-evm-selectors/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t17-evm-selectors && timeout 60 re"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 6541,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t17-evm-selectors/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t17-evm-selectors && timeout 200 r"
+     },
+     {
+      "bucket": "other",
+      "bytes": 3101,
+      "tool": "Read",
+      "what": "/home/user/rea-bench-runs/r2-briefs/bench_task_t17-evm-selectors.c2.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 2763,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t17-evm-selectors/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t17-evm-selectors && timeout 60 re"
+     },
+     {
+      "bucket": "other",
+      "bytes": 168,
+      "tool": "Write",
+      "what": "/home/user/rea-bench-runs/r2-after/tasks/t17-evm-selectors/answer.json"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 62,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t17-evm-selectors/bin:$PATH; cd /home/user/rea-bench-runs/r2-after/tasks/t17-evm-selectors && timeout 200 r"
+     },
+     {
+      "bucket": "other",
+      "bytes": 39,
+      "tool": "StructuredOutput",
+      "what": ""
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 6,
+     "by_command": {
+      "(no command) --help": 1,
+      "guidance": 2,
+      "inspect-evm-interface --help": 1,
+      "inspect-evm-interface": 2
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 6,
+     "by_command": {
+      "(no command) --help": 1,
+      "guidance": 2,
+      "inspect-evm-interface --help": 1,
+      "inspect-evm-interface": 2
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  },
+  {
+   "cell": "t18-process-run.c2",
+   "label": "bench:task:t18-process-run.c2",
+   "agent": "b1",
+   "task": "t18-process-run",
+   "title": "What a command prints and which files it touches",
+   "known_gap": "On 0e089b3 the fields of the scenario file (executable, arguments, filesystem_observation_paths) are in no text an agent can reach through the CLI: not in the skill, not in --help and not in --schema, and a validation error names one missing field at a time (audit request R15: clear over MCP, blocked on the CLI). Expect agents to fail the two file facts until that changes.",
+   "answer_readable": true,
+   "facts": [
+    {
+     "id": "stdout",
+     "field": "stdout_lines",
+     "right": true,
+     "expected": [
+      "schema at version 6, 3 migrations pending",
+      "dry run: nothing applied"
+     ],
+     "answered": [
+      "schema at version 6, 3 migrations pending",
+      "dry run: nothing applied"
+     ]
+    },
+    {
+     "id": "exit-code",
+     "field": "exit_code",
+     "right": true,
+     "expected": 3,
+     "answered": 3
+    },
+    {
+     "id": "files-created",
+     "field": "files_created",
+     "right": true,
+     "expected": [
+      "plan.txt"
+     ],
+     "answered": [
+      "plan.txt"
+     ]
+    },
+    {
+     "id": "files-changed",
+     "field": "files_changed",
+     "right": true,
+     "expected": [],
+     "answered": []
+    }
+   ],
+   "facts_right": 4,
+   "facts_total": 4,
+   "right": true,
+   "scored": true,
+   "run": {
+    "started_at": "2026-11-21T07:38:05.582Z",
+    "ended_at": "2026-11-21T07:39:11.366Z"
+   },
+   "first_command": {
+    "expected": "capture-process",
+    "also_accepted": [],
+    "first_invocation": "(no command) --help",
+    "first_working_command": "capture-process",
+    "first_working_text": "rea capture-process scenario-dry.json",
+    "result": "expected",
+    "economical": null,
+    "rea_calls_before_it": 13
+   },
+   "cost": {
+    "turns": 13,
+    "peak_context_tokens": 112007,
+    "first_turn_prompt_tokens": 65204,
+    "prompt_tokens_all_turns": 1210360,
+    "uncached_prompt_tokens": 62430,
+    "output_tokens": 5816,
+    "tool_calls": 14,
+    "wall_minutes": 1.1,
+    "net_of_floor": {
+     "floor_first_turn_prompt_tokens": 65203,
+     "peak_context_tokens": 46804,
+     "prompt_tokens_all_turns": 362721,
+     "uncached_prompt_tokens": 42187,
+     "output_tokens": 5313,
+     "turns": 10,
+     "tool_calls": 11
+    }
+   },
+   "context": {
+    "prompt_bytes": 726,
+    "tool_input_bytes": 7456,
+    "tool_result_bytes": 96658,
+    "rea": {
+     "bytes": 71626,
+     "tool_calls": 8,
+     "by_command": {
+      "(no command) --help": {
+       "calls": 1,
+       "bytes": 29810
+      },
+      "guidance": {
+       "calls": 7,
+       "bytes": 18254
+      },
+      "capture-process": {
+       "calls": 2,
+       "bytes": 13741
+      },
+      "capture-process --help": {
+       "calls": 3,
+       "bytes": 5950
+      },
+      "(no command) --llms": {
+       "calls": 1,
+       "bytes": 3031
+      },
+      "capture-process --schema": {
+       "calls": 1,
+       "bytes": 840
+      }
+     }
+    },
+    "skill": {
+     "bytes": 21305,
+     "tool_calls": 3,
+     "by_file": {
+      "references/runtime-observation.md": {
+       "calls": 2,
+       "bytes": 14084
+      },
+      "SKILL.md": {
+       "calls": 1,
+       "bytes": 7221
+      }
+     }
+    },
+    "other": {
+     "bytes": 3727,
+     "tool_calls": 3
+    },
+    "largest_results": [
+     {
+      "bucket": "rea",
+      "bytes": 29810,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t18-process-run/bin:$PATH; timeout 30 rea --help; echo \"EXIT=$?\"; ls -la /home/user/rea-bench-runs/r2-after"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 13662,
+      "tool": "Read",
+      "what": "<skill>/references/runtime-observation.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 11945,
+      "tool": "Bash",
+      "what": "cd /home/user/rea-bench-runs/r2-after/tasks/t18-process-run/work && sed 's/\"dry_run\": true/\"dry_run\": false/' scenario-dry.json > scenario-run.json && export PA"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 7929,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t18-process-run/bin:$PATH; timeout 60 rea guidance --query \"capture-process scenario file executable argume"
+     },
+     {
+      "bucket": "skill",
+      "bytes": 7221,
+      "tool": "Read",
+      "what": "<skill>/SKILL.md"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 6630,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t18-process-run/bin:$PATH; timeout 60 rea guidance --query \"dry_run process scenario JSON executable\"; echo"
+     },
+     {
+      "bucket": "rea",
+      "bytes": 6062,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t18-process-run/bin:$PATH; timeout 60 rea guidance --query \"capture_process_scenario\" --format json 2>&1 | "
+     },
+     {
+      "bucket": "rea",
+      "bytes": 4935,
+      "tool": "Bash",
+      "what": "export PATH=/home/user/rea-bench-runs/r2-after/tasks/t18-process-run/bin:$PATH; timeout 60 rea guidance --query \"process scenario capture-process filesystem obs"
+     }
+    ]
+   },
+   "rea_invocations": {
+    "from_transcript": {
+     "total": 15,
+     "by_command": {
+      "(no command) --help": 1,
+      "capture-process --help": 3,
+      "capture-process --schema": 1,
+      "guidance": 7,
+      "(no command) --llms": 1,
+      "capture-process": 2
+     },
+     "captures": 0
+    },
+    "from_shim_log": {
+     "total": 15,
+     "by_command": {
+      "(no command) --help": 1,
+      "capture-process --help": 3,
+      "capture-process --schema": 1,
+      "guidance": 7,
+      "(no command) --llms": 1,
+      "capture-process": 2
+     },
+     "captures": 0
+    }
+   },
+   "rule_breaks": {
+    "count": 0,
+    "by_kind": {},
+    "breaks": []
+   },
+   "other_tool_use": {
+    "count": 0,
+    "uses": []
+   }
+  }
+ ]
+}
