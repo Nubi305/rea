@@ -1,3 +1,21 @@
+Contents:
+
+- Scope
+- The loop
+- Rules for every role
+- Role cards
+  - Lead
+  - Scout
+  - Mapper
+  - Prober
+  - Spec writer
+  - Builder
+  - Verifier
+- The clean-room wall
+- One agent or a team
+- Capture judgment
+- Waivers, declarations and when to stop
+
 # Clone runs: rebuild a web application with a referee
 
 Use this when the user asks to rebuild ("clone") a web application they can

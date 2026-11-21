@@ -26,7 +26,7 @@ source repository, use ordinary repository tools, not REA.
 - Explain or decompile a native program or library → `open_binary`, `search_procedures` or `search_strings`, then `analyze_function`
 - One fact about a file (hardening, imports, dependencies, signing, a database) → its inspector by path, no provider: `inspect_binary_hardening`, `inspect_elf_dependencies`, `inspect_sqlite_database`; others below
 - A crash (Linux core or Apple `.ips` file) → `inspect_recorded_crash` (amd64 or AArch64 core; needs pwntools), `inspect_apple_ips`
-- Inside an archive, installer, app bundle or firmware image → `open_binary`, then `inspect_artifact`
+- Inside an archive, installer, app bundle or firmware image → `open_binary`, then `inspect_artifact`; firmware it cannot map: `inspect_firmware_regions` (needs Binwalk)
 - Electron app, ASAR or JavaScript tree → `analyze_javascript_application` with `detail: "summary"`
 - One JavaScript file (a minified bundle) → `recover_javascript_sources` (needs Wakaru), or put the file alone in a directory and analyze that
 - Android APK → `inspect_android_package`

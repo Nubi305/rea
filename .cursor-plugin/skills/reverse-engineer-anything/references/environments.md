@@ -1,3 +1,15 @@
+Contents:
+
+- Before recording
+- Record a session an environment can learn writes from
+- Check coverage
+- Export and hand off
+- Tasks for a desktop application environment
+  - Describe the change
+  - Write the prompt
+  - Pick the checks
+  - Export the task
+
 # Agent environments from a live application
 
 Use this when the user asks for an agent environment (an AgentEnv bundle) of a
@@ -284,7 +296,7 @@ list any `credential-named-members` warning pointers for review. Never publish
 or share the bundle yourself.
 
 See
-[agent environments](https://github.com/morluto/rea/blob/main/docs/agent-environments.md)
+agent environments (REA repository: `docs/agent-environments.md`)
 for what the state, replay and the bundle establish, and
 [evidence workflows](evidence-workflows.md) for the manifest and state views.
 
@@ -371,7 +383,7 @@ value within a sentence, such as a time. A binary document, such as GIMP's
 `.xcf`, has no view: give the task a `readers` entry, the app's own headless
 command printing `REA ` lines, and a check naming it in `reader`, as
 [desktop builds](desktop-build.md#read-a-binary-file-with-a-reader) shows. The
-[desktop application tasks](https://github.com/morluto/rea/blob/main/docs/desktop-application-tasks.md)
+desktop application tasks (REA repository: `docs/desktop-application-tasks.md`)
 guide has the exact rules.
 
 ### Export the task

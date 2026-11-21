@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { ensureGeneratedFile } from "./lib/generated-file.mjs";
+import { packagedSkillFile } from "./lib/skill-contents.mjs";
 import { importVerifierSource } from "./lib/verifier-source-loader.mjs";
 
 const { addSkillManifestToolCount } = await importVerifierSource(
@@ -46,13 +47,15 @@ for (const relativePath of paths) {
   if (!check) await mkdir(dirname(path), { recursive: true });
   await ensureGeneratedFile({
     path,
-    source:
+    source: packagedSkillFile(
+      relativePath,
       relativePath === "SKILL.md"
         ? source
         : (await readFile(join(sourceRoot, relativePath), "utf8")).replaceAll(
             "\r\n",
             "\n",
           ),
+    ),
     check,
     generateCommand: "npm run docs:generate",
   });

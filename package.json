@@ -307,6 +307,7 @@
     "docs:check": "node scripts/check-dependency-install.mjs && node scripts/run-exclusive.mjs artifacts node scripts/run-turbo.mjs run docs:check:built && npm run test:local -- tests/conformance/readmeConsistency.test.ts",
     "docs:check:built": "node scripts/check-doc-facts.mjs --built",
     "cursor-plugin:generate": "node scripts/generate-cursor-plugin-skill.mjs",
+    "skill:routes": "node scripts/port-skill-routes.mjs",
     "docs:error-schema": "node scripts/check-dependency-install.mjs && node scripts/run-exclusive.mjs artifacts node scripts/run-turbo.mjs run artifacts:error-schema",
     "prepack": "node scripts/prepack.mjs",
     "prepare": "node scripts/prepare.mjs",

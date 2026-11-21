@@ -298,11 +298,10 @@ describe("clone run playbook", () => {
     const skill = await readFile(resolve(SKILL_PATH), "utf8");
     const description = /^description: (.*)$/mu.exec(skill)?.[1] ?? "";
     expect(description).toMatch(/rebuild \(clone\) a web application/u);
-    const rows = section(skill, "First step")
+    const firstStep = section(skill, "First step")
       .split("\n")
-      .filter((line) => line.startsWith("| ") && !line.startsWith("| ---"));
-    // rows[0] is the header row.
-    expect(rows[1]).toContain(`(${PLAYBOOK})`);
+      .find((line) => line.startsWith("- "));
+    expect(firstStep).toContain(`(${PLAYBOOK})`);
   });
 
   it("states the exit status of each verdict as the code computes it", async () => {

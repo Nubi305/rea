@@ -1,3 +1,55 @@
+Contents:
+
+- Apple app resources
+- Desktop installation directories
+- Release exposure
+- Go build metadata
+- Model files
+- IL2CPP metadata
+- Rust dependency metadata
+- Maven POM and Gradle module metadata
+- PE Authenticode certificate tables
+- PE import and delay-load tables
+- Windows Shell Link shortcuts
+- PE TLS callbacks and load configuration
+- Binary hardening
+- ELF note tables
+- DWARF compile units
+- ELF debug files
+- ELF dynamic dependencies
+- ELF and Mach-O initializer functions
+- ELF unwind function ranges
+- Apple IPS crash reports
+- Linux kernel modules
+- Linux kernel build config
+- CPython pyc files
+- Erlang BEAM files
+- NuGet packages
+- SQLite snapshots
+- Recorded Linux crashes
+- Offline ELF layout
+- Offline WASM
+- Offline APK signatures
+- Native targets
+- Continue editable Ghidra analysis across processes
+- Reuse caller-selected Ghidra analysis
+- Ghidra startup deadline recovery
+- Bridge request ceiling
+- Selected native facts and call graphs
+- Static memory and original file bytes
+- DOS MZ with Ghidra
+- Managed PE/CLI
+  - .NET NativeAOT
+- Packages and extraction
+  - Function annotations in Ghidra
+- Offline PE resource inventory
+- Offline PE and ELF export tables
+- Godot PCK
+- ESP images
+- ESP flash images
+- Bun standalone executables
+- Deno compile executables
+
 # Native, managed, and packaged artifacts
 
 For release comparisons on one MCP connection, retain `list_procedures` Evidence
@@ -60,7 +112,7 @@ coverage, read-range identity and unknowns; directory snapshot identity is not
 a digest of every file's contents. Component path markers do not establish
 runtime presence. For compact CLI output, use
 `inspect-desktop-application PATH --detail summary --evidence_output BUNDLE`.
-See [desktop installations](https://github.com/morluto/rea/blob/main/docs/desktop-applications.md).
+See desktop installations (REA repository: `docs/desktop-applications.md`).
 
 ## Release exposure
 
@@ -70,7 +122,7 @@ Use `audit_release_exposure` (`rea audit-release-exposure PATH`) when the questi
 
 `native.hardening`, `macho.hardened_runtime`, and `android.manifest` are not assessed here. Their next probes are `inspect_binary_hardening`, `inspect_signature`, and `inspect_android_package`.
 
-See [release exposure](https://github.com/morluto/rea/blob/main/docs/release-exposure.md).
+See release exposure (REA repository: `docs/release-exposure.md`).
 
 ## Go build metadata
 
@@ -93,7 +145,7 @@ source and type recovery remain a separate native-analysis question. For a
 scanner, project the retained parent with `inspect_analysis_view` kind
 `cyclonedx`. That document is CycloneDX 1.6, reads no target bytes, and states
 `compositions` as incomplete or unknown. See
-[CycloneDX dependencies](https://github.com/morluto/rea/blob/main/docs/guides/native/cyclonedx-view.md).
+CycloneDX dependencies (REA repository: `docs/guides/native/cyclonedx-view.md`).
 
 ## Model files
 
@@ -103,7 +155,7 @@ read weights or establish full-file identity. `hash: "full"` explicitly streams
 all bytes. Retained `model-artifact` views page `metadata`, `tensors` and derived
 `types`, with exact batch filters and selected fields. Arrays retain typed counts
 and eight-element previews; omitted values, unknown types and runtime behavior
-stay explicit. See [model files](https://github.com/morluto/rea/blob/main/docs/model-artifacts.md).
+stay explicit. See model files (REA repository: `docs/model-artifacts.md`).
 
 ## IL2CPP metadata
 
@@ -121,7 +173,7 @@ without member collections retain unknown counts rather than empty inventories. 
 artifact SHA-256 and index widths. Unrecognized magic may mean encryption and
 is unsupported, not decrypted. Linking names to `GameAssembly` or
 `UnityFramework` code addresses remains a separate native-analysis question.
-See [IL2CPP metadata](https://github.com/morluto/rea/blob/main/docs/il2cpp-metadata.md).
+See IL2CPP metadata (REA repository: `docs/il2cpp-metadata.md`).
 
 ## Rust dependency metadata
 
@@ -140,8 +192,8 @@ number. ELF, PE and Mach-O stay 32 or 64. Components such as
 `/rustc/<40-hex>/` path in read-only data or a WebAssembly data section and
 does not by itself identify the compiler. Project the retained parent with `inspect_analysis_view`
 kind `cyclonedx` for one CycloneDX 1.6 document. Build-kind packages are
-`scope: excluded`. See [Rust binaries](https://github.com/morluto/rea/blob/main/docs/rust-binaries.md)
-and [CycloneDX dependencies](https://github.com/morluto/rea/blob/main/docs/guides/native/cyclonedx-view.md).
+`scope: excluded`. See Rust binaries (REA repository: `docs/rust-binaries.md`)
+and CycloneDX dependencies (REA repository: `docs/guides/native/cyclonedx-view.md`).
 
 ## Maven POM and Gradle module metadata
 
@@ -153,7 +205,7 @@ access is required. The CLI equivalent is `inspect-maven-gradle-metadata PATH`.
 Preserve artifact SHA-256, versions as spelled, and `unresolved` entries.
 Interpolation and inheritance are not performed. A missing version is not a
 resolved BOM selection. See
-[Maven POM and Gradle module metadata](https://github.com/morluto/rea/blob/main/docs/maven-gradle-metadata.md).
+Maven POM and Gradle module metadata (REA repository: `docs/maven-gradle-metadata.md`).
 
 ## PE Authenticode certificate tables
 
@@ -167,7 +219,7 @@ payload hashes, original validity-time spellings, and
 `IMAGE_DIRECTORY_ENTRY_SECURITY` directory is observed absence of that table,
 not proof the image is unsigned in every catalog or overlay sense. Signatures,
 chains, timestamps, and Authenticode digest coverage remain unobserved. See
-[PE Authenticode certificate tables](https://github.com/morluto/rea/blob/main/docs/pe-certificates.md).
+PE Authenticode certificate tables (REA repository: `docs/pe-certificates.md`).
 
 ## PE import and delay-load tables
 
@@ -180,7 +232,7 @@ ILT/IAT RVAs. A missing `IMAGE_DIRECTORY_ENTRY_IMPORT` directory is observed
 absence of that table, not proof the image never imported APIs through another
 table or overlay. Bound snapshots, loaded IAT contents, and export-forward
 resolution remain unobserved. See
-[PE import and delay-load tables](https://github.com/morluto/rea/blob/main/docs/pe-imports.md).
+PE import and delay-load tables (REA repository: `docs/pe-imports.md`).
 
 ## Windows Shell Link shortcuts
 
@@ -194,7 +246,7 @@ signatures. Unknown IDList items and ExtraData signatures remain raw with
 SHA-256; they are not guessed. Version-1 UUID MAC and timestamp values are
 labelled derived. A missing optional section is observed absence of that
 structure. See
-[Windows Shell Link shortcuts](https://github.com/morluto/rea/blob/main/docs/guides/native/windows-shortcut.md).
+Windows Shell Link shortcuts (REA repository: `docs/guides/native/windows-shortcut.md`).
 
 ## PE TLS callbacks and load configuration
 
@@ -207,7 +259,7 @@ SHA-256, directory and callback-array file ranges, and callback VAs as
 hexadecimal strings. Fields outside the declared `Size` are `null`. Guard-flag
 mitigations carry `evidence_kind: "inferred"`; enforcement remains unobserved.
 See
-[PE TLS callbacks and load configuration](https://github.com/morluto/rea/blob/main/docs/pe-load-config.md).
+PE TLS callbacks and load configuration (REA repository: `docs/pe-load-config.md`).
 
 ## Binary hardening
 
@@ -219,7 +271,7 @@ target execution is required. The CLI equivalent is
 slice. A missing import is `unknown`, not proof the protection was omitted.
 Authenticode and Mach-O code-signature rows report presence, not validity.
 `hardened_runtime` stays unknown and names `inspect_signature`. See
-[binary hardening](https://github.com/morluto/rea/blob/main/docs/binary-hardening.md).
+binary hardening (REA repository: `docs/binary-hardening.md`).
 
 ## ELF note tables
 
@@ -230,7 +282,7 @@ is `inspect-elf-notes PATH`. Preserve artifact SHA-256, table file ranges,
 descriptor hashes, and original owner spellings. A missing table is observed
 absence of those declarations, not proof the image never carried notes in
 another container. See
-[ELF note tables](https://github.com/morluto/rea/blob/main/docs/elf-notes.md).
+ELF note tables (REA repository: `docs/elf-notes.md`).
 
 ## DWARF compile units
 
@@ -245,7 +297,7 @@ describes this file only and does not establish that a separate debug file is
 absent. Partial coverage includes a declared `.debug_info` that was not read,
 such as an undecodable section or a `.dwo` object. A present `.gnu_debuglink` is named and not decoded. Child DIEs,
 types, line tables, and location expressions are not read. See
-[DWARF compile units](https://github.com/morluto/rea/blob/main/docs/guides/native/dwarf-units.md).
+DWARF compile units (REA repository: `docs/guides/native/dwarf-units.md`).
 
 ## ELF debug files
 
@@ -260,7 +312,7 @@ for a file you already chose. The verdict compares debuglink CRC32 and GNU
 build-id; the alt-file build-id is not that comparison. A missing named
 section is observed absence only when section names are complete. The
 `.gnu_debugdata` xz payload is not decoded. See
-[ELF debug files](https://github.com/morluto/rea/blob/main/docs/guides/native/elf-debug-link.md).
+ELF debug files (REA repository: `docs/guides/native/elf-debug-link.md`).
 
 ## ELF dynamic dependencies
 
@@ -276,7 +328,7 @@ not expanded. A missing `PT_DYNAMIC` is observed absence of that inventory,
 not proof the image never needed libraries in another container. Relocatable
 objects use `inspect_kernel_module`. Core dumps use `inspect_recorded_crash`.
 See
-[ELF dynamic dependencies](https://github.com/morluto/rea/blob/main/docs/elf-dependencies.md).
+ELF dynamic dependencies (REA repository: `docs/elf-dependencies.md`).
 
 ## ELF and Mach-O initializer functions
 
@@ -290,7 +342,7 @@ through RELATIVE, RELR and section relocations, and Mach-O slots through
 chained fixups. Keep each entry's `resolution`: `unresolved` means the value was
 not established, and `unresolved_import` names an external symbol. Page with
 `offset` and `limit`. See
-[ELF and Mach-O initializer functions](https://github.com/morluto/rea/blob/main/docs/guides/native/native-initializers.md).
+ELF and Mach-O initializer functions (REA repository: `docs/guides/native/native-initializers.md`).
 
 ## ELF unwind function ranges
 
@@ -306,7 +358,7 @@ image has no functions. Header disagreement is a limitation and does not drop
 decoded ranges. `.debug_frame` is reported present or absent and is not
 decoded. CFA instructions are counted and not evaluated. Indirect EH pointers
 are not dereferenced. See
-[ELF unwind function ranges](https://github.com/morluto/rea/blob/main/docs/guides/native/elf-unwind-ranges.md).
+ELF unwind function ranges (REA repository: `docs/guides/native/elf-unwind-ranges.md`).
 
 ## Apple IPS crash reports
 
@@ -321,7 +373,7 @@ no crash result. Select `join_path` for one local Mach-O or dSYM to match
 report images to slices by UUID and architecture. Preserve the selected
 artifact identity, slice facts and unjoined reasons; a joined static address
 does not resolve function names or dSYM symbols. See
-[Apple IPS crash reports](https://github.com/morluto/rea/blob/main/docs/apple-ips.md).
+Apple IPS crash reports (REA repository: `docs/apple-ips.md`).
 
 ## Linux kernel modules
 
@@ -340,7 +392,7 @@ unvalidated. An absent trailer is not proof the module is unsigned in another
 container. gzip, xz, and zstd whole-file containers are unsupported and name
 `external_decompression` as the next probe: use an external codec utility to
 decompress into a separate file, then call `inspect_kernel_module` on that file. See
-[Linux kernel modules](https://github.com/morluto/rea/blob/main/docs/kernel-modules.md).
+Linux kernel modules (REA repository: `docs/kernel-modules.md`).
 
 ## Linux kernel build config
 
@@ -361,7 +413,7 @@ payloads are incomplete, not absent. A framed blob that does not decode, has a
 bad CRC, or holds non-config text is `malformed`, not absent. xz, lz4, lzma, zstd, bzip2, and lzo
 payloads are unsupported and name `external_decompression`: decompress with an
 external utility, then call `inspect_kernel_build_config` on the result. See
-[Linux kernel build config](https://github.com/morluto/rea/blob/main/docs/guides/native/kernel-build-config.md).
+Linux kernel build config (REA repository: `docs/guides/native/kernel-build-config.md`).
 
 ## CPython pyc files
 
@@ -371,7 +423,7 @@ code-object names, or bytecode identity. No `open_binary`, Python installation,
 or target execution is required. The CLI equivalent is `inspect-python-pyc PATH`.
 Preserve artifact SHA-256, the 16-byte header fields, nested code names, and
 bytecode SHA-256. Bytecode is not decompiled. A decoded header does not prove
-the matching `.py` is present. See [CPython pyc inspection](https://github.com/morluto/rea/blob/main/docs/python-pyc.md).
+the matching `.py` is present. See CPython pyc inspection (REA repository: `docs/python-pyc.md`).
 
 ## Erlang BEAM files
 
@@ -385,7 +437,7 @@ a `beam` view selecting a collection, exact names/indices and fields; read later
 pages from `parent_evidence_id` or the complete Evidence bundle. Same-name
 exports retain every arity and original atom index. CLI summary delivery requires
 `--evidence_output`. Null table counts remain distinct from decoded empty tables. See
-[Erlang BEAM files](https://github.com/morluto/rea/blob/main/docs/erlang-beam.md).
+Erlang BEAM files (REA repository: `docs/erlang-beam.md`).
 
 ## NuGet packages
 
@@ -398,7 +450,7 @@ path-derived member roles (`lib`, `ref`, `runtimes`, and the other NuGet folder
 conventions). Missing, ambiguous, or malformed `.nuspec` members succeed with
 inventory and limitations. Encrypted members are listed and not extracted.
 Roles are folder conventions, not restore-time asset selection. See
-[NuGet packages](https://github.com/morluto/rea/blob/main/docs/guides/managed/nuget-nupkg.md).
+NuGet packages (REA repository: `docs/guides/managed/nuget-nupkg.md`).
 
 ## SQLite snapshots
 
@@ -413,7 +465,7 @@ Choose `row_limit` when a finite sample is useful and keep truncation and
 unspecified row order explicit. Virtual tables, shadow tables and views are
 schema facts, not row-read targets. REA inspects private copies and leaves
 the source files untouched; obtain a coherent quiescent database/WAL snapshot
-before inspection. See [SQLite snapshots](https://github.com/morluto/rea/blob/main/docs/guides/data/sqlite-databases.md).
+before inspection. See SQLite snapshots (REA repository: `docs/guides/data/sqlite-databases.md`).
 
 ## Recorded Linux crashes
 
@@ -428,7 +480,7 @@ The optional `include_debugger_context` facet adds mapping candidates through
 caller-supplied GDB/pwndbg in an owned core-only session. Display names do not
 establish current file identity; zero reported flags leave permissions unknown.
 Requested unavailable context fails with setup guidance. See
-[recorded crashes](https://github.com/morluto/rea/blob/main/docs/guides/native/recorded-crashes.md)
+recorded crashes (REA repository: `docs/guides/native/recorded-crashes.md`)
 for exact upstream profiles, bounds and verification coverage.
 
 ## Offline ELF layout
@@ -561,7 +613,7 @@ In ephemeral mode, choose a private absolute directory and set
 `REA_GHIDRA_CHECKPOINT_DIR` in the environment starting REA. Restart the MCP server
 after changing that launch configuration; no current tool call or runtime
 analysis-setting update enables it. Stock ELF/PE/Mach-O imports on Linux/macOS
-are supported; see the [checkpoint setup and limitations](https://github.com/morluto/rea/blob/main/docs/getting-started/installation.md#automatically-checkpoint-an-owned-ghidra-program).
+are supported; see the checkpoint setup and limitations (REA repository: `docs/getting-started/installation.md#automatically-checkpoint-an-owned-ghidra-program`).
 
 With the setting enabled, normal opens restore compatible saved Programs
 automatically. Initial completed analysis is saved, and `close_binary` saves
@@ -582,7 +634,7 @@ import overrides and repair scripts are unavailable in this mode. Treat original
 analysis completeness/settings as unknown and prior edits as caller-project state.
 The program's recorded import digest must match the target; changed project content
 requires reopening for a fresh profile. See the
-[setup and preparation guide](https://github.com/morluto/rea/blob/main/docs/getting-started/installation.md#reuse-an-existing-ghidra-project).
+setup and preparation guide (REA repository: `docs/getting-started/installation.md#reuse-an-existing-ghidra-project`).
 
 ## Ghidra startup deadline recovery
 
@@ -616,7 +668,7 @@ and memory controls in place. Disable specific expensive analyzers only when
 their missing coverage is acceptable and retain the resulting limitations.
 Exported C and embedded resources remain useful independent evidence, but a
 timeout does not establish complete analysis or absence of code. See the
-[deadline and client guide](https://github.com/morluto/rea/blob/main/docs/reference/mcp-contracts.md#ghidra-first-query-deadlines-and-recovery).
+deadline and client guide (REA repository: `docs/reference/mcp-contracts.md#ghidra-first-query-deadlines-and-recovery`).
 
 ## Bridge request ceiling
 
@@ -767,7 +819,7 @@ broader metadata recovery on Linux; it requires an explicitly configured
 NativeAOT JAR. These are separate routes. The built-in parser also runs on
 Windows Ghidra P0; read frozen literals from its report, because
 `search_strings` does not include them. See the
-[NativeAOT guide](https://github.com/morluto/rea/blob/main/docs/providers/ghidra-nativeaot.md)
+NativeAOT guide (REA repository: `docs/providers/ghidra-nativeaot.md`)
 for setup, supported layouts, and host restrictions. Preserve binary identity
 and distinguish derived metadata from Ghidra database observations. Recovered
 types and native pseudocode are not original C# source. Windows Ghidra P0 has
@@ -796,7 +848,7 @@ every executable in the bundle. It also lists missing or weak loads and earlier
 provides them.
 
 Use `extract_artifact` when materialized files from a supported format are needed.
-It extracts the active target and accepts optional `integrity_policy`; see the [MCP contracts](https://github.com/morluto/rea/blob/main/docs/reference/mcp-contracts.md).
+It extracts the active target and accepts optional `integrity_policy`; see the MCP contracts (REA repository: `docs/reference/mcp-contracts.md`).
 It materializes all regular files into a fresh temporary directory chosen by
 REA. Symlinks and encrypted entries are inventory facts, not extractable files.
 The result reports the materialized directory; callers do not choose the
@@ -812,7 +864,7 @@ units are not mapper/CPU bank maps; NES 2.0 RAM, timing and console values are
 header declarations. UNIF, dirty legacy headers, malformed NES 2.0 declarations
 and truncated payloads are explicitly refused. No emulator or 6502 analysis is
 performed. See the
-[iNES guide](https://github.com/morluto/rea/blob/main/docs/ines-containers.md).
+iNES guide (REA repository: `docs/ines-containers.md`).
 
 Native DMG traversal automatically uses a read-only mount on supported macOS
 hosts, with an owned temporary mount directory and cleanup. It needs no approval
@@ -830,7 +882,7 @@ image before trusting function analysis. A Ghidra ComLoader import records
 file offset zero) plus a zero-filled PSP placeholder at `0000:0000`. An image
 ComLoader rejects records `loader: "BinaryLoader"`, `load_address: "1000:0100"`
 (linear `0x10100`), and `loader_fallback.reason`. Segment context is imposed for
-analysis. PSP contents, stack, and device state remain unmodeled. See [DOS guide](https://github.com/morluto/rea/blob/main/docs/providers/ghidra-dos.md).
+analysis. PSP contents, stack, and device state remain unmodeled. See DOS guide (REA repository: `docs/providers/ghidra-dos.md`).
 
 Use `inspect_byte_entropy` to triage high- and low-entropy ranges before extraction.
 
@@ -844,14 +896,14 @@ otherwise. Big-endian ARM, Thumb-only, and Cortex-M variants are unsupported.
 `0x0000..0xffff`. 65C02, 65816, cartridge containers, bank switching, and mapper
 semantics are unsupported. `m68k` requires an even entry and decodes the 68040
 superset of the 68000 family; Amiga/Atari containers and vector-table entry
-discovery are unsupported. Windows Ghidra P0 admits raw images only for `6502`. See [raw binary guide](https://github.com/morluto/rea/blob/main/docs/providers/raw-binary.md).
+discovery are unsupported. Windows Ghidra P0 admits raw images only for `6502`. See raw binary guide (REA repository: `docs/providers/raw-binary.md`).
 
 Intel HEX, S-record, UF2 and DfuSe files are containers, not raw images:
 `inspect_artifact` lists address regions (UF2 per familyID, DfuSe per element
 with its alternate setting), and `extract_artifact` writes each region. Open an
 extracted region as `raw-binary` with its start address as `entry_point`. UF2
 numbering gaps leave coverage unknown; a DfuSe suffix CRC mismatch follows
-`integrity_policy`. See [UF2 and DfuSe](https://github.com/morluto/rea/blob/main/docs/uf2-dfuse.md).
+`integrity_policy`. See UF2 and DfuSe (REA repository: `docs/uf2-dfuse.md`).
 
 ### Function annotations in Ghidra
 
@@ -883,7 +935,7 @@ code pages, payload hashes and static icon-group references. Same-language icon
 resolution is explicit; missing references and size mismatch remain visible.
 Other payloads are opaque, and this operation does not decode images or simulate
 Windows resource loading. Consult the budgets and supported tree profile in
-[offline binary diagnostics](https://github.com/morluto/rea/blob/main/docs/guides/native/binary-diagnostics.md).
+offline binary diagnostics (REA repository: `docs/guides/native/binary-diagnostics.md`).
 
 ## Offline PE and ELF export tables
 
@@ -893,7 +945,7 @@ directory or ELF dynamic symbol table on any host without opening a native
 target. Ordinal-only, forwarded and hidden-version exports stay distinct;
 partial or unsupported coverage means the inventory is incomplete, not that
 exports are absent. Use `inspect_macho` for Mach-O. See
-[offline binary diagnostics](https://github.com/morluto/rea/blob/main/docs/guides/native/binary-diagnostics.md).
+offline binary diagnostics (REA repository: `docs/guides/native/binary-diagnostics.md`).
 
 For exact core-module import/export differences, use `compare_wasm_interfaces`
 with two complete inspection Evidence records (or current-session retained
@@ -920,7 +972,7 @@ coverage; encrypted members have unknown content identity. An empty filtered
 page cannot prove absence in unknown coverage. Retained views are historical,
 not fresh filesystem checks. No decryption, Godot resource decoding, GDScript
 decompilation or target execution is provided. See
-[Godot PCK](https://github.com/morluto/rea/blob/main/docs/godot-pck.md).
+Godot PCK (REA repository: `docs/godot-pck.md`).
 
 UnityFS AssetBundle containers (`.bundle`, `.ab`, YooAsset packages and other
 byte-identified files) list `CAB-*` SerializedFiles and `.resS` members with
@@ -930,21 +982,21 @@ coverage; LZMA member bytes retain named occurrences with unavailable hashes.
 Virtual member offsets are not physical carrier locations. Format 6–8 readers
 cache one decoded block and support retained filtered/paged views. No
 decryption or SerializedFile object decoding is provided. See
-[UnityFS](https://github.com/morluto/rea/blob/main/docs/unityfs.md).
+UnityFS (REA repository: `docs/unityfs.md`).
 
 WeChat mini-program packages (`.wxapkg` files with `0xBE`/`0xED` marks) list
 members with declared names and absolute carrier offsets; member bytes are
 stored verbatim. `V1MMWX` PC-client packages report `encrypted` directory
 status with unknown coverage and are refused on extraction; no decryption is
 attempted. See
-[wxapkg](https://github.com/morluto/rea/blob/main/docs/wxapkg.md).
+wxapkg (REA repository: `docs/wxapkg.md`).
 
 U-Boot legacy uImages use the same inspection/extraction workflows. Prefer a
 retained summary and selected inventory views for header facts or component
 IDs. Header addresses/CPU/OS are declarations; payloads remain as stored.
 Multi-file components retain their aligned physical ranges; the full payload
 is also materialized. Unknown name text retains its original 32 bytes. See
-[U-Boot uImage](https://github.com/morluto/rea/blob/main/docs/uimage.md).
+U-Boot uImage (REA repository: `docs/uimage.md`).
 
 Android boot, init_boot, recovery, and vendor_boot images use the same
 inspection and extraction workflows. `ANDROID!` versions 0-4 and `VNDRBOOT`
@@ -953,14 +1005,14 @@ not record whether an `ANDROID!` image is boot, init_boot, or recovery.
 Command lines and names are target-derived. gzip, lz4, and zstd payloads stay
 stored. The v4 signature and any AVB footer are reported with sizes and are
 not verified. Extract `dtb` and pass that file to `inspect_devicetree`. See
-[Android boot images](https://github.com/morluto/rea/blob/main/docs/android-boot-image.md).
+Android boot images (REA repository: `docs/android-boot-image.md`).
 
 Android A/B OTA `payload.bin` files (CrAU v2) use the same
 inspection/extraction workflows. Prefer a retained summary for header,
 partition table, dynamic groups and signature counts. Signatures are not
 verified. Reconstruct REPLACE, ZERO and REPLACE_ZSTD images only; delta
 operations stay inventoried with unavailable content. See
-[Android OTA update payloads](https://github.com/morluto/rea/blob/main/docs/guides/firmware/android-ota-payload.md).
+Android OTA update payloads (REA repository: `docs/guides/firmware/android-ota-payload.md`).
 
 ## ESP images
 
@@ -981,7 +1033,7 @@ from it. Erased flash is described. Integrity mismatches are facts, not
 refusals. ESP8266 images are refused, and flash-encrypted images are not
 recognized. Segments are not disassembled, and RISC-V or Xtensa segments
 cannot be opened as raw-binary. See
-[ESP images](https://github.com/morluto/rea/blob/main/docs/esp-image.md).
+ESP images (REA repository: `docs/esp-image.md`).
 
 ## ESP flash images
 
@@ -1007,7 +1059,7 @@ image, and a limitation says so. For a dump read from another flash address, cal
 relocated table can be named with `partition_table_offset`. No table found
 means unknown, often flash encryption. Extraction writes `nvs_keys` as
 ordinary data. See
-[ESP flash images](https://github.com/morluto/rea/blob/main/docs/esp-flash-image.md).
+ESP flash images (REA repository: `docs/esp-flash-image.md`).
 
 ## Bun standalone executables
 
@@ -1024,7 +1076,7 @@ output tree; route extracted JavaScript to `analyze_javascript_application`.
 Layout labels describe record shapes, not a detected compiler version; unknown
 or ambiguous layouts are unsupported. Bytecode is retained, not decoded, and the
 executable is never run. See
-[Bun standalone executables](https://github.com/morluto/rea/blob/main/docs/bun-standalone.md).
+Bun standalone executables (REA repository: `docs/bun-standalone.md`).
 
 ## Deno compile executables
 
@@ -1045,4 +1097,4 @@ decoded. `extract-artifact` writes
 stored files through the safe output tree; route extracted JavaScript to
 `analyze_javascript_application`. Other layouts are unsupported, and the
 executable is never run. See
-[Deno compile executables](https://github.com/morluto/rea/blob/main/docs/deno-standalone.md).
+Deno compile executables (REA repository: `docs/deno-standalone.md`).
